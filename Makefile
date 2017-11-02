@@ -43,9 +43,6 @@ mv	   = mv
 awk	   = awk
 R	   = R
 
-# Use either "report" or "paper", depending on the template.
-# To add a further target, simply append the basename of the .tex file here
-# NOTE: for the "simple" and "report" templates, uncomment the lualatex line above!
 Targets    = phd
 
 
@@ -64,7 +61,7 @@ SabreIncs=$(patsubst %,data/generated/sabre-%.inc,$(IncRoot))
 HaswellIncs=$(patsubst %,data/generated/haswell-%.inc,$(IncRoot))
 ExtraFigRoot= edf ipbench
 ExtraFigs= $(patsubst %,imgs/%.pdf,$(ExtraFigRoot)) $(ModeSwFigs)
-TexIncludes= $(SabreIncs) $(HaswellIncs)
+TexIncludes= $(SabreIncs) $(HaswellIncs) $(wildcard *.tex)
 # For ACM SIG camera ready submission. This will only work if Target
 # is a single identifier. You should then be able to use the "camera" target,
 # after setting CamRoot appropriately. Answer "no" for re-making references.bib

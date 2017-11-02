@@ -1,12 +1,82 @@
+%\documentclass[a4paper,twoside,openright,11pt]{book}
+\documentclass[a4paper,twoside,openright,11pt, bibliography=totocnumbered]{book}
 
-\documentclass[12pt,a4paper,twoside]{report}
-\usepackage[color]{disy}
+\usepackage[australian]{babel}
+\usepackage[english=british]{csquotes}
+
+\usepackage{gentium}
+\usepackage{libertine}
+\usepackage[T1]{fontenc}
+
+\usepackage{titlesec}
+
+\newcommand{\chapternumformat}[1]{%
+    {\hspace{3mm}\parbox[c]{0pt}{%
+     \fontfamily{gentium}\fontsize{80}{80}\selectfont%
+           {#1}}%
+    }}
+\titleformat
+{\chapter} %command
+[block] %shape
+{\Huge\bfseries}
+{\chapternumformat \thechapter}
+{80pt}
+{}
+[
+    \glsresetall
+    \rule{\textwidth}{0.45pt}
+]
+
+%\titleformat
+%{\chapter} % command
+%[block] % shape
+%{\bfseries\Huge} % format
+%{  \chapternumformat{\thechapter} } % label
+%{80pt} % sep
+%{
+%} % before-code
+%[
+%    \rule{\textwidth}{0.45pt}
+%] % after-code
+
+%
+% UNSW margin guidelines:
+%
+%   Top >= 30mm
+%   Bottom >= 20mm
+%   Left >= 40mm (do they mean inner?)
+%   Right >= 20mm (do they mean outer?)
+%
+\usepackage[
+        inner=36mm, % NOPRINT
+        outer=36mm, % NOPRINT
+        top=30mm,
+        bottom=35mm,
+        headsep=10mm,
+        headheight=20pt,
+        footskip=12mm,
+        includehead=false,
+        includefoot=false,
+        marginparwidth=30mm,
+        heightrounded=true
+        ]{geometry}
+
+\frenchspacing
+
+\usepackage{amsfonts}
+\usepackage[pdftex]{graphicx}
+\setkeys{Gin}{keepaspectratio=true,clip=true,draft=false,width=\linewidth}
+\graphicspath{{./imgs/}}
+\usepackage[nottoc,numbib]{tocbibind}
+
 \usepackage{setspace}
 \usepackage{datetime}
-\usepackage{graphicx}
+\newdateformat{monthyear}{\monthname[\THEMONTH] \THEYEAR}
+\usepackage[lastparline]{impnattypo}
+
+% maths
 \usepackage{amssymb}
 \usepackage{amsmath}
-\usepackage{amsfonts}
 \usepackage{pifont}
 \usepackage{gensymb}
 \usepackage[page]{appendix}
@@ -19,7 +89,7 @@
 \usepackage{array}
 %\usepackage[usenames,dvipsnames]{color}
 %\usepackage{colortbl}
-\usepackage{fancyhdr}
+%\usepackage{fancyhdr}
 \usepackage{pdfpages}
 \usepackage{tabularx}
 \usepackage{booktabs}
@@ -35,14 +105,9 @@
 \usepackage{pgfplots}
 \pgfplotsset{width=7cm,compat=1.8}
 \usepgfplotslibrary{ternary}
-\usepackage{titlesec}
-\titleformat{\chapter}[display]
-    {\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{20pt}{\Huge}[\glsresetall]
 %\newif \ifhyperlinks    \hyperlinkstrue
 %\newif \ifDraft         \Draftfalse
 \newif \ifDraft        \Drafttrue
-
-\setlength{\headheight}{14pt}
 
 \lstset{
     language=C,
@@ -50,10 +115,29 @@
     tabsize=4,
     captionpos=b,
     numbers=left,
-    basicstyle=\ttfamily
+    showstringspaces=false,
+    basicstyle=\small\ttfamily,
+    xleftmargin=6pt,
+    xrightmargin=6pt
 }
 \usetikzlibrary{automata,arrows,positioning,shapes}
 
+%
+% Capitalisation of cross references
+%
+\renewcommand{\figureautorefname}{Figure}
+\newcommand{\subfigureautorefname}{Figure}
+\renewcommand{\sectionautorefname}{Section}
+\renewcommand{\subsectionautorefname}{Section}
+\renewcommand{\subsubsectionautorefname}{Section}
+\renewcommand{\chapterautorefname}{Chapter}
+\renewcommand{\Hfootnoteautorefname}{Footnote}
+\newcommand*{\Appendixautorefname}{Appendix}
+\renewcommand{\theoremautorefname}{Lemma}
+\newcommand{\definitionautorefname}{Definition}
+
+
+\renewcommand{\ttdefault}{lmtt} % LM rather than courier for \tt
 \makeglossaries
 
 % commands
@@ -93,10 +177,7 @@
 % Put it around breakage-causing segments (in both versions to be diffed!)
 \newenvironment{DIFnomarkup}{}{}
 
-\usepackage{graphicx}
-\setkeys{Gin}{keepaspectratio=true,clip=true,draft=false,width=\linewidth}
-\graphicspath{{images/}}
-\usepackage{times,url,fancyhdr}
+\usepackage{times,url}
 \usepackage[square, sort]{natbib}
 \urlstyle{rm}
 \renewcommand{\ttdefault}{cmtt} % CM rather than courier for \tt
@@ -120,15 +201,6 @@
  % \providecommand{\href}[2]{\url{#2}}
 %\fi
 
-\pagestyle{fancyplain}
-\lhead[\fancyplain{}{\sl\thepage}]{\fancyplain{}{\sl\rightmark}}
-\chead{}
-\rhead[\fancyplain{}{\sl\leftmark}]{\fancyplain{}{\sl\thepage}}
-\lfoot[\fancyplain{\sl\thepage}{}]{}
-\cfoot{\ifDraft\textsf{Draft}\fi}
-\rfoot[]{\fancyplain{\sl\thepage}{}}
-
-
 %---- Itemized columns
 %\newcolumntype{i}[1]{%
 %    >{\minipage[t]{\linewidth}\let\\\tabularnewline
@@ -151,7 +223,29 @@
 %\Unit{School of Computer Science \& Engineering}
 %\SubUnit{Trustworthy Systems Group}
 
+%
+% Footnote styling.
+%
+
+% 10pt footnotes, per requirements
+\renewcommand{\footnotesize}{\fontsize{9}{10}\selectfont}
+
+% Frown upon splitting footnotes.
+\interfootnotelinepenalty=5000
+
+% Allow a bit of stretching at the bottom of the y neccessary.
+\makeatletter
+\def\@textbottom{\vskip\z@\@plus.1pt}
+\let\@texttop\relax
+\makeatother
+
+\title{Mixed-Criticality Scheduling 
+      and Resource Sharing for
+     High-Assurance Operating Systems}
+\author{Anna Lyons}
+%\AuthorEmail{Anna.Lyons@data61.csiro.au}
 \begin{document}
+\pagenumbering{roman}
 
 %  \ifhyperlinks
 %    %% Capitalisation of cross references
@@ -164,20 +258,22 @@
     %% Commands for index
  %   \newcommand{\Htextbf}[1]{\textbf{\hyperpage{#1}}}
  % \fi
+% Title page 
+\input{title}
 
 
-
-\title{Mixed-Criticality Scheduling and Resource Sharing for High-Assurance Operating Systems}
-\author{Anna Lyons, 3159415}
-\AuthorEmail{Anna.Lyons@data61.csiro.au}
-
-\maketitle
 \urlstyle{sf}
-\thispagestyle{empty}
+\pagestyle{plain}
 
-\begin{abstract}
-\pagenumbering{roman}
+%Abstract
+    
+\section*{Abstract}
+\vspace{10mm}
 
+
+\vspace{5mm}
+\begin{center}
+\begin{minipage}{.8\textwidth}
 Criticality of a software system refers to the severity of the impact of a failure.
 In a high-criticality system, failure risks significant loss of life or damage to the environment.
 In a low-criticality system, failure may risk a downgrade in user-experience.
@@ -185,19 +281,18 @@ Traditionally, systems of different criticality were isolated by hardware.
 This approach is no longer practical as it has proven inefficient and restrictive.
 The result is mixed-criticality systems, where software applications with different criticalities execute on the same hardware.
 Such systems go beyond standard temporal isolation and require asymmetric protection between applications of different criticalities.
+\end{minipage}
+\vspace{3mm}
 
+\begin{minipage}{.8\textwidth}
 Whilst there has been some momentum in real-time operating system (RTOS) research, the implications of mixed-criticality systems for OSes have not been fully explored.
 The goal of this project is to develop a mixed-criticality OS.
 Two key properties are required: first, time must be managed as a central resource of the system, while allowing for overbooking with asymmetric protection without increasing certification burdens.
 Second, components of different criticalities should be able to safely share resources without suffering undue utilisation penalties.
 The implementation platform will be the \selfour microkernel, which is built for the safety-critical, high assurance domain.
 
-\vfill
-
-\noindent
-\copyright~2017 Data61 and CSIRO
-\end{abstract}
-
+\end{minipage}
+\end{center}
 
 \tableofcontents
 \cleardoublepage
@@ -264,7 +359,7 @@ The implementation platform will be the \selfour microkernel, which is built for
 \newacronym{VM}{VM}{virtual machine}
 \newacronym{WCET}{WCET}{worst case execution time}
 \newacronym{ZS}{ZS}{zero slack}
-%\printglossary[type=\acronymtype]
+\printglossary[type=\acronymtype]
 \pagebreak
 
 %\input{sections/introduction}
