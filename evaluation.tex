@@ -19,8 +19,8 @@ operations.
 In addition to several load generators running Linux on experiments are conducted on:
 
 \begin{description}
-    \item[ARM:] quad-core 1\,GHz ARM Cortex~A9 system-on-chip on a Freescale i.MX6 SABRE Lite development board,
-    \item[x64:] quad-core 3.1\,GHz 64-bit Haswell i7-4770 machine.
+    \item[ARM:] Quad-core 1\,GHz ARM Cortex~A9 system-on-chip on a Freescale i.MX6 SABRE Lite development board,
+    \item[x64:] Quad-core 3.1\,GHz 64-bit Haswell i7-4770 machine.
 \end{description}
 
 
@@ -32,10 +32,10 @@ We first present a suite of microbenchmarks to evaluate any performane overheads
 
 \begin{table}[t]\centering
 \begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
-\textbf{Arch}           & \multicolumn{1}{c|}{\textbf{Op.}}
+\textbf{Arch}           & \multicolumn{1}{c|}{\textbf{Operation}}
                                 & \multicolumn{2}{c|}{\textbf{Base}}
                                 & \multicolumn{2}{c|}{\textbf{MCS}}
-                                & \multicolumn{2}{c|}{\textbf{O/H}} \\ \hline
+                                & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
 \multirow{5}{*}{ARM}
 \input{data/generated/sabre-micro.inc}
 \hline
@@ -113,7 +113,6 @@ runs at a low priority.
 \begin{figure}[t]
   \centering
     \includegraphics{redis-arch}
-    \caption{Networking}
     \label{f:redis-arch}
   \caption{Architecture of the networking benchmarks. Dotted lines
     are passive-server threads.}
@@ -126,8 +125,6 @@ runs at a low priority.
     \caption{Architecture of the ipbench benchmark. Dotted lines
     are passive-server threads.}
     \label{f:ipbench-arch}
-  \caption{
-  \label{f:benchmark-arch}
 \end{figure}
 
 

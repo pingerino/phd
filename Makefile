@@ -20,7 +20,7 @@ endif
 BIBDIR     ?= /home/disy/lib/BibTeX:../../../bibtex:../bibtex
 LaTeXEnv   = TEXINPUTS=".:/home/disy/lib/TeX:/home/disy/lib/ps:${TEXINPUTS}:"
 BibTexEnv  = BIBINPUTS=".:${BIBDIR}:${BIBINPUTS}:"
-BibFiles   = defs,extra,combined,systems,fm,other
+BibFiles   = defs,combined,systems,fm,other
 
 LaTeX      = ${LaTeXEnv} pdflatex -interaction=nonstopmode
 # Uncomment the following for the "report" and "simple" templates

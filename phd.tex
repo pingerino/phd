@@ -1,5 +1,4 @@
-%\documentclass[a4paper,twoside,openright,11pt]{book}
-\documentclass[a4paper,twoside,openright,11pt, bibliography=totocnumbered]{book}
+\documentclass[a4paper,twoside,openright,11pt]{book}
 
 \usepackage[australian]{babel}
 \usepackage[english=british]{csquotes}
@@ -177,7 +176,7 @@
 % Put it around breakage-causing segments (in both versions to be diffed!)
 \newenvironment{DIFnomarkup}{}{}
 
-\usepackage{times,url}
+\usepackage{url}
 \usepackage[square, sort]{natbib}
 \urlstyle{rm}
 \renewcommand{\ttdefault}{cmtt} % CM rather than courier for \tt
@@ -374,10 +373,9 @@ The implementation platform will be the \selfour microkernel, which is built for
 %\input{sections/conclusion}
 
 \cleardoublepage
-\addcontentsline{toc}{section}{References}
 \bibliographystyle{plainnat}
 %\bibliographystyle{my-abbrvnat}
 %\bibliographystyle{apalike}
-\bibliography{defs,references}{}
+\bibliography{references}
 
 \end{document}
