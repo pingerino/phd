@@ -98,10 +98,11 @@ def build_microbenchmark_dat(rt, baseline, arch):
                  ipc_result(b_ipc, 'seL4_ReplyRecv', 0, 254, 0))
 
 
-             #microbenchmark_row(out, 'slowpath', ipc_result(rt_ipc, 'seL4_Call', 10),
-             #    ipc_result(b_ipc, 'seL4_Call', 10))
-             #microbenchmark_row(out, 'replyrecv (slow)', ipc_result(rt_ipc, 'seL4_ReplyRecv', 10),
-             #    ipc_result(b_ipc, 'seL4_ReplyRecv', 10))
+             microbenchmark_row(out, 'call (slow)', ipc_result(rt_ipc, 'seL4_Call', 0, 254, 0),
+                 ipc_result(b_ipc, 'seL4_Call', 0, 254, 0))
+             microbenchmark_row(out, 'replyrecv (slow)', ipc_result(rt_ipc, 'seL4_ReplyRecv', 0,
+                 0, 254),
+                 ipc_result(b_ipc, 'seL4_ReplyRecv', 0, 0, 254))
 
 
 
@@ -110,9 +111,9 @@ def build_microbenchmark_dat(rt, baseline, arch):
              microbenchmark_row(out, 'IRQ lat.', rt_irq, b_irq)
 
              # signal
-             #rt_signal = getbenchmark(rt_content, 'Signal to low prio thread')[0]
-             #b_signal = getbenchmark(b_content, 'Signal to low prio thread')[0]
-             #microbenchmark_row(out, 'signal()', rt_signal, b_signal)
+             rt_signal = getbenchmark(rt_content, 'Signal to low prio thread')[0]
+             b_signal = getbenchmark(b_content, 'Signal to low prio thread')[0]
+             microbenchmark_row(out, 'signal()', rt_signal, b_signal)
 
 
              rt_signal = getbenchmark(rt_content, 'Average signal to low prio thread')[7]
@@ -120,9 +121,9 @@ def build_microbenchmark_dat(rt, baseline, arch):
              microbenchmark_row(out, 'signal', rt_signal, b_signal, True)
 
              # schedule
-             #rt_schedule = getbenchmark(rt_content, 'Signal to high prio thread')[0]
-             #b_schedule = getbenchmark(b_content, 'Signal to high prio thread')[0]
-             #microbenchmark_row(out, 'Schedule', rt_schedule, b_schedule)
+             rt_schedule = getbenchmark(rt_content, 'Signal to high prio thread')[0]
+             b_schedule = getbenchmark(b_content, 'Signal to high prio thread')[0]
+             microbenchmark_row(out, 'Schedule', rt_schedule, b_schedule)
 
              # average schedule
              rt = getbenchmark(rt_content, 'Average to reschedule current thread')[7]
@@ -130,22 +131,19 @@ def build_microbenchmark_dat(rt, baseline, arch):
              microbenchmark_row(out, 'schedule', rt, b, True)
 
              # yield
-             #rt_yield = getbenchmark(rt_content, 'Thread yield')[0]
-             #b_yield = getbenchmark(b_content, 'Thread yield')[0]
-             #microbenchmark_row(out, 'Yield()', rt_yield, b_yield)
+             rt_yield = getbenchmark(rt_content, 'Thread yield')[0]
+             b_yield = getbenchmark(b_content, 'Thread yield')[0]
+             microbenchmark_row(out, 'Yield()', rt_yield, b_yield)
 
-             #rt_yield = getbenchmark(rt_content, 'Average seL4_Yield (no thread switch)')[7]
-             #b_yield = getbenchmark(b_content, 'Average seL4_Yield (no thread switch)')[7]
-             #microbenchmark_row(out, 'yield*', rt_yield, b_yield)
+             rt_yield = getbenchmark(rt_content, 'Average seL4_Yield (no thread switch)')[7]
+             b_yield = getbenchmark(b_content, 'Average seL4_Yield (no thread switch)')[7]
+             microbenchmark_row(out, 'yield*', rt_yield, b_yield)
 
              # fault
-             #rt = getbenchmark(rt_content, 'fault round trip')[0]
-             #b = getbenchmark(b_content, 'fault round trip')[0]
-             #microbenchmark_row(out, 'fault', rt, b)
+             rt = getbenchmark(rt_content, 'fault round trip')[0]
+             b = getbenchmark(b_content, 'fault round trip')[0]
+             microbenchmark_row(out, 'fault', rt, b)
 
-             #rt = getbenchmark(rt_content, 'fault round trip (passive handler)')[0]
-             #b = getbenchmark(b_content, 'fault round trip')[0]
-             #microbenchmark_row(out, 'fault', rt, b)
 
 def aes_row(out, name, rt_aes_hot, rt_aes_cold, clk, formatstr):
     out.write(' & ')

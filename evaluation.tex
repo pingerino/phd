@@ -28,7 +28,9 @@ In addition to several load generators running Linux on experiments are conducte
 \section{Overheads}
 
 We first present a suite of microbenchmarks to evaluate any performane overheads against baseline seL4.
-
+For each benchmark we ensure \gls{FPU} context switching is off by performing the required number of
+without activating it such that the kernel will cease switching the FPU context.
+\Cref{t:micro} shows the results, and we explore each benchmark in the following sections.
 
 \begin{table}[t]\centering
 \begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
@@ -51,18 +53,30 @@ We first present a suite of microbenchmarks to evaluate any performane overheads
 \label{t:micro}
 \end{table}
 
-\autoref{t:micro} shows the cost of the (performance-wise) most
-important kernel operations of our present implementation (MCS), compared to
-the baseline seL4 kernel (base). \code{call()} is the client-style
-invocation, which sends a message to an IPC endpoint (port),
- blocking until it receives until receiving a reply. The server-style operation \code{replyrecv()}
-replies to a previous message by invoking the resume object and then blocks, waiting for the next
-incoming request. The cost of these operations increases by a few percent on each platform,
+\subsection{IPC performance}
+
+\subsection{Fastpath}
+To evaluate IPC performance we set up a client (the caller) and server (the callee). We take
+timestamps on either side of the IPC operation being benchmarked and record the difference. This is
+done 16 times for each result value to warm up the cache, then record the next value. Results
+presented are for performing this a total of 16 times. Additionally, we measure the overhead of
+system calls stubs in the same way and subtract this from the measurement, to obtain only the kernel
+cost of the operation.
+
+This is done for both directions of IPC, as described in \Cref{sec:seL4-api}. 
+ The cost of these operations increases by a few percent on each platform,
 resulting from extra checks on the fastpath to
 accommodate scheduling contexts, an extra capability lookup for the Resume object, touching two
 separate new objects (SCO and Resume object) and enforcing priorities
 on IPC delivery (baseline does FIFO).
 
+
+
+\autoref{t:micro} shows the cost of the (performance-wise) most
+important kernel operations of our present implementation (MCS), compared to
+the baseline seL4 kernel (base). \code{call()} is the client-style
+invocation, which sends a message to an IPC endpoint (port),
+ blocking until it receives until receiving a reply.
 We measure IRQ latency using two thread, one spinning in a loop
 updating a volatile cycle counter, the other, higher priority thread
 waiting for an interrupt. On delivery, the handler thread determines the
