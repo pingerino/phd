@@ -1,0 +1,288 @@
+
+\documentclass[12pt,a4paper,twoside]{report}
+\usepackage[color]{disy}
+\usepackage{setspace}
+\usepackage{datetime}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{pifont}
+\usepackage{gensymb}
+\usepackage[page]{appendix}
+\usepackage{longtable}
+\usepackage{mathptmx}
+\usepackage[acronym,toc,nomain]{glossaries}
+\usepackage[pdftex,bookmarks=true,bookmarksnumbered]{hyperref}
+\usepackage{cleveref}
+\usepackage{subfig}
+\usepackage{array}
+%\usepackage[usenames,dvipsnames]{color}
+%\usepackage{colortbl}
+\usepackage{fancyhdr}
+\usepackage{pdfpages}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{tikz}
+\usepackage{listings}
+\usepackage{xspace}
+\usepackage{courier}
+\usepackage{enumitem}
+\usepackage{multirow}
+\usepackage{verbatim}
+\usepackage{pgfgantt}
+\usepackage{pgfplots}
+\pgfplotsset{width=7cm,compat=1.8}
+\usepgfplotslibrary{ternary}
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+    {\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{20pt}{\Huge}[\glsresetall]
+%\newif \ifhyperlinks    \hyperlinkstrue
+%\newif \ifDraft         \Draftfalse
+\newif \ifDraft        \Drafttrue
+
+\setlength{\headheight}{14pt}
+
+\lstset{
+    language=C,
+    stepnumber=1,
+    tabsize=4,
+    captionpos=b,
+    numbers=left,
+    basicstyle=\ttfamily
+}
+\usetikzlibrary{automata,arrows,positioning,shapes}
+
+\makeglossaries
+
+% commands
+\newcommand{\yes}{\checkmark}
+\newcommand{\no}{\hspace{1pt}\ding{55}}
+
+% sel4 system call shortcuts
+\newcommand{\call}     {\texttt{seL4\_Call}\xspace}
+\newcommand{\send}     {\texttt{seL4\_Send}\xspace}
+\newcommand{\wait}     {\texttt{seL4\_Wait}\xspace}
+\newcommand{\nbsend}   {\texttt{seL4\_NBSend}\xspace}
+\newcommand{\reply}    {\texttt{seL4\_Reply}\xspace}
+\newcommand{\replyrecv}{\texttt{seL4\_ReplyRecv}\xspace}
+\newcommand{\yield}    {\texttt{seL4\_Yield}\xspace}
+\newcommand{\sendwait} {\texttt{seL4\_SendWait}\xspace}
+
+
+\newcommand{\replywait}{\texttt{seL4\_ReplyWait}\xspace}
+\newcommand{\recv}{\texttt{seL4\_Recv}\xspace}
+
+
+\newcommand{\selfour}{seL4\xspace} % use as normal text, examples below.
+\newcommand{\hires}{\textsc{HiRes}\xspace}
+\newcommand{\litmus}{\textsc{litmus\textsuperscript{RT}}\xspace}
+\newcommand{\flare}{FlaRe\xspace}
+\newcommand{\composite}{\textsc{Composite}\xspace}
+\newcommand{\schedfifo}{\texttt{SCHED\_FIFO}\xspace}
+\newcommand{\schedrr}{\texttt{SCHED\_RR}\xspace}
+\newcommand{\schedsporadic}{\texttt{SCHED\_SPORADIC}\xspace}
+\newcommand{\noprioinherit}{\texttt{NO\_PRIO\_INHERIT}\xspace}
+\newcommand{\prioinherit}{\texttt{PRIO\_INHERIT}\xspace}
+\newcommand{\prioprotect}{\texttt{PRIO\_PROTECT}\xspace}
+
+\newcommand{\code}[1]{\texttt{#1}\xspace}
+\newcommand{\crit}[1]{\textsc{#1}\xspace}
+% Leave this in here, it is often useful to deal with latexdiff breakage.
+% Put it around breakage-causing segments (in both versions to be diffed!)
+\newenvironment{DIFnomarkup}{}{}
+
+\usepackage{graphicx}
+\setkeys{Gin}{keepaspectratio=true,clip=true,draft=false,width=\linewidth}
+\graphicspath{{images/}}
+\usepackage{times,url,fancyhdr}
+\usepackage[square, sort]{natbib}
+\urlstyle{rm}
+\renewcommand{\ttdefault}{cmtt} % CM rather than courier for \tt
+
+\ifDraft
+  \usepackage{draftcopy}
+  \newcommand{\Comment}[1]{\textbf{\textsl{#1}}}
+  \newcommand{\FIXME}[1]{\textbf{\textsl{FIXME: #1}}}
+  \newcommand{\TODO}[1]{\textbf{\textsl{TODO: #1}}}
+  %\date{\small$\relax$Id: paper.tex,v 1.22 2008-07-19 08:14:55 gernot Exp $\relax$}
+\else
+  \newcommand{\Comment}[1]{\relax}
+  \newcommand{\FIXME}[1]{\relax}
+  \newcommand{\TODO}[1]{\relax}
+  \date{}
+\fi
+
+%\ifhyperlinks
+%  \hypersetup{linktocpage} %,colorlinks}
+%\else
+ % \providecommand{\href}[2]{\url{#2}}
+%\fi
+
+\pagestyle{fancyplain}
+\lhead[\fancyplain{}{\sl\thepage}]{\fancyplain{}{\sl\rightmark}}
+\chead{}
+\rhead[\fancyplain{}{\sl\leftmark}]{\fancyplain{}{\sl\thepage}}
+\lfoot[\fancyplain{\sl\thepage}{}]{}
+\cfoot{\ifDraft\textsf{Draft}\fi}
+\rfoot[]{\fancyplain{\sl\thepage}{}}
+
+
+%---- Itemized columns
+%\newcolumntype{i}[1]{%
+%    >{\minipage[t]{\linewidth}\let\\\tabularnewline
+%    \itemize[leftmargin=0.3cm]
+%      \addtolength{\rightskip}{0pt plus 50pt}% for raggedright
+%      \setlength{\itemsep}{-\parsep}}%
+%      p{#1}%
+%    <{\enditemize\endminipage}}
+%\makeatother
+
+\newcolumntype{i}[1]{%
+    >{
+\itemize[leftmargin=0.3cm]}
+			p{#1}%
+		<{\enditemize}}
+
+\newcommand{\itemcol}[1] {
+		\multicolumn{1}{i{5cm}|}{#1}
+}
+%\Unit{School of Computer Science \& Engineering}
+%\SubUnit{Trustworthy Systems Group}
+
+\begin{document}
+
+%  \ifhyperlinks
+%    %% Capitalisation of cross references
+%    \renewcommand{\chapterautorefname}{Chapter}
+%    \renewcommand{\sectionautorefname}{Section}
+ %   \renewcommand{\subsectionautorefname}{Section}
+ %   \renewcommand{\subsubsectionautorefname}{Section}
+ %   \renewcommand{\appendixautorefname}{Appendix}
+ %   \renewcommand{\Hfootnoteautorefname}{Footnote}
+    %% Commands for index
+ %   \newcommand{\Htextbf}[1]{\textbf{\hyperpage{#1}}}
+ % \fi
+
+
+
+\title{Mixed-Criticality Scheduling and Resource Sharing for High-Assurance Operating Systems}
+\author{Anna Lyons, 3159415}
+\AuthorEmail{Anna.Lyons@data61.csiro.au}
+
+\maketitle
+\urlstyle{sf}
+\thispagestyle{empty}
+
+\begin{abstract}
+\pagenumbering{roman}
+
+Criticality of a software system refers to the severity of the impact of a failure.
+In a high-criticality system, failure risks significant loss of life or damage to the environment.
+In a low-criticality system, failure may risk a downgrade in user-experience.
+Traditionally, systems of different criticality were isolated by hardware.
+This approach is no longer practical as it has proven inefficient and restrictive.
+The result is mixed-criticality systems, where software applications with different criticalities execute on the same hardware.
+Such systems go beyond standard temporal isolation and require asymmetric protection between applications of different criticalities.
+
+Whilst there has been some momentum in real-time operating system (RTOS) research, the implications of mixed-criticality systems for OSes have not been fully explored.
+The goal of this project is to develop a mixed-criticality OS.
+Two key properties are required: first, time must be managed as a central resource of the system, while allowing for overbooking with asymmetric protection without increasing certification burdens.
+Second, components of different criticalities should be able to safely share resources without suffering undue utilisation penalties.
+The implementation platform will be the \selfour microkernel, which is built for the safety-critical, high assurance domain.
+
+\vfill
+
+\noindent
+\copyright~2017 Data61 and CSIRO
+\end{abstract}
+
+
+\tableofcontents
+\cleardoublepage
+\setcounter{page}{1}
+\pagenumbering{arabic}
+
+% keep sorted
+%\section{Acronymns}
+\newacronym{API}{API}{application programming interface}
+\newacronym[firstplural={certification authorities (CAs)}]{CA}{CA}{certification authority}
+\newacronym{BWI}{BWI}{bandwidth inheritance}
+\newacronym{CBS}{CBS}{constant bandwidth server}
+\newacronym{CFS}{CFS}{completely fair scheduler}
+\newacronym{CPU}{CPU}{central processing unit}
+\newacronym{DBF}{DBF}{demand bound function}
+\newacronym{DM}{DM}{deadline monotonic}
+\newacronym{DMA}{DMA}{direct memory access}
+\newacronym{DOS}{DOS}{denial of service}
+\newacronym{DS}{DS}{deferrable server}
+\newacronym{EDF}{EDF}{earliest deadline first}
+\newacronym{FIFO}{FIFO}{first-in first-out}
+\newacronym{FRT}{FRT}{firm real-time}
+\newacronym{FP}{FP}{fixed priority}
+\newacronym{FPU}{FPU}{floating point unit}
+\newacronym{FPRM}{FPRM}{fixed-priority rate monotonic}
+\newacronym{HLP}{HLP}{highest lockers protocol}
+\newacronym{HRT}{HRT}{hard real-time}
+\newacronym{HRM}{HRM}{hierarchical resource management}
+\newacronym{HTM}{HTM}{hardware transactional memory}
+\newacronym{IPC}{IPC}{inter-process communication}
+\newacronym{IRQ}{IRQ}{interrupt request}
+\newacronym{ISR}{ISR}{interrupt service routine}
+\newacronym{MCAR}{MCAR}{Mixed Criticality Architecture Requirements}
+\newacronym{MMU}{MMU}{memory management unit}
+\newacronym{MPU}{MPU}{memory protection unit}
+\newacronym{MPISS}{MPISS}{Max Planck Institute for Software Systems}
+\newacronym{NCET}{NCET}{nominal-case execution time}
+\newacronym{NCP}{NCP}{non-preemptive critical sections protocol}
+\newacronym{NRT}{NRT}{non real-time}
+\newacronym{OCET}{OCET}{overloaded-case execution time}
+\newacronym[firstplural={operating systems (OSes)},plural={OSes}]{OS}{OS}{operating system}
+\newacronym{PCP}{PCP}{priority ceiling protocol}
+\newacronym{PIP}{PIP}{priority inheritance protocol}
+\newacronym{POSIX}{POSIX}{portable operating system interface}
+\newacronym{RBED}{RBED}{rate-based earliest deadline first}
+\newacronym{RM}{RM}{rate monotonic}
+\newacronym{RPC}{RPC}{remote procedure call}
+\newacronym{RTAS}{RTAS}{Real-Time and Embedded Technology and Applications Symposium}
+\newacronym{RTSS}{RTSS}{Real-Time Systems Symposium}
+\newacronym[plural={RTOSes}]{RTOS}{RTOS}{real-time operating system}
+\newacronym{QoS}{QoS}{quality of service}
+\newacronym{RTA}{RTA}{response time analysis}
+\newacronym{SMP}{SMP}{symmetric multiprocessor}
+\newacronym{SRT}{SRT}{soft real-time}
+\newacronym{SoC}{SoC}{system on Chip}
+\newacronym{SCO}{SCO}{scheduling context object}
+\newacronym{SOSP}{SOSP}{Symposium on Operating Systems Principles}
+\newacronym{SS}{SS}{sporadic server}
+\newacronym{SWaP}{SWaP}{size, weight and power}
+\newacronym{TCB}{TCB}{thread control block}
+\newacronym{TLB}{TLB}{translation lookaside buffer}
+\newacronym{UAV}{UAV}{unmanned aerial vehicle}
+\newacronym{UDP}{UDP}{User Datagram Protocol}
+\newacronym{VM}{VM}{virtual machine}
+\newacronym{WCET}{WCET}{worst case execution time}
+\newacronym{ZS}{ZS}{zero slack}
+%\printglossary[type=\acronymtype]
+\pagebreak
+
+%\input{sections/introduction}
+%\input{sections/background}
+%\input{sections/scheduling}
+%\input{sections/resource-sharing}
+%\input{sections/operating-systems}
+%\input{sections/seL4}
+%\input{sections/model}
+%\input{sections/implementation}
+\input{evaluation}
+%\input{sections/conclusion}
+
+\cleardoublepage
+\addcontentsline{toc}{section}{References}
+\bibliographystyle{plainnat}
+%\bibliographystyle{my-abbrvnat}
+%\bibliographystyle{apalike}
+\bibliography{defs,references}{}
+
+\end{document}

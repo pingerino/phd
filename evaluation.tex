@@ -1,0 +1,52 @@
+\chapter{Evaluation}
+\label{chap:evaluation}
+
+Questions the evaluation needs to answer:
+
+\begin{enumerate}
+\item Show the implementations do not impose undue performance overheads on standard microkernel
+operations.
+\item Show that criticality mode switch is bounded by high criticality threads.
+\item Show the cost of various timeout exception recovery mechanisms.
+\item Show that temporal isolation is achieved.
+\item Show that deadlines can be met during and after a mode switch.
+\item Show the API is pracitcal and consistent with existing frameworks for critical software.
+\end{enumerate}
+
+\section{Hardware}
+
+% describe benchmark setup, details of each hardware platform
+In addition to several load generators running Linux on experiments are conducted on:
+
+\begin{description}
+    \item[ARM:] quad-core 1\,GHz ARM Cortex~A9 system-on-chip on a Freescale i.MX6 SABRE Lite development board,
+    \item[x64:] quad-core 3.1\,GHz 64-bit Haswell i7-4770 machine.
+\end{description}
+
+
+
+\section{Overheads}
+
+We first present a suite of microbenchmarks to evaluate any performane overheads against baseline seL4.
+
+
+\begin{table}[t]\centering
+\begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
+\textbf{Arch}           & \multicolumn{1}{c|}{\textbf{Op.}}
+                                & \multicolumn{2}{c|}{\textbf{Base}}
+                                & \multicolumn{2}{c|}{\textbf{MCS}}
+                                & \multicolumn{2}{c|}{\textbf{O/H}} \\ \hline
+\multirow{5}{*}{ARM}
+\input{data/generated/sabre-micro.inc}
+\hline
+\multirow{6}{*}{x64}
+\input{data/generated/haswell-micro.inc}
+& SMP xput & \multicolumn{2}{l|}{1,454,260} & \multicolumn{2}{l|}{1,389,198} & 65k & 4.6\% \\
+\hline
+\end{tabular}
+\caption{Microbenchmarks (cycles) of seL4 baseline vs. MCS kernels,
+  standard deviations are shown in brackets. ``*''~indicates an
+  average benchmark of 10,000 runs as single measurements showed very
+  high variance due to pipeline effects on our hardware.}
+\label{t:micro}
+\end{table}
