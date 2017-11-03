@@ -13,8 +13,10 @@ def getbenchmark(json, name):
     print(name)
     return next(x for x in json if x['Benchmark'] == name)['Results']
 
-def ipc_result(json, name, length, client, server):
-    return next(x for x in json if x['Function'] == name and not x['Same vspace?'] and x['IPC length'] == length and x['Client Prio'] == client and x['Server Prio'] == server)
+def ipc_result(json, name, length, client, server, passive=True):
+    return next(x for x in json if x['Function'] == name and not x['Same vspace?'] and 
+            x['IPC length'] == length and x['Client Prio'] == client and x['Server Prio'] == server and
+        ('passive?' not in x.keys() or x['passive?'] == passive))
 
 
 def crit_row(row, output):
@@ -84,65 +86,71 @@ def microbenchmark_row(out, name, rt, b, average=False):
     out.write('\% \\\\ \\cline{2-6}\n')
 
 def build_microbenchmark_dat(rt, baseline, arch):
-    with open(rt, 'r') as rt_json, open(baseline, 'r') as b_json, open(os.path.join(os.getcwd(), DATA_DIR, arch + '-micro.inc'), 'w') as out:
-             out.write('%Operation\tBaseline\tRT\tDiff\tOverhead\n')
-             # call
-             rt_content = json.load(rt_json)
-             b_content = json.load(b_json)
-             rt_ipc = getbenchmark(rt_content, 'One way IPC microbenchmarks')
-             b_ipc = getbenchmark(b_content, 'One way IPC microbenchmarks')
+    with open(rt, 'r') as rt_json, open(baseline, 'r') as b_json:
+     
+        rt_content = json.load(rt_json)
+        b_content = json.load(b_json)
 
-             microbenchmark_row(out, 'call', ipc_result(rt_ipc, 'seL4_Call', 0, 0, 254),
-                 ipc_result(b_ipc, 'seL4_Call', 0, 0, 254))
-             microbenchmark_row(out, 'replyrecv', ipc_result(rt_ipc, 'seL4_ReplyRecv', 0, 254, 0),
-                 ipc_result(b_ipc, 'seL4_ReplyRecv', 0, 254, 0))
+        # ipc data table
+        with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-ipc-micro.inc'), 'w') as out:
+            rt_ipc = getbenchmark(rt_content, 'One way IPC microbenchmarks')
+            b_ipc = getbenchmark(b_content, 'One way IPC microbenchmarks')
+            out.write('%Operation\tBaseline\tRT\tDiff\tOverhead\n')
+            # call
+            microbenchmark_row(out, 'call', ipc_result(rt_ipc, 'seL4_Call', 0, 0, 254), ipc_result(b_ipc, 'seL4_Call', 0, 0, 254))
+            microbenchmark_row(out, 'replyrecv', ipc_result(rt_ipc, 'seL4_ReplyRecv', 0, 254, 0), ipc_result(b_ipc, 'seL4_ReplyRecv', 0, 254, 0))
+            microbenchmark_row(out, 'call (slow)', ipc_result(rt_ipc, 'seL4_Call', 0, 254, 0), ipc_result(b_ipc, 'seL4_Call', 0, 254, 0))
+            microbenchmark_row(out, 'replyrecv (slow)', ipc_result(rt_ipc, 'seL4_ReplyRecv', 0, 0, 254), ipc_result(b_ipc, 'seL4_ReplyRecv', 0, 0, 254))
+    
+            microbenchmark_row(out, 'call (slow, active)', ipc_result(rt_ipc, 'seL4_Call', 0, 254,
+                0, passive=False),
+                    ipc_result(b_ipc, 'seL4_Call', 0, 254, 0))
+            microbenchmark_row(out, 'replyrecv (slow, active)', ipc_result(rt_ipc, 'seL4_ReplyRecv',
+                0, 254,
+                0, passive=False), ipc_result(b_ipc, 'seL4_ReplyRecv', 0, 0, 254))
+            # fault
+            rt = getbenchmark(rt_content, 'faulter -> fault handler')[0]
+            b = getbenchmark(b_content, 'faulter -> fault handler')[0]
+            microbenchmark_row(out, 'fault', rt, b)
+             
+            rt = getbenchmark(rt_content, 'fault handler -> faulter')[0]
+            b = getbenchmark(b_content, 'fault handler -> faulter')[0]
+            microbenchmark_row(out, 'fault reply', rt, b)
+            # TODO add non-passive numbers 
 
+        with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-irq-micro.inc'), 'w') as out:
+            rt_irq = getbenchmark(rt_content, 'IRQ path cycle count (measured from user level)')[1]
+            b_irq = getbenchmark(b_content, 'IRQ path cycle count (measured from user level)')[1]
+            microbenchmark_row(out, 'IRQ lat.', rt_irq, b_irq)
 
-             microbenchmark_row(out, 'call (slow)', ipc_result(rt_ipc, 'seL4_Call', 0, 254, 0),
-                 ipc_result(b_ipc, 'seL4_Call', 0, 254, 0))
-             microbenchmark_row(out, 'replyrecv (slow)', ipc_result(rt_ipc, 'seL4_ReplyRecv', 0,
-                 0, 254),
-                 ipc_result(b_ipc, 'seL4_ReplyRecv', 0, 0, 254))
+            # signal
+            rt_signal = getbenchmark(rt_content, 'Signal to low prio thread')[0]
+            b_signal = getbenchmark(b_content, 'Signal to low prio thread')[0]
+            microbenchmark_row(out, 'signal()', rt_signal, b_signal)
 
+            rt_signal = getbenchmark(rt_content, 'Average signal to low prio thread')[7]
+            b_signal = getbenchmark(b_content, 'Average signal to low prio thread')[7]
+            microbenchmark_row(out, 'signal', rt_signal, b_signal, True)
 
+        with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-schedule-micro.inc'), 'w') as out:
+            # schedule
+            rt_schedule = getbenchmark(rt_content, 'Signal to high prio thread')[0]
+            b_schedule = getbenchmark(b_content, 'Signal to high prio thread')[0]
+            microbenchmark_row(out, 'Schedule', rt_schedule, b_schedule)
 
-             rt_irq = getbenchmark(rt_content, 'IRQ path cycle count (measured from user level)')[1]
-             b_irq = getbenchmark(b_content, 'IRQ path cycle count (measured from user level)')[1]
-             microbenchmark_row(out, 'IRQ lat.', rt_irq, b_irq)
+            # average schedule
+            rt = getbenchmark(rt_content, 'Average to reschedule current thread')[7]
+            b = getbenchmark(b_content, 'Average to reschedule current thread')[7]
+            microbenchmark_row(out, 'schedule', rt, b, True)
 
-             # signal
-             rt_signal = getbenchmark(rt_content, 'Signal to low prio thread')[0]
-             b_signal = getbenchmark(b_content, 'Signal to low prio thread')[0]
-             microbenchmark_row(out, 'signal()', rt_signal, b_signal)
+            # yield
+            rt_yield = getbenchmark(rt_content, 'Thread yield')[0]
+            b_yield = getbenchmark(b_content, 'Thread yield')[0]
+            microbenchmark_row(out, 'Yield()', rt_yield, b_yield)
 
-
-             rt_signal = getbenchmark(rt_content, 'Average signal to low prio thread')[7]
-             b_signal = getbenchmark(b_content, 'Average signal to low prio thread')[7]
-             microbenchmark_row(out, 'signal', rt_signal, b_signal, True)
-
-             # schedule
-             rt_schedule = getbenchmark(rt_content, 'Signal to high prio thread')[0]
-             b_schedule = getbenchmark(b_content, 'Signal to high prio thread')[0]
-             microbenchmark_row(out, 'Schedule', rt_schedule, b_schedule)
-
-             # average schedule
-             rt = getbenchmark(rt_content, 'Average to reschedule current thread')[7]
-             b = getbenchmark(b_content, 'Average to reschedule current thread')[7]
-             microbenchmark_row(out, 'schedule', rt, b, True)
-
-             # yield
-             rt_yield = getbenchmark(rt_content, 'Thread yield')[0]
-             b_yield = getbenchmark(b_content, 'Thread yield')[0]
-             microbenchmark_row(out, 'Yield()', rt_yield, b_yield)
-
-             rt_yield = getbenchmark(rt_content, 'Average seL4_Yield (no thread switch)')[7]
-             b_yield = getbenchmark(b_content, 'Average seL4_Yield (no thread switch)')[7]
-             microbenchmark_row(out, 'yield*', rt_yield, b_yield)
-
-             # fault
-             rt = getbenchmark(rt_content, 'fault round trip')[0]
-             b = getbenchmark(b_content, 'fault round trip')[0]
-             microbenchmark_row(out, 'fault', rt, b)
+            rt_yield = getbenchmark(rt_content, 'Average seL4_Yield (no thread switch)')[7]
+            b_yield = getbenchmark(b_content, 'Average seL4_Yield (no thread switch)')[7]
+            microbenchmark_row(out, 'yield*', rt_yield, b_yield)
 
 
 def aes_row(out, name, rt_aes_hot, rt_aes_cold, clk, formatstr):

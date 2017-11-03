@@ -56,7 +56,7 @@ Targets    = phd
 # but should appear here with just the .pdf extension.
 ModeSwRoot=all up
 ModeSwFigs=$(patsubst %,imgs/mode-switch-%.pdf,$(ModeSwRoot)) 
-IncRoot=aes micro
+IncRoot=aes ipc-micro schedule-micro irq-micro
 SabreIncs=$(patsubst %,data/generated/sabre-%.inc,$(IncRoot))
 HaswellIncs=$(patsubst %,data/generated/haswell-%.inc,$(IncRoot))
 ExtraFigRoot= edf ipbench
@@ -312,6 +312,7 @@ $(Bib): $(addsuffix .tex, $(Targets))
 	${Q}if ! test -e $*.bbl || test $(Bib) -nt $*.bbl; then rm -f $*.bbl; fi
 	@echo "====> LaTeX first pass: $(<)"
 	${Q}$(LaTeX) $< >.log || if egrep -q $(Error) $*.log ; then cat .log; rm $@; false ; fi
+	${Q}makeglossaries $(basename $<) > .log
 	${Q}if egrep -q $(Rerun_Bib) $*.log ; then echo "====> BibTex" && ( $(BibTeX) $* > .log || ( cat .log ; false ) ) && echo "====> LaTeX BibTeX pass" && $(LaTeX) >.log $< || if egrep -q $(Error) $*.log ; then cat .log; rm $@; false ; fi ; fi
 	${Q}if egrep -q $(Rerun) $*.log ; then echo "====> LaTeX rerun" && $(LaTeX) >.log $<; fi
 	${Q}if egrep -q $(Rerun) $*.log ; then echo "====> LaTeX rerun" && $(LaTeX) >.log $<; fi
@@ -320,6 +321,7 @@ $(Bib): $(addsuffix .tex, $(Targets))
 	@egrep -i $(Undefined) $*.log || echo "None."
 	@echo "====> Dimensions:"
 	@grep "dimension:" $*.log || echo "None."
+	@texcount *.tex
 
 ##############################################################################
 # Generate a list of FIXMEs
