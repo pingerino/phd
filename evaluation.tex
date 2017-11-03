@@ -30,31 +30,16 @@ For each benchmark we ensure \gls{FPU} context switching is off by performing th
 without activating it such that the kernel will cease switching the FPU context. We present
 overheads on IPC operations, signalling and irqs, and finally scheduling. 
 
+For each of the benchmarks in this section, we measure the cost of measurement, which is reading the
+cycle counter, and subtract that from the final measurement.
+
 % TODO measure the cost to reprogram the timer, read the timer
 
 \subsection{IPC performance}
 
 \Gls{IPC} performance is a critical measure of the practicality and efficiency of a
 microkernel~\citep{Liedtke_95}. We benchmark our \gls{IPC} operations against base system, \selfour,
-which has established performant \gls{IPC} fastpath~\citep{Elphinstone_Heiser_13}. 
-
-\begin{table}[ht]\centering
-\begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
-\textbf{Arch}           & \multicolumn{1}{c|}{\textbf{Operation}}
-                                & \multicolumn{2}{c|}{\textbf{Base}}
-                                & \multicolumn{2}{c|}{\textbf{MCS}}
-                                & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
-\multirow{7}{*}{ARM}
-\input{data/generated/sabre-ipc-micro.inc}
-\hline
-\multirow{7}{*}{x64}
-\input{data/generated/haswell-ipc-micro.inc}
-\hline
-\end{tabular}
-\caption{Microbenchmarks of seL4 IPC costs on seL4 baseline vs. MCS kernels. Standard deviations
-shown in brackets.}
-\label{t:micro}
-\end{table}
+which has an established performant \gls{IPC} fastpath~\citep{Elphinstone_Heiser_13}. 
 
 To evaluate IPC performance we set up a client (the caller) and server (the callee) in different
 address spaces. We take
@@ -63,35 +48,14 @@ done 16 times for each result value to prime the cache, then record the next val
 presented are for performing this a total of 16 times. Additionally, we measure the overhead of
 system calls stubs in the same way and subtract this from the measurement, to obtain only the kernel
 cost of the operation\footnote{The IPC bencharmarks already existed for seL4, but were modified to
-support the \gls{MCS} abi during the work for this thesis}. The message sent is zero length, so not
+    support the \gls{MCS} kernel during the work for this thesis}. The message sent is zero length, so not
 neither the caller or callee's \gls{IPC} buffer acessed.
 This is done for both directions of IPC, as described in \Cref{sec:seL4-api}. 
 
-We evaluate the \gls{IPC} fastpath and various slowpaths: slowpath between passive threads and
-active threads, and the fault path, where the caller is the faulting process and the callee is the
-fault handler.
+We evaluate the \gls{IPC} fastpath and two slowpath variants: slowpath between passive threads and
+active threads.
 
-Fastpath results for \call and \replyrecv increase by a few percent on each platform,
-resulting from extra checks on the fastpath to
-accommodate scheduling contexts, an extra capability lookup for the Resume object, touching two
-separate new objects (\gls{SCO} and Resume object) and enforcing priorities
-on IPC delivery (baseline does \gls{FIFO}).
-
-Slowpath results show the greater cost of the model. 
-
-\autoref{t:micro} shows the cost of the (performance-wise) most
-important kernel operations of our present implementation (MCS), compared to
-the baseline seL4 kernel (base). \code{call()} is the client-style
-invocation, which sends a message to an IPC endpoint (port),
- blocking until it receives until receiving a reply.
-We measure IRQ latency using two thread, one spinning in a loop
-updating a volatile cycle counter, the other, higher priority thread
-waiting for an interrupt. On delivery, the handler thread determines the
-IRQ latency by subtracting the
-looped timestamp from the current time. The overhead is higher here as we must switch scheduling
-contexts, which requires reprogramming the timer.
-
-\subsection{Signalling and IRQS}
+\subsubsection{Fastpath}
 
 \begin{table}[h]\centering
 \begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
@@ -99,10 +63,137 @@ contexts, which requires reprogramming the timer.
                                 & \multicolumn{2}{c|}{\textbf{Base}}
                                 & \multicolumn{2}{c|}{\textbf{MCS}}
                                 & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
-\multirow{3}{*}{ARM}
+\multirow{2}{*}{ARM}
+\input{data/generated/sabre-fastpath-ipc-micro.inc}
+\hline
+\multirow{2}{*}{x64}
+\input{data/generated/haswell-fastpath-ipc-micro.inc}
+\hline
+\end{tabular}
+\caption{Microbenchmarks of seL4 fastpath \gls{IPC}.}
+\label{t:fastpah-ipc-micro}
+\end{table}
+
+
+Fastpath results for \call and \replyrecv increase by a few percent on each platform,
+resulting from extra checks on the fastpath to
+accommodate scheduling contexts, an extra capability lookup for the Resume object, touching two
+separate new objects (\gls{SCO} and Resume object) and enforcing priorities
+on IPC delivery (baseline does \gls{FIFO}).
+
+\subsubsection{Slowpath}
+\label{eval:slowpath}
+
+Slowpath results show the greater cost of the model, as shown in \cref{t:slowpath-ipc-micro}, 
+which shows the cost of a slowpath \gls{IPC} between two passive threads. 
+
+The benchmark hits the slowpath as the priorities are arranged such that the task starting the
+operation is a lower priority, which means not only do we invoke the slowpath but also the
+scheduler. However, since the server is passive, we do not change scheduling context, meaning the
+only overhead on \call is unneccessarily reading the time on kernel entry, as well as the mechanisms
+for scheduling context donation. This is quite small, very small on x64 (1\%) as the kernel simply
+does a non-serialised read of the \gls{TSC}. On ARM the overhead is greater (8\%), as we use the
+ARM Cortex-A9 MPCore global timer (the only 64-bit timer available on the platform), which is memory
+mapped and shared between all of the cores. 
+
+\replyrecv shows a higher overhead on both platforms, due to the extra slowpath capability lookup of
+the resume capability, the ordered IPC checks, and accessing the \gls{SCO} and resume object.
+
+
+\begin{table}[h]\centering
+\begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
+\textbf{Arch}           & \multicolumn{1}{c|}{\textbf{Operation}}
+                                & \multicolumn{2}{c|}{\textbf{Base}}
+                                & \multicolumn{2}{c|}{\textbf{MCS}}
+                                & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
+\multirow{2}{*}{ARM}
+\input{data/generated/sabre-slowpath-ipc-micro.inc}
+\hline
+\multirow{2}{*}{x64}
+\input{data/generated/haswell-slowpath-ipc-micro.inc}
+\hline
+\end{tabular}
+\caption{Microbenchmarks of seL4 slowpath \gls{IPC} between passive threads.}
+\label{t:slowpath-ipc-micro}
+\end{table}
+
+\subsubsection{Active slowpath}
+
+Finally we show the cost of slowpath IPC between two active threads. This means that both caller and
+callee have a scheduling context, and we bill the thread when we switch threads. In addition to the
+overheads of \cref{eval:slowpath}, we must bill and change the scheduling context and reprogram the
+timer. 
+
+
+\begin{table}[h]\centering
+\begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
+\textbf{Arch}           & \multicolumn{1}{c|}{\textbf{Operation}}
+                                & \multicolumn{2}{c|}{\textbf{Base}}
+                                & \multicolumn{2}{c|}{\textbf{MCS}}
+                                & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
+\multirow{2}{*}{ARM}
+\input{data/generated/sabre-slowpath-active-ipc-micro.inc}
+\hline
+\multirow{2}{*}{x64}
+\input{data/generated/haswell-slowpath-active-ipc-micro.inc}
+\hline
+\end{tabular}
+\caption{Microbenchmarks of seL4 slowpath \gls{IPC} between active threads.}
+\label{t:slowpath-ipc-micro}
+\end{table}
+
+\subsection{Faults}
+
+Recall that fault handling in \selfour occurs via an \gls{IPC} simulated by the kernel to a fault
+endpoint, which a fault handling thread blocks on, waiting for any fault messages
+(\cref{api:fauls}). 
+
+To measure the fault handling cost, we run two threads in the same address space: a fault handler
+and a faultee. We trigger a fault by executing an undefined instruction in a loop on the faultee's
+side. The fault handler then increments the instruction pointer by the side of of the undefined
+instruction, and the benchmark continues. The fault handler is passive, so no scheduling context
+switch occurs.
+
+\begin{table}[h]\centering
+\begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
+\textbf{Arch}           & \multicolumn{1}{c|}{\textbf{Operation}}
+                                & \multicolumn{2}{c|}{\textbf{Base}}
+                                & \multicolumn{2}{c|}{\textbf{MCS}}
+                                & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
+\multirow{2}{*}{ARM}
+\input{data/generated/sabre-fault-micro.inc}
+\hline
+\multirow{2}{*}{x64}
+\input{data/generated/haswell-fault-micro.inc}
+\hline
+\end{tabular}
+\caption{Microbenchmarks of seL4 fault \gls{IPC} between passive threads.}
+\label{t:slowpath-fault-micro}
+\end{table}
+
+
+
+
+\subsection{Signalling and IRQS}
+
+We measure IRQ latency using two thread, one spinning in a loop
+updating a volatile cycle counter, the other, higher priority thread
+waiting for an interrupt. On delivery, the handler thread determines the
+IRQ latency by subtracting the
+looped timestamp from the current time. The overhead is higher here as we must switch scheduling
+contexts, which requires reprogramming the timer.
+
+
+\begin{table}[h]\centering
+\begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
+\textbf{Arch}           & \multicolumn{1}{c|}{\textbf{Operation}}
+                                & \multicolumn{2}{c|}{\textbf{Base}}
+                                & \multicolumn{2}{c|}{\textbf{MCS}}
+                                & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
+\multirow{2}{*}{ARM}
 \input{data/generated/sabre-irq-micro.inc}
 \hline
-\multirow{3}{*}{x64}
+\multirow{2}{*}{x64}
 \input{data/generated/haswell-irq-micro.inc}
 \hline
 \end{tabular}
