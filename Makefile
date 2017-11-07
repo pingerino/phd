@@ -56,7 +56,7 @@ Targets    = phd
 # but should appear here with just the .pdf extension.
 ModeSwRoot=all up
 ModeSwFigs=$(patsubst %,imgs/mode-switch-%.pdf,$(ModeSwRoot)) 
-IncRoot=aes ipc-micro schedule-micro irq-micro
+IncRoot=aes fastpath-ipc-micro slowpath-ipc-micro active-slowpath-ipc-micro schedule-micro irq-micro
 SabreIncs=$(patsubst %,data/generated/sabre-%.inc,$(IncRoot))
 HaswellIncs=$(patsubst %,data/generated/haswell-%.inc,$(IncRoot))
 OdroidXUIncs=$(patsubst %,data/generated/odroidxu-%.inc,$(IncRoot))
@@ -393,14 +393,16 @@ $(OdroidXUIncs): data/json-to-data.py data/*.json
 $(SabreIncs): data/json-to-data.py data/*.json
 	@mkdir -p ${PWD}/data/generated
 	@echo '====> generating Sabre data'
-	@python3 ${PWD}/data/json-to-data.py -b ${PWD}/data/baseline-sabre.json -rt ${PWD}/data/rt-sabre.json -c ${PWD}/data/criticality-sabre.json -aes ${PWD}/data/aes-sabre.json -ul ${PWD}/data/ul-sabre.json -a sabre > gen-sabre.log || \
+	@python3 ${PWD}/data/json-to-data.py -b ${PWD}/data/baseline-sabre.json -rt ${PWD}/data/rt-sabre.json -c ${PWD}/data/criticality-sabre.json -aes ${PWD}/data/aes-sabre.json -a sabre > gen-sabre.log || \
 		( cat gen-sabre.log; false )
 $(HaswellIncs): data/json-to-data.py data/*.json
 	@echo '====> generating Haswell data'
 	@echo Incs = $(HaswellIncs)
 	@echo Sw Figs = $(ModeSwFigs)
-	@python3 ${PWD}/data/json-to-data.py -b ${PWD}/data/baseline-haswell.json -rt ${PWD}/data/rt-haswell.json -c ${PWD}/data/criticality-haswell.json -aes ${PWD}/data/aes-haswell.json -ul ${PWD}/data/ul-haswell.json -a haswell > gen-haswell.log || \
+	@python3 ${PWD}/data/json-to-data.py -b ${PWD}/data/baseline-haswell.json -rt ${PWD}/data/rt-haswell.json -c ${PWD}/data/criticality-haswell.json -aes ${PWD}/data/aes-haswell.json -a haswell > gen-haswell.log || \
 		( cat gen-haswell.log; false )
+
+
 
 ipbench.eps:	data/generated/ipbench.dat
 data/generated/ipbench.dat:	data/ipbench.csv data/ipbench_data.py
