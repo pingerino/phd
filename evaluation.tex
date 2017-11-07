@@ -10,7 +10,7 @@ operations.
 \item Show the cost of various timeout exception recovery mechanisms.
 \item Show that temporal isolation is achieved.
 \item Show that deadlines can be met during and after a mode switch.
-\item Show the API is pracitcal and consistent with existing frameworks for critical software.
+\item Show the model is practical and consistent with existing frameworks for critical software.
 \end{enumerate}
 
 \section{Hardware}
@@ -19,27 +19,67 @@ operations.
 In addition to several load generators running Linux on experiments are conducted on:
 
 \begin{description}
-    \item[ARM:] Quad-core 1\,GHz ARM Cortex~A9 system-on-chip on a Freescale i.MX6 SABRE Lite development board,
+    \item[SBR:] Quad-core 1\,GHz ARM Cortex~A9 system-on-chip on a Freescale i.MX6 SABRE Lite
+        development board. This is the verified platform for \selfour.
+    \item[ODX:] Quad-core 1.6\,GHz ARM Cortex~A15 system-on-chip on an Odroid-XU development board.
+        This \gls{SoC} is a big.LITTLE architecture, but the little cores are unused by \selfour.
+        Additionally, there is no SMP support for this platform in \selfour.
     \item[x64:] Quad-core 3.1\,GHz 64-bit Haswell i7-4770 machine.
 \end{description}
 
+
 \section{Overheads}
 
-We first present a suite of microbenchmarks to evaluate any performane overheads against baseline seL4.
+We first present a suite of microbenchmarks to evaluate any performance overheads against baseline
+\selfour.
 For each benchmark we ensure \gls{FPU} context switching is off by performing the required number of
 without activating it such that the kernel will cease switching the FPU context. We present
-overheads on IPC operations, signalling and irqs, and finally scheduling. 
+overheads on IPC operations, signalling and interrupts, and finally scheduling. 
 
 For each of the benchmarks in this section, we measure the cost of measurement, which is reading the
 cycle counter, and subtract that from the final measurement.
 
-% TODO measure the cost to reprogram the timer, read the timer
+\subsection{Timer}
+
+Two of our main sources of overhead are related to the need to read and reprogram the timer on
+non-fastpath kernel entries, and when performing a scheduling context switch. For both of our arm
+platforms, we show the results of microbenchmarks of both of these operations in \Cref{t:timer}.
+
+\begin{table}[ht]\centering
+\begin{tabular}{|c|c|l|}\hline
+    \textbf{Platform} & \texttt{Read time} & \texttt{Set timeout} \\\hline
+    SBR              &     23 (0) & 36 (0)  \\\hline
+    ODX              &     16 (0) & 6 (0) \\\hline
+    x64              &     11 (2.3)   & 217 (2.0)    \\\hline 
+\end{tabular}
+\caption{Latency of timer operations per platform in cycles. Standard deviations shown
+in brackets.}
+\label{t:timer}
+\end{table}
+
+For both microbenchmarks, we read the timestamp before and after the operation, and do this 102
+times, discarding the first two results to prime the cache.  We take the difference of the cycle
+counts, and subtract the cost of measuring the cycle counter itself. For both platforms, the results
+are uniform with no variance. 
+
+On SBR timer we use the 64-bit ARM global timer, which is a memory mapped device with banked registers shared
+between all four cores. Timer operations on the ODX timer are considerably faster, as the
+implementation uses the ARM generic timers which are accessed via the per-core coprocessor (not
+available on SBR). 
+
+On x64 we use the \gls{TSC} with \gls{TSC}-deadline mode~\citep{Intel_64_IA-32:asdmspg_325384}, an architectural \gls{MSR} available since
+Intel SandyBridge by which a local-APIC timer interrupt is triggered when the \gls{TSC} matches the
+programmed value. 
+
+While \Cref{t:timer} shows the instruction latency of each timer operation, in practice, especially
+for x64, these operations are subject to pipeline parallelism and out-of-order execution, which
+reduces the overhead.
 
 \subsection{IPC performance}
 
 \Gls{IPC} performance is a critical measure of the practicality and efficiency of a
 microkernel~\citep{Liedtke_95}. We benchmark our \gls{IPC} operations against base system, \selfour,
-which has an established performant \gls{IPC} fastpath~\citep{Elphinstone_Heiser_13}. 
+which has an established efficient \gls{IPC} fastpath~\citep{Elphinstone_Heiser_13}. 
 
 To evaluate IPC performance we set up a client (the caller) and server (the callee) in different
 address spaces. We take
@@ -47,9 +87,9 @@ timestamps on either side of the IPC operation being benchmarked and record the 
 done 16 times for each result value to prime the cache, then record the next value. Results
 presented are for performing this a total of 16 times. Additionally, we measure the overhead of
 system calls stubs in the same way and subtract this from the measurement, to obtain only the kernel
-cost of the operation\footnote{The IPC bencharmarks already existed for seL4, but were modified to
+cost of the operation\footnote{The \gls{IPC} benchmarks already existed for \selfour, but were modified to
     support the \gls{MCS} kernel during the work for this thesis}. The message sent is zero length, so not
-neither the caller or callee's \gls{IPC} buffer acessed.
+neither the caller or callee's \gls{IPC} buffer accessed.
 This is done for both directions of IPC, as described in \Cref{sec:seL4-api}. 
 
 We evaluate the \gls{IPC} fastpath and two slowpath variants: slowpath between passive threads and
@@ -57,20 +97,23 @@ active threads.
 
 \subsubsection{Fastpath}
 
-\begin{table}[h]\centering
+\begin{table}[ht]\centering
 \begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
 \textbf{Arch}           & \multicolumn{1}{c|}{\textbf{Operation}}
                                 & \multicolumn{2}{c|}{\textbf{Base}}
                                 & \multicolumn{2}{c|}{\textbf{MCS}}
                                 & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
-\multirow{2}{*}{ARM}
+\multirow{2}{*}{SBR}
 \input{data/generated/sabre-fastpath-ipc-micro.inc}
+\hline
+\multirow{2}{*}{ODX}
+\input{data/generated/odroidxu-fastpath-ipc-micro.inc}
 \hline
 \multirow{2}{*}{x64}
 \input{data/generated/haswell-fastpath-ipc-micro.inc}
 \hline
 \end{tabular}
-\caption{Microbenchmarks of seL4 fastpath \gls{IPC}.}
+\caption{Microbenchmarks of \selfour fastpath \gls{IPC}.}
 \label{t:fastpah-ipc-micro}
 \end{table}
 
@@ -90,55 +133,65 @@ which shows the cost of a slowpath \gls{IPC} between two passive threads.
 The benchmark hits the slowpath as the priorities are arranged such that the task starting the
 operation is a lower priority, which means not only do we invoke the slowpath but also the
 scheduler. However, since the server is passive, we do not change scheduling context, meaning the
-only overhead on \call is unneccessarily reading the time on kernel entry, as well as the mechanisms
+only overhead on \call is unnecessarily reading the time on kernel entry, as well as the mechanisms
 for scheduling context donation. This is quite small, very small on x64 (1\%) as the kernel simply
 does a non-serialised read of the \gls{TSC}. On ARM the overhead is greater (8\%), as we use the
 ARM Cortex-A9 MPCore global timer (the only 64-bit timer available on the platform), which is memory
-mapped and shared between all of the cores. 
+mapped and shared between all of the cores. We evaluate the cost of reading the timer with a hot cache 
+for ARM as 23 cycles. 
 
 \replyrecv shows a higher overhead on both platforms, due to the extra slowpath capability lookup of
 the resume capability, the ordered IPC checks, and accessing the \gls{SCO} and resume object.
 
-
-\begin{table}[h]\centering
+\begin{table}[ht]\centering
 \begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
 \textbf{Arch}           & \multicolumn{1}{c|}{\textbf{Operation}}
                                 & \multicolumn{2}{c|}{\textbf{Base}}
                                 & \multicolumn{2}{c|}{\textbf{MCS}}
                                 & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
-\multirow{2}{*}{ARM}
+\multirow{2}{*}{SBR}
 \input{data/generated/sabre-slowpath-ipc-micro.inc}
+\hline
+\multirow{2}{*}{ODX}
+\input{data/generated/odroidxu-slowpath-ipc-micro.inc}
 \hline
 \multirow{2}{*}{x64}
 \input{data/generated/haswell-slowpath-ipc-micro.inc}
 \hline
 \end{tabular}
-\caption{Microbenchmarks of seL4 slowpath \gls{IPC} between passive threads.}
+\caption{Microbenchmarks of \selfour slowpath \gls{IPC} between passive threads.}
 \label{t:slowpath-ipc-micro}
 \end{table}
 
 \subsubsection{Active slowpath}
 
-Finally we show the cost of slowpath IPC between two active threads. This means that both caller and
-callee have a scheduling context, and we bill the thread when we switch threads. In addition to the
+Finally we show the cost of slowpath IPC between two active threads, where both caller and
+callee have a scheduling context. In addition to the
 overheads of \cref{eval:slowpath}, we must bill and change the scheduling context and reprogram the
-timer. 
+timer. On x64, reprogramming the timer uses \gls{TSC}-deadline mode, which is programmed via the
+model specific registers and is also very fast. On ARM, we evaluate the cost of reading the timer
+with a hot cache as 36 cycles. 
+%TODO what the hell is the rest of the overhead
+% get instruction counts
+% get branch mispredict etc
 
-
-\begin{table}[h]\centering
+\begin{table}[hb]\centering
 \begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
 \textbf{Arch}           & \multicolumn{1}{c|}{\textbf{Operation}}
                                 & \multicolumn{2}{c|}{\textbf{Base}}
                                 & \multicolumn{2}{c|}{\textbf{MCS}}
                                 & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
-\multirow{2}{*}{ARM}
+\multirow{2}{*}{SBR}
 \input{data/generated/sabre-slowpath-active-ipc-micro.inc}
+\hline
+\multirow{2}{*}{ODX}
+\input{data/generated/odroidxu-slowpath-active-ipc-micro.inc}
 \hline
 \multirow{2}{*}{x64}
 \input{data/generated/haswell-slowpath-active-ipc-micro.inc}
 \hline
 \end{tabular}
-\caption{Microbenchmarks of seL4 slowpath \gls{IPC} between active threads.}
+\caption{Microbenchmarks of \selfour slowpath \gls{IPC} between active threads.}
 \label{t:slowpath-ipc-active-micro}
 \end{table}
 
@@ -146,42 +199,48 @@ timer.
 
 Recall that fault handling in \selfour occurs via an \gls{IPC} simulated by the kernel to a fault
 endpoint, which a fault handling thread blocks on, waiting for any fault messages
-(\cref{api:fauls}). 
+(\cref{api:faults}). 
 
 To measure the fault handling cost, we run two threads in the same address space: a fault handler
-and a faultee. We trigger a fault by executing an undefined instruction in a loop on the faultee's
+and a faulting thread, with the same priority.
+We trigger a fault by executing an undefined instruction in a loop on the faulting thread's
 side. The fault handler then increments the instruction pointer by the side of of the undefined
 instruction, and the benchmark continues. The fault handler is passive, so no scheduling context
-switch occurs.
+switch occurs. 
 
-\begin{table}[h]\centering
+We measure both directions of the fault, as well as the round trip cost of from the fault  handlers
+side. Similar to standard slowpath-IPC, the largest impact is on the reply path, where ordered IPC
+and the extra lookup of the resume object add overhead.
+
+\begin{table}[ht]\centering
 \begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
 \textbf{Arch}           & \multicolumn{1}{c|}{\textbf{Operation}}
                                 & \multicolumn{2}{c|}{\textbf{Base}}
                                 & \multicolumn{2}{c|}{\textbf{MCS}}
                                 & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
-\multirow{2}{*}{ARM}
+\multirow{2}{*}{SBR}
 \input{data/generated/sabre-fault-micro.inc}
+\hline
+\multirow{2}{*}{ODX}
+\input{data/generated/odroidxu-fault-micro.inc}
 \hline
 \multirow{2}{*}{x64}
 \input{data/generated/haswell-fault-micro.inc}
 \hline
 \end{tabular}
-\caption{Microbenchmarks of seL4 fault \gls{IPC} between passive threads.}
+\caption{Microbenchmarks of \selfour fault \gls{IPC} between passive threads.}
 \label{t:slowpath-fault-micro}
 \end{table}
 
+\subsection{Signalling and interrupts}
 
-
-
-\subsection{Signalling and IRQS}
-
-We measure IRQ latency using two thread, one spinning in a loop
+We measure interrupt latency using two threads, one spinning in a loop
 updating a volatile cycle counter, the other, higher priority thread
 waiting for an interrupt. On delivery, the handler thread determines the
-IRQ latency by subtracting the
+interrupt latency by subtracting the
 looped timestamp from the current time. The overhead is higher here as we must switch scheduling
-contexts, which requires reprogramming the timer.
+contexts, which requires reprogramming the timer, however the scheduler is by-passed as the switch
+is to a higher priority thread.
 
 
 \begin{table}[h]\centering
@@ -190,21 +249,25 @@ contexts, which requires reprogramming the timer.
                                 & \multicolumn{2}{c|}{\textbf{Base}}
                                 & \multicolumn{2}{c|}{\textbf{MCS}}
                                 & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
-\multirow{2}{*}{ARM}
+\multirow{2}{*}{SBR}
 \input{data/generated/sabre-irq-micro.inc}
+\hline
+\multirow{2}{*}{ODX}
+\input{data/generated/odroidxu-irq-micro.inc}
 \hline
 \multirow{2}{*}{x64}
 \input{data/generated/haswell-irq-micro.inc}
 \hline
 \end{tabular}
-\caption{Microbenchmarks of seL4 signal and IRQ latency on seL4 baseline vs. MCS kernels. Standard deviations
+\caption{Microbenchmarks of \selfour signal and IRQ latency on \selfour baseline vs. MCS kernels. Standard deviations
 shown in brackets.}
 \label{t:micro-irq}
 \end{table}
 
-The \code{signal()} operation signals a Notification object (semaphore). This microbenchmark evaluates the cost of signalling a lower priority thread -- no scheduling context switch occurs, but the kernel
-reads the timestamp timestamp is updated unnecessarily and rolled back as shown in \autoref{figure:tickless}.
-
+The \code{signal()} operation signals a Notification object (semaphore). This microbenchmark
+evaluates the cost of signalling a lower priority thread, a common operation for interrupt service
+routines. We have added an experimental fastpath to both the base and \gls{MCS} kernels, which shows
+that when the scheduler is used and a thread switch does not occur, there is no overhead at all.
 
 \subsection{Scheduling}
 
@@ -214,14 +277,17 @@ reads the timestamp timestamp is updated unnecessarily and rolled back as shown 
                                 & \multicolumn{2}{c|}{\textbf{Base}}
                                 & \multicolumn{2}{c|}{\textbf{MCS}}
                                 & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
-\multirow{4}{*}{ARM}
+\multirow{2}{*}{SBR}
 \input{data/generated/sabre-schedule-micro.inc}
 \hline
-\multirow{4}{*}{x64}
+\multirow{2}{*}{ODX}
+\input{data/generated/odroidxu-schedule-micro.inc}
+\hline
+\multirow{2}{*}{x64}
 \input{data/generated/haswell-schedule-micro.inc}
 \hline
 \end{tabular}
-\caption{Microbenchmarks of seL4 IPC scheduling costs.}
+\caption{Microbenchmarks of \selfour IPC scheduling costs.}
 \label{t:micro-schedule}
 \end{table}
 
@@ -230,22 +296,20 @@ Scheduling cost increases noticeably due to the need for first reading
 and then reprogramming the timer for budget enforcement. Furthermore,
 the sporadic replenishment logic is far more complicated than the
 previous tick-based logic, and there is some extra code for
-dealing with scheduling contexts. Note that seL4 IPC,
+dealing with scheduling contexts. Note that \selfour IPC,
 particularly scheduler-context donation (and its predecessor, the
 undisciplined timeslice donation), is designed to minimise the need for
 invoking the scheduler, therefore this increase is unlikely to have
 a noticeable effect in practice. In fact, the \(O(1)\) scheduler is a
-recent addition to seL4: scheduling used to be far more expensive.
+recent addition to \selfour: scheduling used to be far more expensive.
 
-The SMP benchmark is an IPC throughput benchmark, which sets up pairs of IPC ping-pong
-(pong is passive on MCS) threads on each of 2 cores, and for a delay between 0 and 500 cycles.
-We show a slight degredation in IPC throughput on x86, due to the increase in fastpath.
 
-All in all, our overheads are reasonable given the speed of the baseline kernel and the extend of
-the provided functionality.
 
 \subsection{SMP}
 
+The SMP benchmark is an IPC throughput benchmark, which sets up pairs of IPC ping-pong
+(pong is passive on MCS) threads on each of 2 cores, and for a delay between 0 and 500 cycles.
+We show a slight degradation in IPC throughput on x86, due to the increase in fastpath.
 \begin{table}[ht]\centering
 \begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
 \textbf{Arch}           & \multicolumn{1}{c|}{\textbf{Operation}}
@@ -263,6 +327,14 @@ the provided functionality.
 \caption{SMP throughput}.
 \label{t:micro-smp}
 \end{table}
+
+\subsection{Summary}
+
+
+All in all, our overheads are reasonable given the speed of the baseline kernel and the extend of
+the provided functionality.
+
+% TODO summarise results of overheads discovered in microbenchmarks
 
 \subsection{Temporal Isolation}
 
@@ -329,13 +401,13 @@ again demonstrate temporal isolation by running the Yahoo! Cloud Serving Benchma
  key-value store~\citep{redis:url} with NetBSD~\citep{NetBSD:url} drivers at user-level provided
  by a single-core Rump library OS~\citep{Kantee_Cormack_14} on x86.
 
-The system consists of Redis/Rump running on three active seL4 threads: two for servicing interrupts
+The system consists of Redis/Rump running on three active \selfour threads: two for servicing interrupts
 (network, timer) and one for Rump, as shown in \autoref{f:redis-arch}.
 Interrupt threads run at the highest priority, followed by Redis and
 a low-priority idle thread (not shown) for measuring CPU utilisation;
 this setup forces frequent invocations of the scheduler and interrupt
 path. \autoref{t:redis} shows the achieved throughput of Redis+Rump
-running  bare-metal (BMK), and Redis on the seL4 baseline and as well as the MCS
+running  bare-metal (BMK), and Redis on the \selfour baseline and as well as the MCS
 branch, plus Linux and NetBSD for comparison.
 
 % TODO update
@@ -343,7 +415,7 @@ The utilisation figures show that the system is fully loaded, except
 in the Linux case, where there is a small amount of idle time. The
 cost per operation (utilisation over throughput) is best on Linux, a
 result of its highly optimised drivers and network stack. Our
-bare-metal and seL4-based setups use Rump's NetBSD drivers, and
+bare-metal and \selfour-based setups use Rump's NetBSD drivers, and
 actually achieve slightly better performance than NetBSD. This
 indicates that our MCS support comes with low overhead.
 
@@ -395,7 +467,7 @@ have budget insufficient to complete the request (budgets of 1\,ms and
 \textbf{Arch} & \textbf{Op.} & \textbf{Cache} & \textbf{Min} &
                           \textbf{Max} & \textbf{Mean} &
                           \multicolumn{1}{c|}{\boldmath \(\sigma\)} \\\hline
-\multirow{8}{*}{ARM} \input{data/generated/sabre-aes.inc} \hline
+\multirow{8}{*}{SBR} \input{data/generated/sabre-aes.inc} \hline
 \multirow{8}{*}{x64} \input{data/generated/haswell-aes.inc} \hline
 \end{tabular}
 \caption{Cost of timeout handler operations in \(\mu\)s, as measured
@@ -407,7 +479,7 @@ have budget insufficient to complete the request (budgets of 1\,ms and
   \centering
   \includegraphics[width=\textwidth]{aes-shared}
   \caption{Throughput for clients A and B of a passive AES server processing 10 requests of 4\,MiB of data with
-      limited budgets on the x64 (top row) and ARM (bottom row) platforms. The two clients' budgets
+      limited budgets on the x64 (top row) and SBR (bottom row) platforms. The two clients' budgets
       add up to the period, which is varied between graphs (10, 100, 1000\,ms). Clients sleep when
       they process each 4\,MiB, until the next period, except when their budgets are full. Each data point is the average of 10 runs, error bars show the standard deviation.}
   \label{f:aes}
@@ -508,7 +580,7 @@ must not depend on less-critical threads, and should not make
 assumptions how many threads less-critical software creates.
 
 In absolute terms, the results show that a mode switch is fairly fast,
-remaining under 2\,$\mu$s on x64 and about 12\,\(\mu\)s on ARM for switching 8 threads
+remaining under 2\,$\mu$s on x64 and about 12\,\(\mu\)s on SBR for switching 8 threads
 with a cold cache. Most systems will not have more than a few high
 criticality threads, and deadlines for critical control loops in
 cyber-physical systems tend to be in the tens of milliseconds, meaning
@@ -591,7 +663,7 @@ implementation of alternate policies at user level. Specifically, we
 show that we can efficiently implement \gls{EDF}, the popular and  optimal dynamic-priority policy (see \autoref{s:theory}).
 
 We implement the EDF scheduler as an active server with active
-clients which run at an seL4 priority below the scheduler.
+clients which run at an \selfour priority below the scheduler.
 The scheduler waits on an endpoint on which it receives messages from
 its clients or the timer.
 
@@ -631,7 +703,7 @@ implementing different policies on top of the base scheduler is quite feasible.
 \begin{figure}[t]
     \centering
     \includegraphics[width=0.9\linewidth]{edf}
-    \caption{Execution time of seL4 user-mode EDF scheduler compared to
+    \caption{Execution time of \selfour user-mode EDF scheduler compared to
              kernel scheduler in x64 LITMUS$^{RT}$.}
     \label{f:edf}
 \end{figure}
