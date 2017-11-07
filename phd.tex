@@ -1,42 +1,25 @@
-\documentclass[a4paper,twoside,openright,11pt]{book}
+\documentclass[a4paper,twoside,openright,11pt,oldfontcommands]{memoir}
+
+\usepackage[pdftex,hyperindex,bookmarks]{hyperref}
+
+\let\printglossary\relax
+\let\theglossary\relax
+\let\endtheglossary\relax
+\usepackage[acronym,toc,nomain]{glossaries}
+\makeglossaries
 
 \usepackage[australian]{babel}
 \usepackage[english=british]{csquotes}
-
-\usepackage{gentium}
-\usepackage{libertine}
 \usepackage[T1]{fontenc}
+\usepackage[bf,sf]{titlesec}
 
-\usepackage{titlesec}
+\usepackage{microtype}
+\usepackage{algorithm}
+%\usepackage{algpsuedocode}
+%\Onehalfspacing
+\usepackage{subcaption}
+\usepackage{booktabs}
 
-\newcommand{\chapternumformat}[1]{%
-    {\hspace{3mm}\parbox[c]{0pt}{%
-     \fontfamily{gentium}\fontsize{80}{80}\selectfont%
-           {#1}}%
-    }}
-\titleformat
-{\chapter} %command
-[block] %shape
-{\Huge\bfseries}
-{\chapternumformat \thechapter}
-{80pt}
-{}
-[
-    \glsresetall
-    \rule{\textwidth}{0.45pt}
-]
-
-%\titleformat
-%{\chapter} % command
-%[block] % shape
-%{\bfseries\Huge} % format
-%{  \chapternumformat{\thechapter} } % label
-%{80pt} % sep
-%{
-%} % before-code
-%[
-%    \rule{\textwidth}{0.45pt}
-%] % after-code
 
 %
 % UNSW margin guidelines:
@@ -64,34 +47,38 @@
 
 \usepackage{amsfonts}
 \usepackage[pdftex]{graphicx}
-\setkeys{Gin}{keepaspectratio=true,clip=true,draft=false,width=\linewidth}
 \graphicspath{{./imgs/}}
-\usepackage[nottoc,numbib]{tocbibind}
+%\usepackage[nottoc,numbib]{tocbibind}
 
 \usepackage{setspace}
 \usepackage{datetime}
 \newdateformat{monthyear}{\monthname[\THEMONTH] \THEYEAR}
-\usepackage[lastparline]{impnattypo}
 
 % maths
 \usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage{pifont}
+\usepackage{textcomp}
 \usepackage{gensymb}
-\usepackage[page]{appendix}
+%\usepackage[page]{appendix}
 \usepackage{longtable}
 \usepackage{mathptmx}
-\usepackage[acronym,toc,nomain]{glossaries}
-\usepackage[pdftex,bookmarks=true,bookmarksnumbered]{hyperref}
+\hypersetup{
+    pdfborder = {0 0 0.75 [1.5 3]},
+    allbordercolors = {0.122 0.471 0.706},
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=black,
+    urlcolor=black
+    }
 \usepackage{cleveref}
-\usepackage{subfig}
 \usepackage{array}
 %\usepackage[usenames,dvipsnames]{color}
-%\usepackage{colortbl}
-%\usepackage{fancyhdr}
+\usepackage{colortbl}
 \usepackage{pdfpages}
 \usepackage{tabularx}
-\usepackage{booktabs}
+%\usepackage{booktabs}
 \usepackage{listings}
 \usepackage{tikz}
 \usepackage{listings}
@@ -102,7 +89,12 @@
 \usepackage{verbatim}
 \usepackage{pgfgantt}
 \usepackage{pgfplots}
-\pgfplotsset{width=7cm,compat=1.8}
+\usepackage{chngpage}
+\pgfplotsset{width=7cm,compat=newest}
+\usepackage{url}
+\usepackage[authoryear,square,sort]{natbib}
+\usepackage{bibentry}
+\renewcommand{\cite}{\citep}
 \usepgfplotslibrary{ternary}
 %\newif \ifhyperlinks    \hyperlinkstrue
 %\newif \ifDraft         \Draftfalse
@@ -119,26 +111,12 @@
     xleftmargin=6pt,
     xrightmargin=6pt
 }
-\usetikzlibrary{automata,arrows,positioning,shapes}
+\usetikzlibrary{arrows,automata,shapes.multipart,positioning,plotmarks}
 
-%
-% Capitalisation of cross references
-%
-\renewcommand{\figureautorefname}{Figure}
-\newcommand{\subfigureautorefname}{Figure}
-\renewcommand{\sectionautorefname}{Section}
-\renewcommand{\subsectionautorefname}{Section}
-\renewcommand{\subsubsectionautorefname}{Section}
-\renewcommand{\chapterautorefname}{Chapter}
-\renewcommand{\Hfootnoteautorefname}{Footnote}
-\newcommand*{\Appendixautorefname}{Appendix}
-\renewcommand{\theoremautorefname}{Lemma}
-\newcommand{\definitionautorefname}{Definition}
-
-
-\renewcommand{\ttdefault}{lmtt} % LM rather than courier for \tt
-\makeglossaries
-
+% font
+\usepackage{inconsolata}
+\renewcommand{\rmdefault}{ppl}
+%\renewcommand{\ttdefault}{pcr}
 % commands
 \newcommand{\yes}{\checkmark}
 \newcommand{\no}{\hspace{1pt}\ding{55}}
@@ -176,39 +154,7 @@
 % Put it around breakage-causing segments (in both versions to be diffed!)
 \newenvironment{DIFnomarkup}{}{}
 
-\usepackage{url}
-\usepackage[square, sort]{natbib}
 \urlstyle{rm}
-\renewcommand{\ttdefault}{cmtt} % CM rather than courier for \tt
-
-\ifDraft
-  \usepackage{draftcopy}
-  \newcommand{\Comment}[1]{\textbf{\textsl{#1}}}
-  \newcommand{\FIXME}[1]{\textbf{\textsl{FIXME: #1}}}
-  \newcommand{\TODO}[1]{\textbf{\textsl{TODO: #1}}}
-  %\date{\small$\relax$Id: paper.tex,v 1.22 2008-07-19 08:14:55 gernot Exp $\relax$}
-\else
-  \newcommand{\Comment}[1]{\relax}
-  \newcommand{\FIXME}[1]{\relax}
-  \newcommand{\TODO}[1]{\relax}
-  \date{}
-\fi
-
-%\ifhyperlinks
-%  \hypersetup{linktocpage} %,colorlinks}
-%\else
- % \providecommand{\href}[2]{\url{#2}}
-%\fi
-
-%---- Itemized columns
-%\newcolumntype{i}[1]{%
-%    >{\minipage[t]{\linewidth}\let\\\tabularnewline
-%    \itemize[leftmargin=0.3cm]
-%      \addtolength{\rightskip}{0pt plus 50pt}% for raggedright
-%      \setlength{\itemsep}{-\parsep}}%
-%      p{#1}%
-%    <{\enditemize\endminipage}}
-%\makeatother
 
 \newcolumntype{i}[1]{%
     >{
@@ -219,8 +165,6 @@
 \newcommand{\itemcol}[1] {
 		\multicolumn{1}{i{5cm}|}{#1}
 }
-%\Unit{School of Computer Science \& Engineering}
-%\SubUnit{Trustworthy Systems Group}
 
 %
 % Footnote styling.
@@ -233,33 +177,41 @@
 \interfootnotelinepenalty=5000
 
 % Allow a bit of stretching at the bottom of the y neccessary.
-\makeatletter
-\def\@textbottom{\vskip\z@\@plus.1pt}
-\let\@texttop\relax
-\makeatother
+%\makeatletter
+%\def\@textbottom{\vskip\z@\@plus.1pt}
+%\let\@texttop\relax
+%\makeatother
 
 \title{Mixed-Criticality Scheduling 
       and Resource Sharing for
      High-Assurance Operating Systems}
 \author{Anna Lyons}
 %\AuthorEmail{Anna.Lyons@data61.csiro.au}
+
+
+% chapter headings
+
+%make our pretty chapter headings
+% Copied from AlexL via DaveC via Adam
+\newcommand{\chapformat}[1]{\parbox[c]{0.8\textwidth}{\Huge #1}}
+\titleformat{\chapter}[hang]
+    {\bfseries}
+    {\parbox[c]{0.2\textwidth}{\rmfamily\fontsize{72}{72}
+     \selectfont\thechapter\hspace{10pt}\rule[-12pt]{2pt}{72pt}}}
+    {0pt}
+    {\chapformat}
+
+
+\setsecnumdepth{subsection}
+
+\widowpenalty10000
+\clubpenalty10000
+
 \begin{document}
 \pagenumbering{roman}
 
-%  \ifhyperlinks
-%    %% Capitalisation of cross references
-%    \renewcommand{\chapterautorefname}{Chapter}
-%    \renewcommand{\sectionautorefname}{Section}
- %   \renewcommand{\subsectionautorefname}{Section}
- %   \renewcommand{\subsubsectionautorefname}{Section}
- %   \renewcommand{\appendixautorefname}{Appendix}
- %   \renewcommand{\Hfootnoteautorefname}{Footnote}
-    %% Commands for index
- %   \newcommand{\Htextbf}[1]{\textbf{\hyperpage{#1}}}
- % \fi
 % Title page 
 \input{title}
-
 
 \urlstyle{sf}
 \pagestyle{plain}
@@ -292,9 +244,15 @@ The implementation platform will be the \selfour microkernel, which is built for
 
 \end{minipage}
 \end{center}
+\clearpage
 
 \tableofcontents
 \cleardoublepage
+\newpage
+
+\mainmatter
+
+\sloppy
 \setcounter{page}{1}
 \pagenumbering{arabic}
 
@@ -360,7 +318,6 @@ The implementation platform will be the \selfour microkernel, which is built for
 \newacronym{VM}{VM}{virtual machine}
 \newacronym{WCET}{WCET}{worst case execution time}
 \newacronym{ZS}{ZS}{zero slack}
-\printglossary[type=\acronymtype]
 \pagebreak
 
 %\input{sections/introduction}
@@ -374,6 +331,14 @@ The implementation platform will be the \selfour microkernel, which is built for
 \input{evaluation}
 %\input{sections/conclusion}
 
+\backmatter
+\cleardoublepage
+\listoffigures
+\clearpage
+%\listoftables
+%\listofalgorithms
+%\addcontentsline{toc}{chapter}{List of algorithms}
+\printglossary[type=\acronymtype]
 \cleardoublepage
 \bibliographystyle{plainnat}
 %\bibliographystyle{my-abbrvnat}
