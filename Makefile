@@ -59,6 +59,7 @@ ModeSwFigs=$(patsubst %,imgs/mode-switch-%.pdf,$(ModeSwRoot))
 IncRoot=aes ipc-micro schedule-micro irq-micro
 SabreIncs=$(patsubst %,data/generated/sabre-%.inc,$(IncRoot))
 HaswellIncs=$(patsubst %,data/generated/haswell-%.inc,$(IncRoot))
+OdroidXUIncs=$(patsubst %,data/generated/odroidxu-%.inc,$(IncRoot))
 ExtraFigRoot= edf ipbench
 ExtraFigs= $(patsubst %,imgs/%.pdf,$(ExtraFigRoot)) $(ModeSwFigs)
 TexIncludes= $(SabreIncs) $(HaswellIncs) $(wildcard *.tex)
@@ -342,6 +343,7 @@ CRIT=EDF-CB
 AES=EDF-AB
 HASWELL=x86-64-results.json/results.json
 SABRE=Sabre-results.json/results.json
+ODROIDXU=Odroid-XU-results.json/results.json
 DIR=/latestSuccessful/artifact/shared/
 RUMP_REDIS_TEST_NUMBER=30
 
@@ -349,8 +351,10 @@ RUMP_REDIS_TEST_NUMBER=30
 raw_data:
 	wget -O ${PWD}/data/baseline-haswell.json ${BAMBOO}${BASE}${DIR}${HASWELL}
 	wget -O ${PWD}/data/baseline-sabre.json ${BAMBOO}${BASE}${DIR}${SABRE}
+	wget -O ${PWD}/data/baseline-odroidxu.json ${BAMBOO}${BASE}${DIR}${ODROIDXU}
 	wget -O ${PWD}/data/rt-haswell.json ${BAMBOO}${RT}${DIR}${HASWELL}
 	wget -O ${PWD}/data/rt-sabre.json ${BAMBOO}${RT}${DIR}${SABRE}
+	wget -O ${PWD}/data/rt-odroidxu.json ${BAMBOO}${RT}${DIR}${ODROIDXU}
 	wget -O ${PWD}/data/criticality-haswell.json ${BAMBOO}${CRIT}${DIR}${HASWELL}
 	wget -O ${PWD}/data/criticality-sabre.json ${BAMBOO}${CRIT}${DIR}${SABRE}
 	wget -O ${PWD}/data/aes-haswell.json ${BAMBOO}${AES}${DIR}${HASWELL}
@@ -379,6 +383,13 @@ data/generated/linux-redis.dat: $(RUMP_REDIS_FILES) data/ycsb-results.py
 process_data:	data/generated/sabre-aes.inc data/generated/haswell-aes.inc
 ModeSwEps= $(patsubst %.pdf,%.eps,$(ModeSwFigs))
 $(ModeSwEps): $(SabreIncs) $(HaswellIncs)
+$(OdroidXUIncs): data/json-to-data.py data/*.json
+	@mkdir -p ${PWD}/data/generated
+	@echo '====> generating OdroidXU data'
+	@python3 ${PWD}/data/json-to-data.py -b ${PWD}/data/baseline-odroidxu.json -rt ${PWD}/data/rt-odroidxu.json -a odroidxu > gen-odroidxu.log || \
+		( cat gen-odroidxu.log; false )
+
+
 $(SabreIncs): data/json-to-data.py data/*.json
 	@mkdir -p ${PWD}/data/generated
 	@echo '====> generating Sabre data'
@@ -415,7 +426,7 @@ AesRoot=haswell-shared-aes-10 haswell-shared-aes-100 haswell-shared-aes-1000 \
 	sabre-shared-aes-10 sabre-shared-aes-100 sabre-shared-aes-1000
 EdfFiles=$(patsubst %,data/generated/%.dat,$(EdfRoot))
 AesFiles=$(patsubst %,data/generated/%.dat,$(AesRoot))
-$(AesFiles):	$(SabreIncs) $(HaswellIncs)
+$(AesFiles):	$(SabreIncs) $(HaswellIncs) $(OdroidXUIncs)
 imgs/edf.eps: $(EdfFiles) data/linux-edf.dat
 imgs/aes-shared.eps: ${AesFiles}
 imgs/redis.eps: data/generated/redis.dat
