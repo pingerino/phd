@@ -129,47 +129,38 @@ def build_microbenchmark_dat(rt, baseline, arch):
             # fault
             rt = getbenchmark(rt_content, 'faulter -> fault handler')[0]
             b = getbenchmark(b_content, 'faulter -> fault handler')[0]
-            microbenchmark_row(out, 'Fault', rt, b)
+            microbenchmark_row(out, '\\texttt{fault}', rt, b)
              
             rt = getbenchmark(rt_content, 'fault handler -> faulter')[0]
             b = getbenchmark(b_content, 'fault handler -> faulter')[0]
-            microbenchmark_row(out, 'Fault reply', rt, b)
+            microbenchmark_row(out, '\\texttt{reply}', rt, b)
            
             rt = getbenchmark(rt_content, 'fault round trip')[0]
             b = getbenchmark(b_content, 'fault round trip')[0]
-            microbenchmark_row(out, 'Fault round trip', rt, b)
+            microbenchmark_row(out, '\\texttt{round trip}', rt, b)
            # TODO add non-passive numbers 
 
         with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-irq-micro.inc'), 'w') as out:
             rt_irq = getbenchmark(rt_content, 'IRQ path cycle count (measured from user level)')[1]
             b_irq = getbenchmark(b_content, 'IRQ path cycle count (measured from user level)')[1]
-            microbenchmark_row(out, 'IRQ lat.', rt_irq, b_irq)
+            microbenchmark_row(out, '\\texttt{IRQ latency}', rt_irq, b_irq)
 
             # signal
             rt_signal = getbenchmark(rt_content, 'Signal to low prio thread')[0]
             b_signal = getbenchmark(b_content, 'Signal to low prio thread')[0]
-            microbenchmark_row(out, 'signal()', rt_signal, b_signal)
+            microbenchmark_row(out, '\\texttt{signal}', rt_signal, b_signal)
 
 
         with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-schedule-micro.inc'), 'w') as out:
             # schedule
             rt_schedule = getbenchmark(rt_content, 'Signal to high prio thread')[0]
             b_schedule = getbenchmark(b_content, 'Signal to high prio thread')[0]
-            microbenchmark_row(out, 'Schedule', rt_schedule, b_schedule)
-
-            # average schedule
-            rt = getbenchmark(rt_content, 'Average to reschedule current thread')[7]
-            b = getbenchmark(b_content, 'Average to reschedule current thread')[7]
-            microbenchmark_row(out, 'schedule', rt, b, True)
+            microbenchmark_row(out, '\\texttt{schedule}', rt_schedule, b_schedule)
 
             # yield
             rt_yield = getbenchmark(rt_content, 'Thread yield')[0]
             b_yield = getbenchmark(b_content, 'Thread yield')[0]
-            microbenchmark_row(out, 'Yield()', rt_yield, b_yield)
-
-            rt_yield = getbenchmark(rt_content, 'Average seL4_Yield (no thread switch)')[7]
-            b_yield = getbenchmark(b_content, 'Average seL4_Yield (no thread switch)')[7]
-            microbenchmark_row(out, 'yield*', rt_yield, b_yield)
+            microbenchmark_row(out, '\\texttt{yield}', rt_yield, b_yield)
 
 
 def aes_row(out, name, rt_aes_hot, rt_aes_cold, clk, formatstr):
@@ -276,31 +267,36 @@ def main():
     parser = argparse.ArgumentParser(description="Convert json to graph data")
     parser.add_argument('-b', type=str, dest='baseline', help='baseline json to convert', required='True')
     parser.add_argument('-rt', type=str, dest='rt', help='rt json to convert', required='True')
-    parser.add_argument('-c', type=str, dest='crit', help='criticality json', required='True')
-    parser.add_argument('-aes', type=str, dest='aes', help='aes json', required='True')
-    parser.add_argument('-ul', type=str, dest='ul', help='ul json', required='True')
+    parser.add_argument('-c', type=str, dest='crit', help='criticality json')
+    parser.add_argument('-aes', type=str, dest='aes', help='aes json')
     parser.add_argument('-a', type=str, dest='arch', help='arch', required='True')
 
     args = parser.parse_args()
 
+    clk = 3400      
+    if args.arch == 'sabre':
+        clk = 996
+    elif args.arch == 'odroidxu':
+        clk = 2000
+
     pwd = os.getcwd()
     rt_file = os.path.join(pwd, args.rt)
     baseline_file = os.path.join(pwd, args.baseline)
-    crit_file = os.path.join(pwd, args.crit)
-    aes_file = os.path.join(pwd, args.aes)
-    ul_file = os.path.join(pwd, args.ul)
+
+    if args.crit:
+        crit_file = os.path.join(pwd, args.crit)
+        build_crit_dat(crit_file, args.arch)
+    
+    if args.aes:
+        aes_file = os.path.join(pwd, args.aes)
+        build_aes_dat(aes_file, args.arch, clk)
+        build_aes_shared_dat(aes_file, args.arch, clk)
+    
     outdir = os.path.join(pwd, DATA_DIR)
     if not os.path.exists(outdir):
         os.mkdir(os.path.join(pwd,DATA_DIR))
 
-    clk = 3400      
-    if args.arch == 'sabre':
-        clk = 996
-
-    build_crit_dat(crit_file, args.arch)
     build_microbenchmark_dat(rt_file, baseline_file, args.arch)
-    build_aes_dat(aes_file, args.arch, clk)
-    build_aes_shared_dat(aes_file, args.arch, clk)
 
 if __name__ == '__main__':
     sys.exit(main())
