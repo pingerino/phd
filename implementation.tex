@@ -1,0 +1,773 @@
+\chapter{Implementation}
+\label{chap:implementation}
+
+
+In the previous chapter we presented our model for MCS mechanisms for a microkernel.
+This section provides the deatils of the implementation in seL4.
+
+% TODO should the seL4 background section go here?
+
+Kernel changes include additions to the scheduler to support temporal isolation, scheduling contexts
+objects, system call API changes and a new mechanism -- scheduling context donation -- which supports bandwidth inheritance.
+
+These changes allow user-level to construct systems with combinations of best-effort and real-time threads.
+We illustrate through example how threads can achieve resource sharing through reservation-per-thread, migrating threads or scheduling context donation policies.
+
+
+
+\section{Objects}
+
+We add two new objects to the kernel, \glspl{SCO} and resume objects. Additionally, we modify
+the \gls{TCB} object although do not increase its total size. All three objects interact to
+implement our mechanisms.
+
+\subsection{Resume objects}
+\label{s:resume}
+
+Resume objects are introduced to track scheduling context donation over IPC path when \call is
+used. Futher detail is provided in TODO.
+
+\begin{description}
+    \item[Caller] a pointer to the \gls{TCB} that is blocked on this reply object.
+    \item[Prev,Next] pointers which track the call chain.
+\end{description}
+
+\subsection{Scheduling context objects}
+\label{s:sco}
+
+\glspl{SCO} are variable sized objects that represent access to a certain amount of time and
+consist of a core amount of fields, and a circular buffer to track the consumption of time.
+The core fields in a \gls{SCO} are as follows:
+
+% TODO picture of scheudling context layout
+
+\begin{description}
+    \item[Period] The replenishment period.
+    \item[Refills] A circular buffer of sporadic replenishments.
+    \item[Consumed] The amount of cycles consumed since the last reset.
+    \item[Core] The id of the processor this scheduling context grants time on.
+    \item[TCB] A pointer to the thread this scheduling context is currently providing time to.
+    \item[Reply] A pointer to the last resume object (see \cref{s:resume}) in a call chain where
+        this scheduling context was donated.
+    \item[Notification] A pointer to the notification object
+    \item[Badge] A unique identifier for this scheduling context.
+    \item[YieldFrom] Pointer to a \gls{TCB} that has yielded to this \gls{SCO}.
+    \item[Head,Tail] Indexes to the circular buffer of sporadic replenishments.
+    \item[Max] Maximum amount of replenishments for this scheduling context.
+\end{description}
+
+In addition to the core fields, scheudling contexts contain a variable amount of
+\emph{replenishments}, which consist of a \emph{timestamp} and \emph{amount}. These are used for
+both round-robin and sporadic threads.
+
+%TODO discuss sporadic vs round robin, invocatinos on scheduling contexts
+
+\subsection{Thread control block objects}
+
+% TODO what is changed in TCBs
+
+\section{Scheduling}
+
+Now we discuss changes to the kernel scheduler and how the new \glspl{SCO} interact which the
+scheduling algorithm to provide temporal isolation and asymmetric protection.
+We show how best-effort and real-time threads are supported by these changes, and consider \emph{rate-based} threads -- which are essentially best-effort threads with a kernel-enforced bound on maximum rate.
+
+
+\tikzstyle{decision} = [diamond, draw,
+    text width=4.5em, text badly centered, node distance=3cm, inner sep=0pt]
+\tikzstyle{block} = [rectangle, draw,
+    text width=5em, text centered, rounded corners]
+\tikzstyle{line} = [draw, -latex']
+
+
+\begin{figure}
+\begin{tikzpicture}[node distance = 3cm, auto]
+    % place nodes
+    \node[block]                      (entry)  {update kernel time};
+    \node[block,    left of = entry]  (swi)    {enter kernel};
+    \node[decision, below of = entry ](enough) {budget sufficient?};
+    \node[block,    left of  = enough](tick)   {simulate tick};
+    \node[block,    right of = enough](op)     {do kernel operation};
+    \node[decision, below of = enough]    (sc)     {change SC?};
+    \node[block,    left of  = sc]    (commit) {commit kernel time};
+    \node[block,    right of = sc]    (rb)     {rollback kernel time};
+
+    % place lines
+    \path [line] (swi)    -- (entry);
+    \path [line] (entry)  -- (enough);
+    \path [line] (enough) -- node [near start, above] {no} (tick);
+    \path [line] (enough) -- node [near start] {yes}(op);
+    \path [line] (tick)   -- (sc);
+    \path [line] (op)     -- (sc);
+    \path [line] (sc)     -- node [near start] {yes} (commit);
+    \path [line] (sc)     -- node [near start, above] {no}  (rb);
+\end{tikzpicture}
+\caption{Kernel structure}
+\label{figure:tickless}
+\end{figure}
+
+We make changes to the scheduler and structure of the scheduler to support temporal isolation: we
+convert the scheduler to tickless, add a release queue of threads waiting for budget replenishment
+and introduce the invariant that threads without scheduling contexts are not eligible for
+scheduling.
+
+\subsection{Tickless}
+
+We convert \selfour from a tick-based to a tickless kernel in order to reduce preemptions and
+improve scheduling precision, as discussed in \Cref{sec:tick-v-tickless}.
+As \selfour is non-preemtible (save for explicit preemption points in a few long-running
+operations), tickless kernel design is non-trivial, as preemption interrupts cannot interrupt the
+kernel itself.
+
+The main change required to the existing scheduler is the addition of a \emph{release queue} per
+processing core. If a
+preempted thread does not have any available replenishments, the kernel removes the thread from the
+ready queue to the release queue, retaining the invariant for the ready queue, which the release
+queue is charaterised as holding all threads that would be runnable but are presentingly out of
+budget. The queue is ordered by the timer when the next replenishment is available.
+
+On kernel entry (except on the IPC fastpath, which never leads to an SC
+change or scheduler invocation) the kernel updates the current
+timestamp and stores the time since the last entry. This is required as when preemption occurs, the
+preemptor is charged for the time since the kernel entry. Without knowing if the kernel entry will
+trigger a thread switch in advance, the kernel must record the time for each entry. However, if the
+recorded timestamp is not acted upon, the time is rolled back to the previously recorded value.
+
+After recording the timestamp, the kernel then checks
+whether the thread has sufficient budget to complete the kernel
+operation, using a fixed estimate of double the kernels \gls{WCET}.
+If the available budget is insufficient, the kernel pretends the timer has already fired,
+resets the budget and adds the thread to the release queue. If the entry was due to a system call
+,the thread will retry that call once it wakes with further budget.
+Once the thread is awoken it will retry the system call
+
+This adds a new
+invariant, that any thread in the scheduling queues must have enough budget to exit the kernel.
+It makes the scheduler precision equal twice the kernel's WCET, which for
+seL4 is known (unlike any other protected-mode OS we are aware of).
+This invariant is required as it simplifies the kernel design and actually minimises the WCET: when
+a
+thread runs out of time it may need to raise a timeout exception resulting in delivering an IPC to a
+timeout handler.By requiring that anything in the scheduler queue, or any endpoint queue, must have
+enough budget to wake up we avoid needing to potentially raise timeout exceptions on many wakeup
+paths in the kernel.
+
+Threads are only charged when the scheduling context changes, in order to avoid
+reprogramming the timer which can be expensive on many platforms. %(\autoref{s:timer-reprogram}).
+If there is no SC change, the timestamp update is rolled back by subtracting the
+stored consumed value from the timestamp.
+\autoref{figure:tickless} illustrates the structure of this kernel design.
+
+\subsection{Priority queues}
+
+Priority queues for both scheduling algorithms are implemented as ordered lists, with $O(n)$ insertion and removal complexity.
+The most frequent operation on the lists is to remove the head, which is $O(1)$.
+We choose a list over a heap for increased performance and reduced verification burden.
+
+A list-based priority queue out performs a heap-based priority queue for small $n$ in our implementation up to around $n = 100$.
+This $n$ is larger than one would expect in a traditional \gls{OS}, where heap implementations are array-based in contiguous memory with layouts optimised for cache usage.
+However, in order to provide isolation and confidentiality, \selfour kernel memory is managed at user-level, as discussed in %TODO{section}.
+Consequently, to put a \selfour kernel object into a heap, the pointers for the heap implementation must be contained within the object, which could be anywhere in memory as chosen by the user.
+This means that \selfour heap implementations are non-contiguous, and must be pointer based, resulting in a much larger cache footprint with worse performance than an array-based approach.
+
+verification.
+Of course, even if the heap implementation is slower, given a sufficient number of tasks a heap will scale better than a list.
+However, we do not expect systems to run a large amount of real-time tasks, as \selfour target applications generally run virtualised Linux along-side a few critical real-time tasks.
+Additionally, the reduced complexity of a list compared to a heap will result in faster verification, so consequently a list implementation looks favourable.
+
+%TODO{Link to eval}
+\subsection{Admission}
+
+As established in section \Cref{sec:model-admission}, admission tests for reservations are considered policy to be implemented by user-level.
+
+In the current design, we control the creation of scheduling contexts by conveying the authority to populate their parameters into a single capability per processor.
+Each processor has a scheduling control capability, all of which are given to the root task on initialisation.
+Scheduling contexts can be created by any task, using standard seL4 conventions to create an object, which result in a scheduling context with all parameters are set to 0.
+The implication is that tasks in the system with access to memory can only create empty reservations.
+While an empty reservation can be bound to a thread, since the reservation contains no budget that thread will never be eligible to run.
+
+In order to populate the parameters of a scheduling context, one must invoke a new capability: the scheduling control capability for the core that the thread is intended to run on.
+Only a single copy of this capability is available per processor in the system, so the population of scheduling contexts with parameters is restricted to processes with access to those capabilities, which can conduct admission tests as per user-level policy.
+
+\subsection{Scheduling Contexts}
+\label{sec:schedcontext}
+
+We introduce a new kernel object type, scheduling contexts, which act as processor reservations and contain sporadic task parameters.
+Scheduling contexts encapsulate processor time reservations, derived from sporadic task parameters: min-period ($T$) and a set of replenishments which is populated from an original execution budget ($C$), representing the reserved rate reserved rate ($U$) = $\frac{C}{T}$.
+The execution budget will be populated with the \gls{WCET} for \gls{HRT} tasks, and a max-rate for \gls{SRT} and rate-based tasks.
+
+Scheduling contexts are connected to one thread at a time.
+A thread is not permitted to execute for more time than that represented in the scheduling context.
+Threads without scheduling contexts are not runnable.
+
+Scheduling contexts also form part of the accounting mechanism: the amount of budget a thread has remaining, and when the budget is due to be recharged, are stored in the scheduling contexts.
+\Cref{tab:sched_context} displays a summary of the main fields stored in a scheduling context object.
+
+The method \texttt{seL4\_SchedControl\_Configure} is used to set the parameters on a specific scheduling context.
+It taskes a \texttt{budget}, \texttt{period}, \texttt{num\_extra\_refills} and \texttt{badge}.
+
+\subsection{Replenishments}
+\label{sec:replenishments}
+
+Scheduling contexts contain a circular buffer for sporadic task replenishments.
+Each replenishment has an amount of time that stands to be replenished, and the absolute time from when that replenishment can be used, as shown in \cref{tab:refill}.
+When \texttt{seL4\_SchedControl\_Configure} is called on an inactive scheduling context, the amount is set to the budget and the replenishment time to the current time.
+At all times, the sum of the amounts in the replenishment buffer is equal to the configured budget.
+The maximum size of this buffer is statically configurable, and the minimum size is one.
+Users can specify the amount of extra refills a scheduling context can have, up to the static maximum.
+
+Scheduling contexts with zero extra refills behave like polling servers (\cref{p:polling-servers}), otherwise they behave as sporadic servers (\cref{p:sporadic}), allowing application developers to tune the behaviour of threads depending on their preemption levels and execution durations.
+
+The algorithms to manage replenishments are taken from \citet{Danish_LW_2011}, with adjustments to support periods of 0 (for round robin threads) and to implement a minimum budget.
+Whenever the current scheduling context is changed, \texttt{check\_budget} as shown in Listing \ref{list:check-budget} is called to bill the amount of time consumed since the last scheduling context change.
+`check\_budget`
+If the budget is not completely consumed by \texttt{check\_budget}, \texttt{split\_budget} as shown in Listing \ref{list:split-check} is called to schedule the subseqeunt refill for the chunk of time just consumed.
+If the replenishment buffer is full, or the amount consumed is less than the minimum budget, the amount used is merged into the next replenishment.
+The scheduling context being switched to has \texttt{unblock\_check} Listing (\ref{list:unblock-check}) called on it, which merges an replenishments that are already available, avoiding unneccessary preemptions.
+
+When \texttt{seL4\_SchedControl\_Configure} is called on an active scheduling context, the refills are adjusted to reflect the new budget and period but respect the sliding window constraint.
+
+Round-robin threads have full reservations: $T = C$, entitling them to 100\% of the processor but subject to preemption every time $C$ is used.
+Clearly we don't want to track replenishments for round-robin threads, so the kernel detects if round robin scheduling contexts when \texttt{seL4\_SchedControl\_Configure} is called, and sets the period to 0.
+This avoids much special casing in the replenishment code, as round-robin threads are always ready (we always add 0 to the replenishment time).
+
+\begin{lstlisting}[frame=single,language=c,caption=Check budget routine.,label=list:check-budget,float=htpb]
+uint_64_t check_budget(sched_context_t *sc, uint64_t usage) {
+  while (head_refill(sc).amount <= usage) {
+    // exhaust and schedule replenishment
+    old_head = pop_head(sc);
+    usage -= old_head.amount;
+    old_head.time += sc->period;
+    add_tail(sc, old_head)
+  }
+
+  /* handle budget overrun */
+  if (usage > 0 && sc->period > 0) {
+    // delay refill by overrun
+    head_refill(sc).time += usage;
+    // merge replenishments if time overlaps
+    if (refill_size(sc) > 1 &&
+        head_refill(sc).time + head_refill(sc).amount
+        >= refill_next(sc).time) {
+
+      refill_t old_head = pop_head(sc);
+      head_refill(sc).amount += old_head.amount;
+    }
+  }
+}
+\end{lstlisting}
+
+\begin{lstlisting}[frame=single,language=c,caption=Split check routine.,label=list:split-check,float=htpb]
+void split_check(sched_context_t *sc, uint64_t usage) {
+  uint64_t remnant = head_refill(sc).amount - usage;
+  if (remnant < MIN_BUDGET && refill_size(sc) == 1) {
+    // delay entire replenishment
+    // refill too small to use and nothing to merge with */
+    head_refill(sc).time += sc->period;
+    return;
+  }
+
+  if (refill_size(sc) == sc->refill_max || remnant < MIN_BUDGET) {
+    // merge remnant - out of space or its too small
+    pop_head(sc);
+    head_refill(sc).amount += remant;
+  } else {
+    // split the head refill
+    head_refill(sc).amount = remnant;
+  }
+
+  // schedule the used amount
+  refill_t split;
+  split.amount = usage;
+  split.time = head_refill(sc).time + sc->period;
+  add_tail(sc, split);
+}
+\end{lstlisting}
+
+\begin{lstlisting}[frame=single,language=c,caption=Unblock check routine.,label=list:unblock-check,float=htpb]
+void unblock_check(sched_context_t *sc) {
+  if (!head_refill(sc).time > now)) {
+    return;
+  }
+
+  head_refill(sc).time = now;
+  // merge available replenishments
+  while (refill_size(sc) > 1) {
+    if (refill_next(sc).time < now + head_refill(sc).amount) {
+      refill_t old_head = pop_head(sc);
+      head_refill(sc).amount += old_head.amount;
+      head_refill(sc).time = now;
+    } else {
+      break;
+    }
+
+    if (head_refill(sc).amount < MIN_BUDGET) {
+      // second part of split_check can leave refills
+      // with less than MIN_BUDGET amount.
+      // detect them here and merge.
+      refill_t old_head = pop_head(sc);
+      head_refill(sc).amount += old_head.amount;
+    }
+}
+\end{lstlisting}
+
+
+\subsection{Task model}
+
+We extend the seL4 API with support for real-time and rate-based tasks, while maintaining support for round-robin, best-effort tasks.
+In this section we present how our mechanisms support each type of task, and how user-level should configure them.
+
+\subsubsection{Best-effort threads}
+
+Best effort threads, scheduled round-robin, are compatible with our model.
+In the original seL4 kernel, best effort threads would be scheduled for CONFIG\_TIME\_SLICE ticks, before being taken from the start of their run queue and placed at the end of the run queue.
+This was sufficient for round-robin scheduling.
+
+Scheduling contexts for best-effort threads are assigned an equal budget and period, with the value set to the desired round-robin time slice for the thread.
+Since the budget and period of threads configured in this fashion are equal, when the budget expires it will be immediately replenished as the period has passed already.
+However, replenishment places a thread on the end of its run queue, thereby implementing round-robin scheduling, as any other thread in the queue will be scheduled first.
+This approach minimises the amount of code required and should result in a fast scheduler, with no special cases for best-effort versus real-time threads.
+Of course, populating scheduling context parameters as such entitles best-effort threads to an effective 100\% share of the CPU, so it should only be used at low priorities.
+Additionally, real-time threads and best-effort threads should not run at the same priority.
+
+\subsubsection{Rate-limited threads}
+
+Rate-limited threads simply have their scheduling contexts configured with parameters that express their desired bound on rate.
+No other work is required by the user: if there are no higher priority threads and the rate-limited thread does not block, it will be runnable at the rate expressed in the scheduling context.
+Otherwise, the thread will be capped at the rate specified, but cannot be guaranteed to get the entire rate allocation if there are higher priority threads in the system, or if the priority of the rate-limited thread is overloaded.
+%TODO{ talk about sporadic refill parameter}
+
+\subsubsection{Real-time threads}
+
+Real-time threads are more complicated than rate-limited or best-effort threads, as the concept of a sporadic job, including job release time and job completion, need to be supported by the kernel API.
+
+We define the initial job release as when a thread is resumed: the available budget is set to the total budget in the reservation for that thread.
+
+Job completion is more complicated.
+As described in section \Cref{sec:sporadic-task-model}, job completion occurs when a job blocks waiting for the next job to be released.
+Any budget left by the current job is released as slack into the system, which means the available reservation budget drops to 0.
+If a job is time-triggered, such that it only relies on time for job release, then next job will be released once the period has passed.
+If a job is event-triggered, then the next job should be released once the period has passed \textit{and} an external event occurs, such as an interrupt.
+
+Simply defining job completion as when a task blocks is not sufficient as jobs can also block for other reasons, like polling I/O, or waiting for an asynchronous server.
+Unintentionally completing a job by blocking is incorrect, as it would result in real-time threads receiving less processing time than they have reserved.
+
+One design option we considered was to use the yield system call to complete the current job.
+However this approach would not enable a thread to receive a notification on job release, requiring more system calls to retrieve notifications.
+
+\begin{lstlisting}[frame=single,language=c,caption=Example of a basic sporadic real-time task on sel4.,    label=list:sporadic-sel4]
+    for (;;) {
+        // job is released
+        doJob();
+        // job completes before deadline or is postponed by CBS
+        // sleep until next job is ready
+        seL4_Word badge;
+        seL4_Wait(bound_async_endpoint, &badge);
+    }
+\end{lstlisting}
+
+% TODO background on endpoints, endpoint binding on backgournd sel4 section to support this.
+Instead, we use asynchronous endpoints to implement sporadic jobs on seL4, which unifies jobs to be completed and release with notifications, reducing the amount of system calls required.
+Currently, asynchronous endpoints can be bound to a thread, which enforces a one-to-one relationship be  tween the bound thread and the bound endpoint.
+The current semantics of async endpoint binding allow threads to wait on a synchronous endpoint and receive notifications from their bound async endpoint at the same time.
+Due to implementation complexities, no thread but the bound thread is permitted to wait on the bound endpoint.
+However, in practice, threads only ever wait on a separate synchronous endpoint, not the bound endpoint.
+As a result, we use this operation to implement job completion.
+
+The new semantics are simple: waiting on the bound asynchronous endpoint completes the current job.
+The next job is released when a notification arrives on the endpoint.
+If the budget has not been replenished at this point, the thread will not be runnable until it is.
+This design allows a simple distinction between standard blocking, and blocking to complete the current job.
+A code example of what real-time threads look like on seL4 is shown in Listing \ref{list:sporadic-sel4}.
+
+Time-triggered jobs have an additional semantic, as the kernel will send a notification to the asynchronous endpoint when the period passes to release the next job.
+This is a conscious design choice: it would be possible for users to implement time-triggered jobs using a user-level timer driver.
+In that case the kernel could treat all real-time jobs as event-triggered jobs.
+However, since the kernel at this point already contains a trusted timer driver to support the enforcement mechanism, it is impractical to require users to provide a second trusted timer driver for periodic, real-time threads.
+This also reduces overhead for time-triggered jobs, as less context switches are required for job release.
+
+Best-effort and rate-limited threads in practise run one real-time job, as they never complete their current job.
+If a real-time job does not complete before its budget expires, then it will be rate-limited, preserving temporal isolation.
+
+\subsection{Compatibility with the domain scheduler}
+
+While the real-time amendments to the scheduler are compatible with the domain scheduler, either the domain scheduler or the real-time amendments should be used for real-time scheduling.
+This is because domains are non-preemptive and as a result can only be used for non-preemptive real-time scheduling, where domain parameters exactly match real-time scheduling parameters.
+Using more than one domain when preemptive real-time scheduling is will result in missed deadlines.
+
+
+
+\section{Resource Sharing}
+
+Thread communications in seL4 take place via the IPC mechanism, which we alter to support scheduling context donation.
+In this section we will address changes to the system calls used to send and receive IPC messages to implement scheduling context donation.
+% more
+We then illustrate through example how reservation-per-thread, thread-migrating IPC and scheduling context donation can be built with the new \gls{API}.
+
+\subsection{Endpoints}
+
+\gls{IPC} in seL4 is conducted through endpoints, which do not denote a specific receiving or sending thread, but act as arbitrary communication endpoints.
+Any thread with an endpoint capability can send or receive messages on that capability: if two threads send and receive messages on the same endpoint, then a communication rendezvous occurs and a message is send.
+
+Endpoints are either synchronous: sending a message on a synchronous endpoint blocks the sender until the message is received, and in the case of multiple messages a queue of messages to be processed forms on the endpoint.
+As a result, IPC over synchronous endpoints triggers a thread switch.
+Messages on asynchronous endpoints do not block the sender, and are combined instead of forming a queue.
+We use IPC on synchronous endpoints to donate scheduling contexts, while asynchronous communication is expected to occur between threads with their own reservations.
+
+\subsection{Reply objects}
+
+%TODO{Reply objects}
+
+\begin{table}
+    \centering
+    \begin{tabular}{|>{\texttt\bgroup}l<{\egroup} | p{6cm} |} \hline
+        \textnormal{\textbf{Field}} & \textbf{Description} \\\hline
+         tcb\_t *tcb    & The calling thread that is blocked on this reply object. \\\hline
+         void *prev & 0 if this is the start of the call stack, otherwise points to the previous reply object in the call stack. \\\hline
+         void *next & Either a pointer to the scheduling context that was last donated using this reply object, if this reply object is the head of a call stack (the last caller before the server) or a pointer to the next reply object in the chain. 0 if no scheduling context was passed along the chain.\\\hline
+    \end{tabular}
+    \caption{Fields in a reply object.}
+    \label{tab:reply_object}
+\end{table}
+
+
+\subsection{Donation semantics}
+
+A synchronous message in seL4 can be sent by using the following system calls on a synchronous endpoint capability:
+
+\begin{itemize}
+	\item \send blocks until the message is received by another thread, then the sender continues execution.
+	\item \nbsend only performs the send if the receiver is already waiting, otherwise it fails (although the client cannot tell which behaviour occurred).
+	\item \call sends a message to another thread and blocks until a reply is received back.
+\end{itemize}
+
+\call is a special case: when \call is executed the kernel manufactures a special, single-use capability (referred to as the reply cap) which the callee invokes to reply to the message.
+The presence of the reply capability guarantees that a blocking thread is present to receive a reply.
+The reply capability is actually a thread object, not the endpoint, so reply messages are not conducted through an endpoint.
+Replies can be sent with the following two system calls:
+
+\begin{itemize}
+	\item \reply sends a reply message and blocks the replying thread until the message is received.
+	\item \replywait sends a reply and then blocks on an endpoint argument to the system call until another message is received.
+\end{itemize}
+
+To implement scheduling context donation, we augment the system call API as follows:
+
+\begin{itemize}
+	\item \call (altered) between a caller that has a scheduling context and a callee that does not have a scheduling context donates the callers scheduling context to the callee. If the callee has a scheduling context then donation does not occur. The callee runs at its own priority, as per \gls{HLP}.
+	\item \replywait (altered) to a thread without a scheduling context donates the scheduling context to subject of the reply.
+    \item \sendwait (new), which allows a thread to send a message and donate a scheduling context to an endpoint or reply cap, then wait on another endpoint.
+\end{itemize}
+
+Scheduling context donation does not occur on \send, \nbsend or \reply,  as the sender cannot continue to execute without a scheduling context, and without receiving one from another thread the sender is blocked.
+These system calls are not unusable, but should should be used between threads who have their own scheduling contexts.
+If a thread attempts to use \send, \reply or \nbsend to communicate to a thread without a scheduling context, the communication will block.
+
+\begin{figure}
+\centering
+    \begin{tikzpicture}[node distance=4cm,on grid,>=stealth,very thick,initial text=Event]
+        \node[state] (client)   {Client};
+        \node[state] (endpoint) [right=of client] {Endpoint};
+        \node[state] (server)   [right=of endpoint] {Server};
+        \path[->]
+            (client) edge [bend left]  node [above] {Call} (endpoint)
+            (server) edge [bend right] node [above] {Wait} (endpoint)
+            (server) edge [bend left]  node [below] {Reply} (client)
+        ;
+    \end{tikzpicture}
+\caption{Client-server scenario with \call and \replywait and a synchronous endpoint.}
+\label{fig:client-server-endpoint}
+\end{figure}
+
+\begin{figure}
+\centering
+    \begin{tikzpicture}[node distance=3cm,on grid,>=stealth,very thick,initial text=Event]
+        \node[state] (async_endpoint)                      {AE};
+        \node[state] (phase_1)   [right of=async_endpoint] {Phase 1};
+        \node[state] (endpoint0) [right of= phase_1]         {E};
+        \node[state] (endpoint1) [below of= phase_1]         {E};
+        \node[state] (phase_2)   [right of= endpoint1]      {Phase 2};
+        \node[state] (endpoint2) [right of= phase_2]        {E};
+        \node[state] (phase_3)   [right of= endpoint2]      {Phase 3};
+        \path[->]
+            (async_endpoint) edge [bend left]  node [above] {1. Event} (phase_1)
+            (phase_1)        edge [bend left]  node [below] {5. Wait}  (async_endpoint)
+            (phase_1)        edge              node [above] {2. Wait}  (endpoint0)
+            (phase_1)        edge              node [left]  {2. Send}  (endpoint1)
+            (phase_2)        edge              node [above] {3. Wait}  (endpoint1)
+            (phase_2)        edge              node [above] {3. Send}  (endpoint2)
+            (phase_3)        edge              node [above] {4. Wait}  (endpoint2)
+            (phase_3)        edge              node [above right] {4. Send}  (endpoint0)
+        ;
+    \end{tikzpicture}
+\caption{Data-flow scenario with endpoints: AE indicates an asynchronous endpoint through which an event occurs, E indicates a synchronous endpoint. Numbering indicates event ordering: a Send and Wait with the same number occur in one system call.}
+\label{fig:dataflow-endpoint}
+\end{figure}
+
+\Cref{fig:client-server-endpoint} and \Cref{fig:dataflow-endpoint} illustrate the client-server and data-flow scenarios with endpoints, using \call, \replywait and \sendwait.
+The cycle in the data-flow scenario is required in order to donate the scheduling context back to the source of the event: otherwise, after one iteration, phase 1 has no reservation budget to execute the next event on.
+
+\subsubsection{SendWait}
+
+Introducing \sendwait into the kernel can lead to a long-running operation if the send part of the system call, when called on a synchronous endpoint, is allowed to block.
+\Cref{fig:sendwait-chain} depicts this scenario.
+This situation can be avoided if \sendwait is only allowed to occur if the send stage is non-blocking: the rendezvous partner must already be blocking on the endpoint that the send is called on.
+This is not a problem when the \sendwait is called on a reply cap: the presence of the reply cap guarantees a thread is blocked waiting for a reply.
+As a result, \sendwait when called on a synchronous endpoint will succeed if the receiver is ready and waiting.
+Note that this long-running operation is not a problem with the existing \call, as the presence of the reply cap guarantees that earlier threads in the chain are blocked, preventing the long-running operation.
+
+\begin{figure}
+\centering
+    \begin{tikzpicture}[node distance=3cm,on grid,>=stealth,very thick,initial text=Event]
+        \node[state] (e3)              {E1};
+        \node[state] (e2) [right of=e3] {E2};
+        \node[state] (t2) [below right of=e3] {T1};
+        \node[state] (e1) [right of=e2] {E3};
+        \node[state] (t1) [right of=t2] {T2};
+        \node[state] (e0) [right of=e1] {E4};
+        \node[state] (t0) [right of=t1] {T3};
+        \node[state] (tx) [right of=e0] {T4};
+
+        \path[->]
+             (t0) edge          node [above left] {3.Send} (e0)
+             (t0) edge [dotted] node [below left] {3. Wait} (e1)
+             (t1) edge          node [above left] {2.Send} (e1)
+             (t1) edge [dotted] node [below left] {2.Wait} (e2)
+             (t2) edge          node [above left] {1.Send} (e2)
+             (t2) edge [dotted] node [below left] {1.Wait} (e3)
+             (tx) edge [color=red] node [below] {4. Wait} (e0)
+        ;
+    \end{tikzpicture}
+\caption{A \sendwait triggering a long-running kernel operation. Threads T1, T2 and T3 call \sendwait on endpoint pairs (E1, E2), (E2, E3) and (E3, E4) respectively, however each thread blocks on the send. Finally T4 waits on E4, triggering a chain of messages that the kernel would have to process if this pattern were permitted.}
+\label{fig:sendwait-chain}
+\end{figure}
+
+\subsubsection{Server/Activity blocking}
+
+If a phase or server blocks waiting on input from another endpoint, messages can accumulate on the endpoint that donation occurs through.
+This could be input from a device, or input from another task with its own reservation.
+In this case, the request from the client with the highest priority should be serviced first to maintain real-time guarantees.
+This requires endpoint queues to be ordered, which increases the complexity of a non-fastpath IPC to $O$(number of threads)\footnote{By using a heap this could be reduced to $O$(log$_{2}$(number of threads)), however we have conducted measurements previously establishing that a pointer-based list implemented in seL4 beats a pointer-based heap for up to and beyond 100 threads.}.
+IPC ordering only needs to be applied to one side of the rendezvous process: either when the message is enqueued or when it is dequeued.
+
+In some models, a server may wish to avoid blocking on input, but instead to issue an asynchronous request and continue to service other clients requests.
+In the verified seL4 kernel, a server would achieve this using the asynchronous endpoint binding mechanism or using a multi-threaded approach with one thread per client.
+The latter implementation is compatible with the scheduling context design, and will be explained in \Cref{sec:multithread}.
+However the former approach is not compatible with passive servers running on clients scheduling contexts.
+If scheduling context donation is not used, and the server has its own scheduling context, then the asynchronous endpoint binding approach remains viable.
+
+\subsubsection{Revoking a server}
+
+What happens if a server is revoked while executing on a clients scheduling context?
+Since the kernel does not track the `home' of a scheduling context, it is not possible to return the scheduling context to the calling thread.
+Currently the scheduling context will be disconnected from the server, and not returned to the caller.
+
+In real scenarios, this revocation should only occur if the sub-system is being torn down so this is not a problem.
+Otherwise, the scheduling context object is still valid: but it won't have any threads associated with it.
+A supervisor thread could be set up to reset the scheduling contexts of any threads that have lost theirs if a server goes down.
+Generally, if a server goes down in the middle of a request, action must be taken to restart the server and fix the client anyway so restoring the scheduling context must be incorporated in the protocol.
+Note that if the server goes down the reply cap is also lost: so in the current seL4 design restarting the server and replying to the client is already impossible.
+
+\subsection{Temporal Exceptions}
+
+Threads can register a synchronous endpoints for two different types of temporal faults: deadline faults and budget faults.
+In the former cause, a temporal fault is generated if the budget of a scheduling context expires while it is not home.
+In the latter case, the current job is not completed before the deadline passes.
+Both faults are optional and no fault message will be delivered if the respective endpoint is not set.
+
+\subsection{Helping}
+
+We introduce a new mechanism to the kernel -- helping -- which implements bandwidth inheritance as discussed in \Cref{sec:bandwidth-inheritance}.
+Helping only occurs if a scheduling context runs out of budget, no temporal fault handler is registered for the current thread, and another thread has attempted to contact the stuck server.
+Bandwidth inheritance is supported to allow shared servers and phases to remain single threaded.
+
+\begin{figure}
+\centering
+    \begin{tikzpicture}[node distance=3cm,on grid,>=stealth,very thick]
+        \node[state] (a)              {A};
+        \node[state] (b) [right of=a] {B};
+        \node[state] (e) [right of=b] {E};
+        \node[state] (s) [right of=e] {S};
+        \path[->]
+             (a) edge [bend left]  node [above] {2.Call} (e)
+             (b) edge [bend right] node [below] {3.Call} (e)
+             (s) edge              node [above] {1.Wait} (e)
+        ;
+    \end{tikzpicture}
+\caption{Client A makes a request from server S on endpoint E. A's scheduling context is donated from A to S. The budget expires while S is executing the request, blocking S from servicing other requests. Another Client, B, attempts to make a request but finds S blocked.}
+\label{fig:budget-expiry}
+\end{figure}
+
+We explain the helping mechanism with reference to \Cref{fig:budget-expiry}.
+$A$ sends an IPC to $S$ via endpoint $E$, and scheduling context donation occurs: $S$ is now running on $A_{sc}$.
+As part of the donation process, a pointer to $S_{tcb}$ is stored in $E$, as the help-target.
+$A_{sc}$ expires, and $B$ becomes runnable, issuing a request to $S$ via $E$.
+Since no other threads are waiting to receive messages on $E$, $B$ inspects the state of the help-target, and finds that $S$ is running on expired scheduling context, $A_{sc}$.
+$S$ inherits $B_{sc}$ in order to finish its request.
+When $S$ replies to $A$, $A_{sc}$ is returned to $A$, and $S$ picks up $B$'s request from the IPC message queue, inheriting $B_{sc}$.
+
+If $B_{sc}$ also expires, then it will be returned to $B$ and $B$ is removed from the endpoint queue.
+When $B_{sc}$ is recharged, it can restart the operation.
+This approach avoids large dependency chains in the system, and is acceptable as helping will never be triggered by \gls{HRT} threads, and is intended for use by rate-based threads and \gls{SRT} threads.
+
+\subsubsection{Nested helping}
+
+With the presence of nested servers, budget expiry can also occur and is more complicated.
+Note that in the data-flow scenario, nested budget expiry is not possible as once a phase is executed and the scheduling context passed on, that phase is ready to execute another request immediately.
+Nested budget expiry is illustrated in \Cref{fig:nested-budget-expiry}.
+
+\begin{figure}
+\centering
+    \begin{tikzpicture}[node distance=2.5cm,on grid,>=stealth,very thick]
+        \node[state] (a)              {A};
+        \node[state] (b) [right of=a] {B};
+        \node[state] (e1) [right of=b] {E2};
+        \node[state] (s1) [right of=e1] {S1};
+        \node[state] (e2) [right of=s1] {E2};
+        \node[state] (s2) [right of=e2] {S2};
+        \path[->]
+             (a) edge  [bend left]  node [above] {3.Call} (e1)
+             (b) edge  [bend right] node [below] {5.Call} (e1)
+             (s1) edge [bend right] node [above] {1.Wait} (e1)
+             (s1) edge [bend left]  node [above] {4.Call} (e2)
+             (s2) edge [bend right] node [above] {2.Wait} (e2)
+
+        ;
+    \end{tikzpicture}
+\caption{Clients A makes a request to server S1 on endpoint E1. S1 receives A's request first, and makes a nested request to another server, S2. A's scheduling context is donated from A to S1 to S2, but the budget expires while S2 is executing.  A's budget expires while S is executing on it, blocking S from servicing other requests. Client B now makes a request, and finds S1 blocked.}
+\label{fig:nested-budget-expiry}
+\end{figure}
+
+This problem can also be solved through helping by following the chain of help-target TCBs and passing the scheduling context through the chain.
+This requires the addition of preemption points as it introduces a long-running operation.
+If the operation is preempted, the chain search will be abandoned until the thread is scheduled again, at which point the \call will be restarted (since anything could happen during the preemption -- the scheduling context for the server may be replenished).
+
+\subsection{Server and activity initialisation}
+
+Except for systems using the reservation-per-thread model, where a scheduling context is assigned for each thread in the system, shared servers and activities are passive: they do not have their own scheduling context.
+However, without a scheduling context these threads are not runnable, so how can one initialise a passive thread?
+
+Two options are available using the new mechanisms: dedicated initialisation reservations, or helping.
+Dedicated reservations involve resuming a thread with a reservation set purely for its initialisation phase.
+The thread transfers the reservation back to the initialiser with a \sendwait call once it is ready to receive messages.
+
+The helping approach operates by leveraging the helping mechanism and removes the requirement that a dedicated reservation be created purely for initialisation: instead, the initialiser passes its own reservation directly to the passive component.
+To achieve this, a new kernel invocation is provided, \texttt{seL4\_Endpoint\_SetHelpTarget}, which allows the help target of an endpoint to be set.
+To initialise a thread the initialiser can \call the server, thus donating its scheduling context to that thread via the helping mechanism.
+The server can then \replywait to the initialiser, and it is now blocked waiting for the first client.
+
+\subsection{Fastpath}
+
+seL4 has an optimised fastpath that is executed for \call and \replywait.
+As the semantics of these system calls have been altered, the impact on the fastpath has to be assessed.
+The conditions to hit the fastpath currently are:
+\begin{enumerate}
+    \item the message arguments must fit into the scratch registers of the calling convention ($\leq$ 2 for x86, $\leq$ 4 for arm),
+    \item the message must be sent on a synchronous endpoint,
+    \item the receiver must be higher or equal priority,
+    \item the receiver must be blocking on the endpoint,
+    \item the message must be sent via a \call or \replywait.
+\end{enumerate}
+All of these conditions are performance optimisations: if we \call to a lower priority thread the scheduler would need to be invoked to check there are no other runnable threads at a higher priority than the receiver.
+
+The addition of scheduling contexts raises adds a new condition to the fastpath:
+\begin{enumerate}
+    \setcounter{enumi}{5}
+    \item the scheduling context must not change.
+\end{enumerate}
+When the current scheduling context changes, the time needs to be read to bill the previous scheduling context and an interrupt set for the budget expiry of the new scheduling context.
+Adding these operations to the fastpath would slow it down greatly, as access to the timer device is expensive.
+Consequently, the fastpath is aborted if the current scheduling context would change.
+
+Scheduling context donation \emph{does} occur on the fastpath, as it only adds to writes.
+Checking if the scheduling context will change adds 2 reads, and the donation takes 5 writes.
+
+In future we will add a fastpath for \sendwait.
+
+\subsection{Examples}
+
+This chapter so far has outlined the various mechanisms added to the kernel to support resource sharing.
+In this section we demonstrate how these mechanisms can be used to support different system policies for resource sharing.
+
+\subsubsection{Reservation-per-thread}
+
+Recall from \Cref{sec:reservation-per-thread} that in this model, clients and servers have their own reservations.
+The reservation-per-thread model is the most simple to implement: all components in a system are assigned their own scheduling context with sufficient parameters.
+If a shared resource runs out of budget, any clients will be blocked until the budget is recharged.
+While independent threads in this example are temporally isolated from each other, threads sharing resources servers using reservation-per-thread are not temporally isolated.
+
+\subsubsection{Migrating threads}
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}[node distance=3cm,on grid,>=stealth,very thick]
+        \node[state] (client)                     {C};
+        \node[state] (endpoint) [right=of client] {E};
+        \node[state] (server) [above right=of endpoint] {S};
+        \node[state] (stack) [below right=of endpoint] {SA};
+
+        \path[->]
+            (client) edge node [below left] {Call} (endpoint)
+            (server) edge node [above left] {Wait} (endpoint)
+            (server) edge [bend right] node [above] {Reply} (client)
+            (stack)  edge              node [below left]       {Wait} (endpoint)
+            (stack)  edge              node [right] {Send} (server)
+       ;
+    \end{tikzpicture}
+    \caption{Migrating threads with a stack allocating thread, SA.}
+    \label{fig:migrating-threads}
+\end{figure}
+
+User-level systems can build multi-threaded servers with migrating threads in the following way: server threads run at priority $p$ and wait on the server endpoint.
+An additional thread runs at priority $p - 1$, whose purpose is to allocate stacks.
+If a client request comes in and no server thread is available to serve it, then the stack allocating thread will run, allocate a new stack and start a new server thread.
+The stack allocator will forward the clients scheduling context and request onto the new server thread, and wait on the endpoint again, using the new system call \sendwait.
+This is illustrated in \Cref{fig:migrating-threads} -- SA is the stack allocator, which creates server thread S after client C makes the first request.
+
+Because the endpoint always has a thread waiting for messages (the stack allocator), the helping mechanism will not be triggered.
+This scenario relies on priority ordered \gls{IPC}, and the correct ceiling priorities assigned to servers.
+
+\subsubsection{Exception}
+
+Temporal faults allow the user to implement custom handling for budget expiry.
+A temporal fault endpoint for budget expiry is set per thread, so a server can set up a dedicated thread to wait for temporal faults.
+The dedicated thread must be assigned its own reservation for handling faults.
+The thread can be used to complete the request (as an emergency reservation), to rollback the request and return an error from the server, or for other purposes.
+Of course, servers then must be thread safe such that the fault handling thread does not corrupt state.
+
+\subsubsection{Bandwidth inheritance}
+
+Bandwidth inheritance will occur if no temporal fault endpoint is registered and a blocked server encounters contention.
+This allows user systems to have temporally contained servers without the requirement that those servers be thread safe.
+
+\subsection{Summary}
+
+This section has outlined the details of integrating resource kernel concepts of enforcement, admission and scheduling into \selfour.
+We also outlined our approach to resource sharing, using scheduling context donation over IPC, and showed how this supports servers using reservation-per-thread, migrating-threads, temporal exceptions or bandwidth inheritance.
+
+The status of the implementation so far is as follows:
+
+\subsubsection{Implemented}
+
+\begin{itemize}
+\item Scheduling contexts.
+\item EDF scheduling.
+\item User-level admission control.
+\item Fast-path changes.
+\item Task completion when a thread waits on its bound asynchronous endpoint.
+\item Temporal isolation for fixed-priority threads.
+\item Scheduling context donation.
+\item Converted kernel to tickless.
+\end{itemize}
+
+\subsubsection{To be implemented}
+
+\begin{itemize}
+\item \sendwait
+\item Ordered \gls{IPC} endpoint queues.
+\item Temporal exceptions.
+\item Helping.
+\item Nested Helping.
+\end{itemize}
+
+

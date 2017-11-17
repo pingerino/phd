@@ -1,0 +1,125 @@
+\chapter{Conclusion}
+\label{chap:conclusion}
+
+This chapter outlines what this PhD project has accomplished so far and what I plan to achieve in the future.
+
+\section{Progress}
+
+This research will investigate the scheduling and resource sharing problems of running application software at different criticality levels with different scheduling requirements in the context of the verified microkernel, \selfour.
+This research will attempt to break new ground by developing a real-time operating system kernel with full system schedulability analysis, including that of the kernel code and scheduler.
+
+The goals of this project are to provide (reproduced from the introduction):
+
+\begin{enumerate}[label=\textbf{G\arabic*}]
+  \item \label{G1} A principled approach to processor management, treating time as a fundamental kernel resource, while allowing it to be overbooked, a key requirement of mixed-criticality systems;
+  \item \label{G2} safe resource sharing between applications of different criticalities and different temporal requirements.
+\end{enumerate}
+
+This research is motivated by the rise in demand for mixed-criticality systems.
+It is clear from \Cref{chap:background} that although much work has been conducted on scheduling algorithms for mixed-criticality systems, little work has considered the implications for operating systems.
+In addition, mixed-criticality systems require more strict access control to time than has typically been required from standard real-time systems.
+This motivates \ref{G1}, which investigates how trusted applications can control the use of time as a resource, such that all timing requirements are met and low criticality tasks cannot compromise the timing requirements of higher criticality tasks.
+\ref{G2} covers how time flows through shared resources, which may be shared between tasks of different criticalities and different temporal strictness (\gls{HRT}, \gls{SRT}, \gls{NRT}) without violating the real-time requirements.
+
+This research is split into several clear phases: background research (year 1), design and implementation (year 2) and evaluation (year 3).
+We are currently at the middle of the evaluation phase, having completed the following:
+:
+\begin{itemize}
+	\item developed primitives in \selfour to allow a diverse range of scheduling options at user-level;
+	\item extended the \selfour capability model to apply to time, such that it can be enforced by the kernel;
+	\item evolved the current \selfour \gls{IPC} mechanisms to allow for analysable blocking of real-time tasks, as required for mixed-criticality resource sharing.
+        \item extended the model to cover and run on \gls{SMP} systems.
+        \item built a set of microbenchmarks for evaluating \selfour master against the real-time version.
+        \item built several examples including an AES encryption server, and built a variety of timeout exception handling 
+\end{itemize}
+
+Throughout the evaluation, I've discovered problems with the design that have faciliated entire redesigns, tweaks and revaluations. 
+
+The next stage is run the benchmark suite on the newest kernel and complete the case studies.
+
+\subsection{Ongoing Evaluation}
+
+Our design and will be evaluated according to the following qualities over the next 12 months:
+
+\subsubsection{Policy-Mechanism Separation}
+
+The aim of the project is to be as true to the microkernel minimality principle as possible -- this means that kernel features should avoid influencing user policy decisions as much as possible.
+The motivation for using the microkernel minimality policy is to provide widely-applicable, trustworthy scheduling.
+Our case studies should allow us to evaluate how successful our design is in keeping policy and mechanism separate.
+
+\subsubsection{Schedulability analysis}
+
+Designs must be conscious of minimising actual and estimated \gls{WCET} as in order to provide a kernel that allows for schedulability analysis, a full profile of \gls{WCET} must be available.
+At the end of the project it should be possible to take a full description of a closed system and irrefutably show that the system is always schedulable.
+Similarly, for a mixed-criticality system, it must be possible to show that the critical parts of the system are always schedulable.
+
+\subsubsection{Measures of verification potential}
+
+I have determined that the code follows the verification subset of C and passes through the verification C-Parser.
+I am actively working with the verification team this year to verify the first set of patches. 
+
+\subsection{Case studies}
+
+Case studies will demonstrate that the scheduling and resource sharing mechanisms are practical.
+So far I have built user level schedulers, an AES server for measuring rollback costs. 
+I need to finish a network case study and the SMACCM case study. 
+
+\subsubsection{SMACCM}
+
+Another ideal case study for mixed-criticality systems is an autonomous helicopter.
+Our research group is currently working on building a high-assurance system for such a helicopter (\url{www.ssrg.nicta.com.au/projects/TS/SMACCM}), which I should be able to test running my scheduler.
+I have already been involved with the SMACCM project, advising on real-time scheduling, resource sharing and analysis.
+
+\section{Timeline}
+
+I have completed 3 years of my PhD project, with 1 year remaining.
+I expect to safely complete in by the end of 2017.
+Below is a timeline to completion.
+
+\begin{center}
+\begin{tabular}{|c|p{0.7\textwidth}|}\hline
+March & Get microbenchmark suite running on latest kernel API, finish write up of all microbenchmarks to date. \\\hline
+April & Design network case study demonstrating temporal isolation. Write up. \\\hline
+May & Finish implementatio and model write up. Start quadcopter/SMACCM case study. \\\hline
+June & Finish quadcopter/SMACCM case study, write up. \\\hline
+July & Work on multicore resource sharing policies. \\\hline
+August & Work on papers and phd. \\\hline
+September & Work on papers and phd. \\\hline
+October & Submit paper on microkernel design to Eurosys, RT multicore resource sharing paper to RTAS. \\\hline
+November & Finalise writing. \\\hline
+December & Send out phd for feedback, submit once collected and integrated. \\\hline
+\end{tabular}
+\end{center}
+
+\subsection{Community Engagement}
+
+I participated in the \gls{SOSP} 2013 Diversity Workshop presenting a pitch of my PhD topic centered around a poster.
+I presented at the Trustworthy Systems Summer School in 2017 and 2015.
+
+\subsection{Publications}
+
+In a collaboration with Manohar Vanga, Felipe Cerqueira and Bj\"{o}rn Brandenburg from the \gls{MPISS}, my supervisor Gernot Heiser and I submitted a paper to the RTSS, during the first year of my PhD.
+This paper was rejected due to lack of theoretical novelty, which we put down to not being a good fit for that particular conference.
+
+This paper was rejected again, from \gls{RTAS}, so we ultimately decided that it was not a good fit for the real time community.
+We plan a resubmission of this paper to a systems conference once one of the case studies is complete, as to suit the systems community a demonstration of the work in real world scenario is required.
+
+I have submitted papers on the scheduling  API to OSDI and \gls{RTAS}, however these were rejected.
+I plan two submit two papers in the final year, one to Eurosys on capabilities to time, and one to \gls{RTAS} demonstrating the API to build mixed-criticality IPC protocols on multicore.
+
+\subsection{Summary}
+
+Over the past year I have developed a design for a principled approach to time in seL4, involving integrating resource sharing into \gls{IPC}.
+I have nearly finished a concrete implementation and the next 12 months will involve evaluation and case studies.
+Although there is a long road ahead, I believe I am on track to a timely completion.
+
+\section{Conclusion}
+
+Mixed-criticality real-time systems that provide isolation and hard guarantees at the operating system level are desirable, due to the unscalable nature of hardware isolation.
+Much research has been conducted into how to schedule workloads for real-time, mixed-criticality systems, however the implications for operating systems are yet to be examined, with most implementations falling short of what is required in a highly critical environment.
+
+As a result, this ongoing research investigates the implications of mixed-criticality, real-time scheduling in the context of a high-assurance operating system, driven by the rise of mixed-criticality systems in safety-critical environments.
+The research investigates the trade-offs between verification potential, performance and policy-mechanism separation with respect to mixed-criticality scheduling and resource sharing.
+In addition to a real-time iteration of seL4 that offers full-system schedulability analysis including the kernel and scheduler, the contributions are expected to provide a model for future L4 real-time scheduling primitives and a novel approach to applying fine-grained permissions to time without sacrificing performance.
+
+

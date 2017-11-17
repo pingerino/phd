@@ -1,0 +1,419 @@
+
+
+% real time models
+
+%% cover basic RT scheduling
+%%% EDF
+%%% FP
+%%% schedulability tests
+
+% operating systems
+%% resource kernels
+%% microkernels
+%% os survey - brief, go into details later?
+
+\chapter{Core concepts}
+\label{chap:background}
+
+In this section we provide the background required to motivate and understand our research.
+We introduce real-time theory, including scheduling algorithms and resource sharing protocols.
+Finally we define operating systems, microkernels and introduce the concept of a resource kernel.
+This thesis draws on all of these fields in order to support real-time and mixed-criticality systems.
+
+\section{Real-time theory}
+\label{sec:real-time-theory}
+
+Real-time systems have timing constraints, where the the correctness of the system is dependent not only on the results of computations, but on the time at which those results arrive~\citep{Stankovic_1988}.
+Essentially all software is real-time: if the software never gets access to processing time, it will never complete and delivery any results.
+However, for a system to be considered real-time it must be sensitive to timing behaviour.
+For basic software, time is fungible: it does not matter when the software is run, as long as it does get run.
+Computations in real-time systems are said to have deadlines: if a result is not delivered by a deadline, the system is considered incorrect.
+
+\subsection{Types of real-time task}
+
+A \emph{task} in real-time theory is a single instruction stream.
+How that task is realised by an operating system -- as a process or a thread, depends on whether memory protection is required or not.
+Real-time tasks fall into several categories, depending on how strictly deadlines are enforced.
+
+\paragraph{Hard Real-Time}
+In a \gls{HRT} system deadlines are absolute.
+If a deadline is missed, the system is considered incorrect.
+Many \gls{HRT} systems are safety-critical systems, where deadline misses lead to catastrophic results.
+Examples of \gls{HRT} systems include airbag systems in cars and control systems for autonomous vehicles.
+In the former, missing a deadline could cause an airbag to be deployed too late.
+In the latter, the autonomous vehicle could crash.
+To guarantee that a \gls{HRT} system can meet deadlines, the code must be subject to {\gls{WCET}} analysis. State of the art {\gls{WCET}} analysis is generally pessimistic by several orders of magnitude, which means that allocated time will not generally be used completely, although it must be available.
+Further detail about {\gls{WCET}} analysis can be found in \citet{Lv_GZDYZ_09}.
+
+\paragraph{Soft Real-Time}
+As opposed to \gls{HRT} systems, \gls{SRT} systems can still be considered correct in the presence of some defined level of deadline misses. Although {\gls{WCET}} can be known for {\gls{SRT}} systems, less precise but more optimistic time estimates are generally used for practicality.
+Examples of \gls{SRT} systems include multimedia and video game platforms, where deadline misses may result in some non-critical effect such as performance degradation.
+
+Various models exist to quantify permissible deadline misses in \gls{SRT} systems.
+One measure is to consider the upper bound on how late a deadline miss may occur, referred to as \emph{tardiness}~\citep{Devi:phd}.
+Another is to express an upper bound on the percentage of deadline misses, which is easier to measure but less meaningful, as this allows for unbounded execution time.
+Some \gls{SRT} systems allow deadlines to be skipped completely~\citep{Koren_Shasha_1995} while others allow deadlines to be postponed. Systems that allow deadlines to be skipped are often referred to as firm real-time.
+
+\paragraph{Non Real-Time}
+\Gls{NRT} or \emph{best-effort} tasks are tasks without temporal requirements that generally execute in the background of a real-time system. Examples include logging services and standard applications, but may be far more complicated.
+
+\subsection{Real-time models}
+
+Tasks in real-time systems are modelled as an infinite series of jobs.
+When a job is ready to run it is said to be \emph{released}, and multiple jobs from one task cannot run simultaneously.
+When a job blocks waiting for the next job release, it is said to be \emph{completed}.
+Listing \ref{list:sporadic} shows an example of how C code for such a task could look.
+
+\begin{lstlisting}[frame=single,language=c,caption=Example of a basic sporadic real-time task.,label=list:sporadic,float=htpb]
+for (;;) {
+	// job is released
+	doJob();
+	// job completes before deadline
+    // sleep until next job is ready
+    sleep()
+}
+\end{lstlisting}
+
+
+\noindent
+Tasks can be periodic, or aperiodic: periodic tasks are always ready to be executed at the start of the execution period, and always complete before their deadline, and aperiodic tasks the opposite.
+The sporadic task model can be used to model both \emph{periodic} and \emph{aperiodic} tasks: periodic tasks are assumed to arrive at exactly their period, whilst for aperiodic tasks the period represents an upper bound on interarrival times between jobs.
+In \autoref{table:notation} we present the parameters for the sporadic task model, and the notation that will be used throughout the rest of this document.
+
+\begin{table}
+\begin{center}
+    \begin{tabular}{|c|p{.7\textwidth}|}\hline
+    \textbf{Notation} & \textbf{Meaning} \\\hline
+    $T$               & The minimum period of a task, the minimum time between job releases. \\\hline
+    $C$               & The execution requirement of a task ($C \leq T$). \\\hline
+    $T_{i}$           & A specific task $i$ \\\hline
+    $U_{i}$           & The maximum utilisation of task $i$, which is $\frac{C}{T}$ \\\hline
+    $T_{ij}$          & The $j$th job of task $i$ \\\hline
+    $t_{ij}$          & The release time of a the $j$th job of task $i$ \\\hline
+    $d_{ij}$          & The deadline for the $j$th job of task $i$. For realtime tasks, the job must be completed by this time for the job to be considered correct. \\\hline
+    \end {tabular}
+    \caption{Parameters and notation for the sporadic task model as used in this document.}
+    \label{tab:notation}
+\end{center}
+\end{table}
+
+In any real-time model, jobs must complete before their deadline, which can be constrained or implicit.
+An \emph{implicit} deadline means the job must finish before the period elapses.
+\emph{Constrained} deadlines are relative to the release time, but before the period elapses.
+Other task models allow for \emph{arbitrary} deadlines, which can be after the period elapses, however arbitrary deadlines are not compatible with the sporadic task model as they allow multiple jobs from one task to be active at one time.
+However, tasks with arbitrary deadlines can be modelled by the sporadic task model by splitting tasks into multiple, different tasks with larger periods and constrained deadlines.
+
+\section{Scheduling}
+\label{sec:rt-scheduling}
+
+Scheduling is the act of assigning resources to activities or tasks~\citep{Baruah_CPV_1996}.
+It is generally discussed in the context of processing time, but is required for other resources such as communication channels.
+A correct scheduling algorithm  can guarantee that all deadlines are met within their requirements whilst also maintaining maximum utilisation of the scheduled resource(s).
+
+Scheduling can be either \emph{static} or \emph{dynamic}.
+Static or \emph{off-line} scheduling involves a pre-computed set of tasks and schedule that are executed.
+No new tasks can be added and schedules cannot change.
+Dynamic or \emph{on-line} scheduling involves a set of tasks that can change and where scheduling decisions are made according to the current state of the system.
+While closed systems often use static scheduling, dynamic schedulers can also be used.
+Open systems require dynamic schedulers due to their dynamic resource demands.
+
+% optimality, scheduling tests
+A task set is schedulable by a scheduling algorithm if all temporal requirements are satisfied.
+If at least one scheduling algorithm can schedule a task set, it is said to be \emph{feasible}.
+An \emph{optimal} scheduling algorithm can schedule every feasible task set.
+To test if a task set is schedulable by a scheduling algorithm, a \emph{schedulability test} is applied.
+The complexity of schedulability tests is important for online schedulers, as schedulability tests with high complexity have high overheads.
+Online schedulability tests are referred to as \emph{admission tests}, as they are applied to admit new tasks to the system.
+
+There is an absolute limit on the feasibility of task sets.
+The \emph{total utilisation} of a task set is the sum of all of the rates and must be less than the total processing capacity of a system in a \gls{HRT} context.
+In the case of a uniprocessor using the sporadic task model, this amounts to
+\begin{equation*}
+	\sum\limits_{i=0}^n \dfrac{e_{i}}{p_{i}} \leq 1
+\end{equation*}
+however if the inequality does not hold, the system is considered \emph{overloaded}.
+
+\begin{table}
+	\begin{center}
+		\begin{tabular}{ | c | c  c  c |} \hline
+			         & $e_{i}$ & $p_{i}$ & $u_{i} $ \\ \hline
+			$ T_{1}$ & 1 & 4 & 0.25 \\
+			$ T_{2}$ & 1 & 5 & 0.20 \\
+			$ T_{3}$ & 3 & 9 & 0.33 \\
+			$ T_{4}$ & 3 & 18 & 0.17  \\ \hline
+	$ u_{sum}(\tau)$ & &  & 0.95 \\ \hline
+		\end{tabular}
+		\caption{A sample task set, adapted from ~\citep{Brandenburg:phd}}
+		\label{tab:example_task_set}
+	\end{center}
+\end{table}
+
+Ideally, task sets are scheduled such that the total utilisation is equal to the number of processors.
+In practice, scheduling algorithms are subject to two different types of \emph{capacity loss} which render 100\% utilisation impossible --- algorithmic and overhead-related.
+\emph{Algorithmic} capacity loss refers to processing time that is wasted due to the schedule used.
+\emph{Overhead-related} capacity loss refers to time spent due to hardware effects (such as cache misses and context switches) and computing scheduling decisions.
+Accurate schedulability tests should account for overhead-related capacity loss.
+
+\gls{HRT} tasks often do not use all of their execution requirement, as this is generally based on pessimistic \gls{WCET} values.
+The remaining time is referred to as \emph{slack}.
+Many scheduling algorithms attempt to gain performance by reclaiming or stealing slack.
+
+
+Uniprocessor scheduling algorithms are generally well understood - the two definitive algorithms being \acrlong{FP} \acrlong{RM} and \acrlong{EDF}.
+Both algorithms are defined along with schedulability tests for the periodic task model in the seminal paper by \citet{Liu_Layland_73}.
+
+% survey of scheduling algorithms (FP, EDF, PFAIR)
+\subsection{Fixed Priority Scheduling}
+As the name implies, \gls{FP} scheduling involves assigning fixed priorities to each task.
+The scheduler is invoked when a job is released or a job ends.
+The job with the highest priority is always scheduled.
+
+Priority assignment such that all tasks meet their deadlines is the challenge present in \gls{FP} scheduling.
+Two well established techniques are rate monotonic and deadline monotonic, both of which are optimal with respect to \gls{FP} scheduling.
+\Gls{RM} priority assignment~\citep{Liu_Layland_73} allocates higher priorities to tasks with higher rates.
+
+Schedulability analysis for \gls{RM} priority assignment requires that deadlines are equal to periods.
+\Gls{DM} priority assignment~\citep{Leung_Whitehead_1982} allocates higher priorities to tasks with shorter deadlines and relaxes this requirement.
+In both cases, ties are broken arbitrarily.
+The \gls{FP} scheduling technique itself is not optimal, as it results in algorithmic capacity loss and may leave up to 30\% of the processor idle.
+
+\begin{figure}[h!tb]
+	\begin{center}
+		\leavevmode
+		\includegraphics[width=10cm]{fpschedule}
+		\caption{An example FPRM schedule using the task set from Table \ref{tab:example_task_set}.}
+		\label{fig:fp-schedule}
+	\end{center}
+\end{figure}
+
+\subsection{Earliest Deadline First Scheduling}
+
+The \gls{EDF} algorithm is theoretically optimal for scheduling a single resource, with no algorithmic capacity loss.
+Tasks themselves have no priority under \gls{EDF} scheduling, instead individual jobs have priorities.
+Priorities are assigned by examining the deadlines of each ready job --- jobs with more immediate deadlines have higher priorities.
+
+\begin{figure}[h!tb]
+	\begin{center}
+		\leavevmode
+		\includegraphics[width=10cm]{edfschedule}
+		\caption{An example EDF schedule using the task set from Table \ref{tab:example_task_set}.}
+		\label{fig:edf-schedule}
+	\end{center}
+\end{figure}
+
+\subsection{Earliest Deadline First vs. Fixed Priority Scheduling}
+
+\gls{EDF} is less popular in commercial practice than \gls{FP} for a number of reasons.
+\gls{EDF} is considered more complex to implement and to have higher overhead-related capacity loss.
+\gls{FP} is mandated by the P\gls{OS}IX standard, possibly due to these misconceptions.
+It was often argued that even though \gls{FP} suffers from algorithmic capacity loss, this is mediated by the fact that \gls{EDF} has higher overhead-related capacity loss.
+
+All of these points were debunked by \citet{Buttazzo_2005}.
+Although \gls{EDF} is difficult and inefficient to implement on top of existing, priority-based \gls{OS}es, \gls{FP} and \gls{EDF} can be considered equally complex to implement from scratch.
+\gls{FP} scheduling has higher overhead-related capacity loss due to an increase in the amount of preemption.
+This compounds the algorithmic capacity loss, rendering \gls{EDF} a clear winner in from-scratch implementations.
+
+Other comparisons between \gls{EDF} and \gls{FP} are the complexity of their schedulability tests and how
+they behave under overload.
+\gls{EDF} and \gls{FP} scheduling both have pseudo-polynomial schedulability tests under the sporadic task model, although \gls{EDF} under the periodic task model\footnote{The periodic task model is the same as the sporadic task model, with the restriction that deadlines must be equal to periods ($d = p$), while periods themselves are considered absolute, not minimum.} has an $O(n)$ schedulability test.
+Like all pseudo-polynomial problems, approximations can be made to reduce the complexity, although this comes with an error factor which may not be suitable for \gls{HRT} systems.
+Both algorithms behave differently under constant overload --- \gls{EDF} allows progress for all jobs but at a lower rate, while \gls{FP} will continue to meet deadlines for jobs with higher \gls{RM} priorities, completely starving other jobs.\footnote{\emph{Constant overload} means that the total utilisation of the system is greater than the number of processors.}
+Whether these behaviours are desirable is subject to context.
+Under transient overload conditions both algorithms can cause deadline misses.\footnote{\emph{Transient overload} means that the total utilisation is temporarily higher than the number of processors.}
+
+\subsection{Multiprocessors}
+
+\gls{EDF} and \gls{FP} scheduling can be used on multiprocessor machines.
+Scheduling can either be global, where all processors share a single scheduling data structure, or partitioned, where there is a data structure per processor.
+ Neither is perfect: global approaches suffer from scalability issues such as hardware contention, however partitioned schedulers require load balancing.
+Partitioning itself is known to be a NP-hard problem.
+On modern hardware, partitioned schedulers outperform global schedulers~\citep{Brandenburg:phd}.
+
+\section{Resource sharing}
+\label{sec:resource-sharing-theory}
+
+In the discussion so far we have assumed all real-time tasks are separate, and do not share resources.
+Of course, any practical system involves shared resources.
+
+Resource sharing in a real-time context is more complicated than standard resource sharing and synchronised, due to the problem of \emph{priority inversion}, which threatens the temporal correctness of a system.
+Priority inversion occurs when a low priority task prevents a high priority task from running.
+Consider the following example: if a low priority task locks a resource that a high priority task requires, then the low priority task can cause the high priority task to miss its deadline.
+Consequently, all synchronised resource accesses in a real-time system must be bounded, and the deadlines of tasks must be able to tolerate being blocked by other tasks.
+
+Bounded critical sections alone are not sufficient to guarantee correctness in a real-time system.Consider the scenario outlined earlier, where a low priority thread holds a lock that a high priority thread is blocked on.
+If other medium priority tasks exist in the system then the low priority task will never run and unlock the lock, leaving the high priority task blocked for an unbounded period.
+This exact scenario caused the Mars Pathfinder to fault, causing unexpected system resets~\citep{Mars_Pathfinder}.
+
+In this section we provide a brief overview of four basic real-time synchronisation protocols that avoid unbounded priority inversion.
+
+\subsection{Non-preemptive critical sections}
+
+Using \gls{NCP}, preemption is totally disabled whilst in a critical section.
+This approach blocks all threads in the system while any client accesses a critical section.
+Consequently, the bound on any single priority inversion is the length of the longest critical section in the system.
+Although functional, this approach results in a lot of unnecessary blocking of higher priority threads.
+The maximum priority inversion that a task will experience is the sum of all critical section accesses in the system.
+
+\subsection{Priority Inheritance Protocol}
+\label{sec:pip}
+
+The \gls{PIP} has the server running at the priority of the client.
+This approach avoids blocking any higher priority threads that do not access this server.
+However it results in a large preemption overhead and as a result has poor WCET analysis.
+
+To understand this, consider a  server at the lowest priority, $s$.
+A client with priority $s + 1$ makes a request of the server, the server priority is elevated to $s + 1$.
+Immediately following, the server is preempted by another client, with priority $s + 2$, which the server inherits.
+Then the server is preempted by a client running at $s + 3$ ... and so on.
+This continues until the highest priority client pre-empts the server at priority $n$, and the server has been preempted $n$ times.
+
+\gls{PIP} can also lead to deadlock if resource ordering is not used.
+
+\subsection{Highest lockers' protocol / Immediate ceiling priority protocol}
+\label{sec:hlp}
+
+Under \gls{HLP}, also known as the immediate priority ceiling protocol, servers are assigned a ceiling priority -- the highest priority of all clients that access that server + 1.
+When a server processes a request, it always runs at the ceiling priority, removing all of the preemption overhead of \gls{PIP}.
+
+The disadvantage of \gls{HLP} is that all priorities of clients to servers must be known \emph{a priori}.
+Additionally, if priority ceilings are all set to the highest priority, then behaviour degrades to that of \gls{NCP}.
+This protocol allows intermediate priority tasks that do not need the resource to be blocked.
+
+\subsection{Priority Ceiling Protocol}
+
+The \gls{PCP} combines the previous two approaches, and avoids deadlock, excessive blocking and excessive preemption.
+The system maintains a `system ceiling', which is the ceiling of the highest priority server currently in use.
+If a client wants to access a server, it must have a higher priority than the system ceiling, otherwise the client currently holding the highest priority server inherits the priority of the other client.
+The server runs at the clients priority, and only inherits a priority if another client preempts it.
+Note that the server that sets the system ceiling and the server that the donating client is accessing can be different servers.
+This implementation results in less blocking overall than \gls{HLP}, whilst avoiding the excessive preemption of priority inheritance.
+
+\subsection{Summary}
+
+\begin{table}
+        \centering
+    \begin{tabular}{|c| c c c c|} \hline
+        \multirow{5}{*}{\rotatebox[origin=c]{90}{ \textbf{Complexity}}}
+        \multirow{5}{*}{\rotatebox[origin=c]{90}{$\longrightarrow$}}
+        &     &     &     &      \\
+        & PCP &     &     &      \\
+        &     &     & PIP &      \\
+        &     & HLP &     &      \\
+        &     &     &     & NCP  \\\hline
+        &  \multicolumn{4}{c|}{$\longrightarrow$}\\
+                &  \multicolumn{4}{c|}{\textbf{Priority inversion bound}}\\\hline
+    \end{tabular}
+        \caption{Comparison of real-time locking protocols based on implementation complexity
+        and priority inversion bound.}
+        \label{tab:locking}
+\end{table}
+
+\Cref{tab:locking} compares the different locking protocols, showing that \gls{PCP} provides the lowest bound on priority inversion; however is also the most complicated to implement.
+\gls{NCP} on the other hand, is the simplest to implement but exhibits the worst priority inversion behaviour, with \gls{PIP} and \gls{HLP} falling between the two.
+\gls{HLP} provides minimal implementation complexity but requires a policy on priority assignment to be in place in the system.
+Many other more sophisticated locking protocols exist, however we do not survey them here.
+
+
+\section{Operating systems}
+
+An \gls{OS} is a software system that interfaces with hardware and devices in order to present a common interface to applications.
+The \emph{kernel} is the part of the operating system that operates with privileged access to the processor(s) in order to safely perform tasks that allow applications to run independently of each other.
+
+Common \glspl{OS}, such as Windows, Mac OS X and Linux, are \emph{monolithic} operating systems, which means that services required to run applications are inside the kernel.
+A \emph{microkernel} attempts to minimise the amount of code running in the kernel in order to minimise the amount of trusted code.
+Figure \ref{fig:os-microkernel} illustrates the difference between monolithic \glspl{OS} and microkernels.
+Modern microkernel implementation is guided by the minimality principle~\citep{Liedtke_95} which aims to provide minimal mechanisms to allow resource servers to function, leaving the rest of the policy up to the software running outside of the kernel.
+
+\begin{figure}[h!tb]
+	\begin{center}
+		\leavevmode
+		\includegraphics[width=14cm]{os-microkernel.pdf}
+		\caption{The difference between a monolithic operating system and a microkernel.}
+		\label{fig:os-microkernel}
+	\end{center}
+\end{figure}
+
+
+\subsection{Open vs. Closed Systems}
+
+Operating systems can be built for open or closed systems.
+An \emph{open system} is any system where code outside of the control of the system designers can be executed.
+A modern smart phone is an open system, given that users can install third-party applications.
+
+A \emph{closed system} is the opposite --- the system designers have complete control over all code that will execute on the system.
+The majority of closed systems are embedded, including those found in cars, spacecraft and aircraft.
+
+In general, there is a trend toward systems becoming more open -- initial mobile phones were closed systems.
+This trend can be perceived from infotainment units in automobiles to televisions, where the option to install third party applications is becoming more prevalent.
+Allowing third-party applications to run alongside critical applications on shared hardware increases the security requirements of the system: critical applications must be isolated from third-party applications and secure communications must be used between distributed components.
+This is currently not the general case, which has led to researchers demonstrating attacks on cars~\citep{Checkoway_MKASSKCRK_11}.
+
+Open systems are generally \emph{dynamic} -- where resource allocations are configured at run-time and can change, as opposed to closed systems which are \emph{fixed} or \emph{static} resource allocation patterns.
+
+%% introduce RTOSes
+\subsection{Real-Time Operating Systems}
+
+An \gls{RTOS} is an \gls{OS} that provides temporal guarantees, and can be microkernel-based or monolithic.
+ Whilst some real-time systems run without operating systems at all, this approach is generally limited to small, closed systems and is both inflexible and difficult to maintain~\citep{Lui_AACBBBCLM_2004}.
+
+ In a general purpose \gls{OS}, time is shared between applications with the aim of providing \emph{fairness}, where applications share the processor equally.
+ This fairness is not divided into equal share, but weighted, such that some applications are awarded more time than others in order to tune overall system performance.
+The OS itself is not directly aware of the timing needs of applications.
+
+ In an \gls{RTOS}, fairness is replaced by the need to meet deadlines according to \gls{HRT} or \gls{SRT} specifications.
+ This means that time is promoted to be a first class resource~\citep{Stankovic_1988}.
+
+Time being an integral part of the system effects every other part of the \gls{OS}.
+For example, in an \gls{RTOS}, one application having exclusive access to a resource cannot be allowed to cause a deadline miss.
+Similarly, the \gls{RTOS} itself cannot cause a deadline miss.
+This means that all operations in the \gls{RTOS} must either be bounded with known {\gls{WCET}} or the \gls{RTOS} must be fully preemptible.
+However, it must be noted that a fully preemptible \gls{OS} is completely non-deterministic, making correctness impossible to guarantee~\citep{Blackham_TH_12}.
+ The overheads of \gls{RTOS} operations like interrupt handling and context switching must also be considered when determining whether deadlines can be met.
+
+Traditional \glspl{RTOS}, and the applications running on them, require extensive offline analysis to guarantee that all temporal requirements are met.
+This is done by using scheduling algorithms, \gls{WCET} analysis, and resource sharing algorithms with known real-time properties.
+
+\subsection{Resource kernels}
+\label{sec:resource-kernels}
+
+Resource kernels provide timely, guaranteed access to system resources, by using a \emph{resource-centric} approach.
+In a resource kernel, a reservation represents a portion of a shared resource, like processor, or disk bandwidth.
+Unlike traditional real-time operation systems, resource kernels do not trust all applications to stay within their specified resource bounds: resource kernels enforce them, preventing misbehaving applications from interfering with other applications and thus providing temporal isolation.
+
+\citet{Rajkumar_JMO_2001} outline four main goals that are integral to resource kernels:
+\begin{description}
+	\item[G1: Timeliness of resource usage] Applications must be able to specify resource requirements that the kernel will guarantee.
+	Requirements should be dynamic: applications must be able to change them at run-time, however the kernel should ensure that the set of all requirements can be admitted.
+\item[G2: Efficient resource utilisation] The mechanisms used by the resource kernel utilise available resources efficiently and must not impose high utilisation penalties.
+\item[G3: Enforcement and protection] The kernel must enforce resource access such that rogue applications cannot interrupt the resource use of other applications.
+\item[G4: Access to multiple resource types] The kernel must provide access to multiple resource types, including processing cycles, disk bandwidth, network bandwidth and virtual memory.
+\end{description}
+
+In another paper, \citet{deNiz_LSR_2001} outline the four main mechanisms that a resource kernel must provide, in order to implement the above concepts.
+
+\begin{description}
+	\item[Admission] check that all resource requests can be scheduled (\textbf{G1}).
+	\item[Scheduling] implements the dynamic allocation of resources according to reservations (\textbf{G1, G2}).
+	\item[Enforcement] limit the consumption of the resources to that specified by the reservation(\textbf{G3}.
+	\item[Accounting] of reservation use, to implement scheduling and enforcement (\textbf{G1, G2, G3}).
+\end{description}
+
+In order to share resources in a resource kernel, avoiding priority inversion becomes a more complicated problem.
+\citet{deNiz_LSR_2001} outline three key policies that must be considered when handling resource sharing in reservation-based systems:
+
+\begin{description}
+    \item[Prioritisation] What (relative) priority is used by the task accessing the shared resource (and under what conditions)?
+    \item[Charging] Which reservation(s), if any, gets charged?
+    \item[Enforcement] What happens when the reservations being charged by the charging policy expire?
+\end{description}
+
+Resource kernels are a form of monolithic operating system, where all system services and drivers are provided by the kernel.
+In a microkernel, not all of the mechanisms of a resource kernel are suitable for inclusion in the kernel itself: some can be provided by user-level middle-ware.
+This is because core resource kernel concepts contain both policy and mechanism.
+We argue that the microkernel should provide resource kernel mechanisms such that a resource kernel can be built with a microkernel, but policy should be left up to the system designer, as long as it does not result in performance concessions.
+
+\section{Summary}
+
+In this chapter we have briefly covered the core real-time theory that this thesis draws upon.
+We have defined operating systems, and introduced the concepts that inform the design of resource kernels.
+In the next chapter we will survey how these can be combined to achieve isolation and asymmetric protection for mixed-criticality systems.

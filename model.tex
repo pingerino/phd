@@ -1,0 +1,716 @@
+\chapter{Design and Model}
+\label{chap:model}
+
+% In this section, discuss
+%
+% First: what are the design goals, derived from the previous chapters
+% Second: discuss possible solutions for each goal, incorporate any eval
+% Third: outline each detail of the proposed model
+
+
+
+
+\section{Design goals}
+
+% Model every task as a sporadic task
+% Goal: no policy, kernel does not distinguish threads at all
+% gives us: policy freedom, isolation mechanisms, no extra state per thread in kernel memory
+% kernel can't find threads
+
+%TODO rewrite
+% Outline design goals
+% Outline selection of algorithms
+% Outline new things
+
+Our goal is to design microkernel mechanisms for the support of mixed-criticality workloads.
+% TODO where
+As we have seen, many existing systems conflate criticality, real-time sensitivity and
+trustworthiness in a single value: priority. Our claim is that how these attributes are conflated is
+policy that is specific to a system.
+
+\begin{description}
+\item[Real-time sensitivity] refers to how sensitive an task is to when it gets access to the
+    processor. Every task is sensitive to time: if no processor time is given to an
+    appilcation, it will never produce a result. However, For best-effort activities, time is
+    fungible, in that only the amount of time allocator is of relevance. In contrast, for a
+    \gls{HRT} tasks, time is largely unfungible in that is has no value if the allocation is
+    after the deadline; \gls{SRT} tasks are in between.
+\item[Criticality] reflects the importance of an process to the overall system mission. In some
+    systems it may refeclt the impact of failure~\citep{ARINC653} or the utilitu of a function. An
+    MCS system should degrade gracefully, with tasks of lower criticlaity suffering degradation
+    before higher criticality tasks.
+\item[Trustworthiness] whether a task is trustworthy or not. This could be due to the level or
+    certification, the correctness of a task, or where the code for the task has come from. For
+    example, in many open systems tasks using the processor are downloaded from an untrusted source.
+\end{description}
+
+\begin{figure}
+\begin{tikzpicture}
+\begin{ternaryaxis}[
+        xlabel=Criticality,
+        ylabel=Trustworthiness,
+        zlabel=Real-time sensitivity,
+        label style=sloped,
+        ]
+\end{ternaryaxis}
+\end{tikzpicture}
+\caption{Commonly conflated attributes of systems software}
+\label{plot:ternary}
+\end{figure}
+
+\Cref{plot:ternary} shows these attributes with a scale for each. As discussed in TODO the majority
+of existing operating systems use a singe value, \emph{priority} to represent all of these values.
+With respect to real-time scheduling, priority is used for another thing entirely simply refects
+scheduling order, used to achieve optimal processor use.
+
+The model we present defines operating systems primivities for building systems that leverage these
+properties in a way that is appropriate to that system, which can be implemented in middleware or
+an OS personality on top of the trusted computing base.
+
+\subsection{Real-time sensitivity}
+
+% what primitives are required for this
+% abilty to set scheduling order
+
+\subsection{Criticality}
+
+Support for tasks of different criticalities requires mechanisms for graceful degredation and
+asymmtric protection.
+% what is required for this
+% asymettric protection
+
+\subsection{Trustworthiness}
+
+If tasks do not trust each other they need to be able to to be isolated.
+Further, they should be able to share resources and maintain that isolation in order to faciliate
+mixed-criticality systems.
+Therefore we need mechanisms for processor reservations which allow for temporal isolation, and
+mechanisms for resource sharing where trust is not assumed between tasks that access those
+resources.
+
+
+% isolation
+% verifiableness
+
+
+%TODO do we define trusted
+
+
+
+
+Our goal is to provide support in the kernel for mixed-criticality workloads.
+This involves supporting tasks of different real-time strictness (\gls{HRT}, \gls{SRT}, \gls{NRT}), different criticalities, and different levels of security.
+Such tasks should not be forced into total isolation, but be permitted to share resources without violating their temporal correctness properties through mechanisms provided by the kernel.
+
+To achieve this we require temporal isolation: a feature of resource kernels, whose mechanisms we apply to our research platform, seL4.
+However temporal isolation is not enough: mixed-criticality systems require asymmetric protection rather than temporal isolation, as a result we leverage traditional resource kernel reservations but decouple them from priority, allowing the processor to be overbooked while providing guarantees for the highest priority tasks.
+
+In this section we first address how we integrate resource kernel mechanisms with seL4 and explain priority decoupling and our model for temporal isolation.
+We then discuss alternatives for resource sharing and present mechanisms to facilitate sharing between tasks of different criticalities and different real-time models.
+
+%TODO{rewite properly}
+Our design goals are as follows:
+
+\begin{itemize}
+\item Verifiable mechanisms
+\item Policy freedom - only in the kernel if it has to be
+\item Performance
+\item Security - trust
+\end{itemize}
+
+
+
+
+\section{Design alternatives}
+
+\subsection{Resource Reservations}
+\label{sec:model-resource-reservations}
+
+We outlined four core resource kernel mechanisms -- admission, scheduling, enforcement and accounting -- that are essential to resource kernels for implementing temporal isolation.
+However, as noted in \Cref{sec:resource-kernels}, such kernels are monolithic, where all policy, drivers and mechanisms are provided by the kernel.
+
+Microkernels like seL4 offer a different design philosophy, based on the principle of minimality~\citep{Liedtke_95}, where mechanisms are only included in the kernel if they would otherwise prevent the implementation of a systems required functionality.
+Existing literature is divided as to whether resource kernel mechanisms should be provided by the kernel or at user-level.
+
+The goals of resource kernels do not directly align with that of microkernels in general.
+This is because microkernels do not directly manage all resources in the system, but provide mechanisms for the system designer to implement custom resource management policies.
+In fact, in the context of a microvisor, the resource managers may actually be OS guests.
+
+In seL4, mechanisms for physical memory, device memory, interrupt and I/O port management are exposed to the user via the capability system.
+As a result, the only resource that the kernel needs to provide reservations for is processing time.
+
+To define processor time reservations, we rely on the sporadic task model as presented in \Cref{sec:sporadic-task-model}.
+A reservation is realised as new kernel object, a scheduling context, which contains scheduling related task parameters.
+One scheduling context can be bound to a thread at a time, allowing that thread to use the reservation.
+Threads without reservations are not considered runnable, as they have no rights to the processor.
+A scheduling context is considered \emph{active} if it currently has budget available, and \emph{inactive} otherwise.
+
+Scheduling contexts have been used in kernels before -- Fiasco introduced the concept in \citet{Steinberg_WH_05}, where the contexts contain a priority, budget and period.
+They are also used in NOVA~\citep{Steinburg_Kauer_10}, where they contain a timeslice and a priority.
+
+In our model, scheduling contexts are decoupled from priority, and contain sporadic task parameters -- a budget and a period.
+Instead, the priority remains as a property of a thread which allows for a very efficient implementation of \gls{HLP}, which will be discussed in \Cref{sec:model-resource-sharing}.
+Decoupling the priority also allows us to overbook the processor: since only threads with highest priorities and active reservations will run, reservations can be made that exceed 100\% of the processor.
+
+
+\subsection{Admission}
+\label{sec:model-admission}
+
+Admission tests in our system are intended to be conducted dynamically at run-time, or offline, as per user-level policy.
+In our design, we consider admission tests to be the domain of the user, as the type of schedulability test used is subject to the policy of the system.
+Thus, the kernel places no restriction on the creation of reservations apart from minor validity checks (i.e $b \leq p$).
+For example, some high-assurance systems may sacrifice utilisation for safety with a very basic but easily verifiable, online, admission test.
+Other implementations may conduct complex admission tests offline in order to obtain the highest possible utilisation, using algorithms that are not feasible at run time.
+Some systems may require dynamic admission tests that sacrifice utilisation or have increased risk.
+Basic systems may require a simple break up of the processing time into rate-limited reservations.
+By taking the admission test out of the kernel, all of these extremes (and hybrids of) are optional policy for the user.
+
+A consequence of this design is that more reservations can be made than processing time available.
+This is a desirable feature: it allows system designers to overload the system, while features of the scheduling mechanisms provided by the kernel guarantee that the most important tasks get their allocations, if the priorities of the system are set correctly.
+
+However, allowing any thread in the system to create reservations could result in overload behaviour and violation of temporal isolation.
+To prevent this, admission control is currently restricted to a single process.
+Delegatable reservations that would allow other processes to change their parameters can be implemented at user-level.
+
+\subsection{Scheduling}
+
+There are two questions with regard to scheduling policy:
+
+\begin{itemize}
+\item Should the scheduler be in the kernel at all?
+\item Which base scheduling algorithm should be used, \gls{EDF} or {FP}?
+\end{itemize}
+
+First, in the context of a high assurance system, we believe scheduling, accounting and enforcement should all be included in the kernel.
+This reduces the overheads of increased context switching inherent in hierarchically scheduled systems.
+Additionally, it allows for a solid foundation of temporal isolation to be provided by the kernel: without this, we cannot verify important properties like information flow.
+
+Real-time literature is utterly divided between which real-time scheduling algorithm should be deployed as the core of real-time systems, \gls{EDF} or \gls{FP}.
+In the systems community, \gls{FP} is far more dominant due to its inclusion in \gls{POSIX} and its compatibility with existing, priority-based \gls{NRT} systems.
+Support for \gls{FP} is important as it is most prevalent in industry.
+It is quite common for kernels to provide \gls{EDF} scheduling at a specific priority level on top of an \gls{FP} based scheduler.
+However it is not emulate \gls{FP} scheduling on top of \gls{EDF}.
+
+Therefore our model uses \gls{FP} scheduling as remain a core part of the kernel.
+\gls{EDF} scheduling can be implemented by user-level using green threads or a user-level scheduler for kernel threads.
+We will demonstrate this in %TODO{section}, \gls{EDF} can be implemented at user level with our scheduler for
+a specific priority with little overheads.
+% TODO cite SCHED_DEADLINE for linux
+This is consistent with existing designs in Linux  and ADA\citep{Burns_Wellings:crtpa}, which support both scheduling algorithms, usually with \gls{EDF} at a specific priority.
+
+We do not consider Pfair scheduling an option, as its high interrupt overheads and fairness properties are not suitable for hard real-time systems.
+Again however, it is possible to implement a Pfair scheduler at user level.
+
+%TODO{preserve round robin}
+%TODO{support periodic scheduling / reservations}
+
+\subsection{Accounting}
+\label{sec:tick-v-tickless}
+
+There are two potential ways to account for time in a kernel: in discrete ticks, or in cycles.
+The former implies that the kernel is tick-based while the latter implies a tick-less kernel.
+
+In a tick-based kernel, timer interrupts are set for a periodic tick and are handled even if no kernel operation is required.
+This approach has advantages: the timer in the kernel is stateless and never has to be reprogrammed, rendering it very simple, fast and easy to verify.
+However, such simplicity comes with a cost of reduced precision and greater preemption overhead.
+The greater the desired precision in a tick-based kernel, the higher the preemption overhead, and vice versa.
+
+Tickless kernels set timer interrupts for the exact time of the next event.
+This approach affords greater precision and results in no more preemption overhead than is required by the workload.
+Since real-time tasks require greater precision and suffer \gls{WCET} penalties for every preemption, we have chosen to convert seL4 to a tickless kernel, although the impact of timer reprogramming has yet to be quantified.
+% TODO add timer reprogramming results
+We track accounting details, such as the last time scheduled and the amount of unused budget, in the current threads scheduling context alongside sporadic task parameters.
+
+
+\subsection{Enforcement}
+
+While systems must be able to use kernel mechanisms to enforce scheduling reservations, we do not want to force
+all tasks in a system to be subject to enforcement, as enforcement does imply accounting and tracking overhead.
+If a task is truly trusted, no enforcement is required, as in standard \gls{HRT} systems.
+Therefore, our model must allow for enforcement to be optional.
+
+Then the question is how enforcement should be undertaken: given seL4's capability based design, and user-level management of kernel memory, we must rule out isolation policies that require the kernel to have full knowledge of all threads.
+Of the policies discussed in \Cref{background:fp-isolation} this rules out priority exchange servers and slack steal.Given that deferrable servers do not enforce temporal isolation, we choose a combination of polling and sporadic servers similar to Quest-V~\citep{Danish_LW_2011} with a significant difference: we allow threads to specify the amount of replenishments available up to a statically configurable max, rather than denoting kernel threads as either I/O threads (1 replenishment - a polling server) or not (MAX replenishments), users can then tune threads that are subject to enforcement as per their system policy.
+
+Replenishments are tracked in scheduling conterxts, and threads are only runnable while they are bound to an active scheduling context.
+If the replenishment of the current thread expires, that thread is removed from its run queue and placed in a release queue of threads waiting for their next replenishment.
+When a replenishment is eligible, threads are placed back at the end of the run queue for their priority.
+
+Tasks can opt to have \emph{timeout faults} delivered if their budget is exhausted before the current job is completed, or if their deadline is not met.
+Similar to a page fault handler, timeout fault handlers can be used to adjust thread parameters dynamically as may be required for a \gls{SRT} system, or raise an error.
+Unlike page fault handlers, if a timeout fault is not handled, the thread can continue once the next refill is available, which is why timeout faults are optional.
+
+\subsection{Priority assignment}
+
+The mechanisms we have presented can be leveraged to implement standard rate-monotonic scheduling: where priorities are assigned to threads based on their period, and threads use scheduling contexts that match their sporadic task parameters.
+Each thread in the system will be temporally isolated as the kernel will not permit them to exceed the processing time reservation that the scheduling context represents.
+
+However, the system we have designed offers far options than simple rate-monotonic fixed-priority scheduling.
+Policy freedom is retained as reservations simply grant a potential right to processing time, at a particular priority.
+What reservations actually represent is an upper bound on processing time for a particular thread.
+Low priorities threads are \emph{not} guaranteed to run if reservations at higher priorities use all available CPU.
+However, threads with reservations at low priorities will run in the system slack time, which occurs when threads do not use their entire reservation.
+
+The implication is that a system could use a high range of priorities for rate-monotonic threads, while best-effort and rate-limited threads run at lower priorities.
+Another alternative is to have real-time threads running at the EDF-priority, where they will be temporally contained, with non-real time threads running at lower priorities.
+Many other combinations are possible.
+
+\subsection{Asymmetric Protection}
+
+Recall that in a mixed-criticality system, asymmetric protection means that tasks with higher criticality can cause deadline misses in lower criticality tasks.
+Two approaches to mixed criticality scheduling that provide asymmetric are slack scheduling and \gls{RTA}\citet{Burns_Davis_2013}.
+
+Under slack scheduling, low-criticality tasks run in slack time of high criticality tasks.
+Our system supports this easily: hi criticality tasks are given reservations to all of processing time at high priorities, and low criticality tasks given reservations at a lower priority band.
+
+\gls{RTA} relies on suspending low criticality tasks if a high criticality task runs for longer than expected.
+In general, \gls{RTA} schemes involve two system modes: a HI mode and a LO mode.
+In LO mode, high criticality tasks run with smaller reservations, and the remaining CPU time is used for low criticality tasks.
+If a high criticality task does not complete before its LO mode reservation is exhausted, the system switches to HI mode: all low criticality tasks are suspended.
+This is also supported by our model: a high priority scheduling thread can be set up to receive temporal faults when a task does not complete before its budget expires.
+On a temporal fault, the scheduling thread can extend the reservation of the high priority task and suspend all low priority tasks.
+
+\subsection{Summary}
+
+The scheduling, accounting and enforcement mechanisms presented are sufficient to support temporally isolated, fixed-priority or \gls{EDF} scheduled real-time threads.
+Additionally, we have maintained support for best-effort threads, and have added the ability to provide asymmetric protection for mixed-criticality workloads.
+Implementation details of how each type of task can be supported is explained further in \Cref{chap:implementation}.
+
+In the next section, we discuss the options available for resource-sharing in the system we have designed and outline the mechanisms we have designed.
+
+
+\section{Resource Sharing}
+\label{sec:model-resource-sharing}
+
+For resource sharing, we outlined a further three core mechanisms taken from resource kernels -- prioritisation, charging and enforcement.
+We indicated in \Cref{sec:model-resource-reservations} that scheduling contexts are separate from thread control blocks in order to support resource sharing.
+In this section we explore the design choices for supporting resource sharing, and describe our model.
+
+We consider shared resources as separate threads accessed via synchronous \gls{IPC}, as this mechanism ultimately means changing which thread is currently running on the processor, and thus changing where processing time is being spent.
+
+\subsection{Scenarios}
+
+Our analysis of is guided by two models for the flow of time between communicating threads in a system: a client-server or \gls{RPC} scenario, and a data-flow scenario.
+
+\subsubsection{Client-Server}
+
+The client-server scenario involves clients contacting servers in an \gls{RPC} style fashion: the client sends a message to the server, the server executes an operation on the clients behalf and replies.
+Servers can be clients too: a server may make a nested request to another server on behalf of a client.
+There can be multiple servers, and multiple clients in operation at the same time.
+
+An example of this scenario is illustrated in \Cref{fig:client-server}, albeit with just one client and   nested servers.
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}[node distance=4cm,on grid,>=stealth,very thick,initial text=Event]
+          \node[state] (event)                        {Event};
+          \node[state] (client)   [right=of event]    {Client};
+          \node[state] (server_a) [right=of client]   {Server A};
+          \node[state] (server_b) [right=of server_a] {Server B};
+          \path[->]
+              (event)    edge [bend left] node [above] {Notify} (client)
+              (client)   edge [bend left] node [above] {Call} (server_a)
+              (server_a) edge [bend left] node [above] {Call} (server_b)
+              (server_b) edge [bend left] node [below] {ReplyWait} (server_a)
+              (server_a) edge [bend left] node [below] {ReplyWait} (client)
+              (client)   edge [bend left] node [below] {Wait} (event)
+          ;
+      \end{tikzpicture}
+      \caption{Client-Server scenario}
+      \label{fig:client-server}
+\end{figure}
+
+  \subsubsection{Data-flow}
+
+In this scenario, as illustrated in \Cref{fig:dataflow}, an external event triggers the release of a job.
+The job passes through a chain of activities, all doing different forms of processing.
+Only one job can be active in an activity at a time, and the next job cannot be released until the previous has finished (consistent with the sporadic task model).
+Forks are permitted in the chain, although the forks must be choices: one job cannot trigger two jobs, as a processor reservation cannot be transferred to two jobs at once.
+Cycles and sequences are permitted in the chain.
+\\
+\\
+Both scenarios can be combined to form a larger system.
+
+\begin{figure}
+      \centering
+      \begin{tikzpicture}[node distance=4cm,on grid,>=stealth,very thick,initial text=Event]
+          \node[state] (event)                            {Event};
+          \node[state] (phase_1) [right=of event]         {Phase 1};
+          \node[state] (phase_2) [below right=of phase_1] {Phase 2};
+          \node[state] (phase_3) [right=of phase_2]       {Phase 3};
+          \path[->]
+              (event)   edge [bend left]  node [above]       {1.Notify} (phase_1)
+              (phase_1) edge [bend left]  node [below]       {3.Wait}   (event)
+              (phase_1) edge [bend left]  node [below left]  {2.Send}   (phase_2)
+              (phase_2) edge [bend left]  node [below left]  {5.Wait}   (phase_1)
+              (phase_2) edge [bend left]  node [above]       {4.Send}   (phase_3)
+              (phase_3) edge [bend right] node [above right] {5.Send}   (phase_1)
+              (phase_3) edge [bend left]  node [below]       {6.Wait}   (phase_2)
+          ;
+      \end{tikzpicture}
+      \caption{Data-flow scenario. Numbering indicates the ordering of events.}
+      \label{fig:dataflow}
+\end{figure}
+
+\subsection{Resource sharing models}
+
+We consider three existing models for resource sharing over IPC: reservation-per-thread, timeslice donation, and migrating threads.
+In all models, the shared server or phase is assumed to have a known \gls{WCET}, which should match that of the strictness real-time task using the server.
+
+\subsubsection{Reservation-per-thread}
+\label{sec:reservation-per-thread}
+
+In the reservation-per-thread model, reservations are assigned to every thread in the system, clients and servers alike.
+Server budgets must be sufficient to serve all clients or the system will be bottle-necked on the server.
+In order to calculate sufficient budgets, the number of client requests must be known \emph{a priori}.
+
+This design does not provide temporal isolation, as the server executes on its own budget.
+If one client launches a denial of service attack on the server, depleting the servers budget, then other clients are starved.
+Servers could be placed at a higher priority with a 100\% CPU reservation, but this is also problematic as the server can then monopolise the entire system in the case of rogue clients.
+
+While our resource sharing mechanisms should not rule out this policy, it is only suitable for systems where all clients are trusted and the amount of requests each client makes is known \emph{a priori}, or systems that have lax temporal requirements.
+
+\subsubsection{Timeslice donation}
+
+Fiasco.O.C~\citep{Steinberg_BK_2010} implements timeslice donation, where servers run on the reservation of the client, at the priority of the client.
+%TODO define active
+Such a design allows for temporal isolation as clients can only make requests while their reservation is active, and servers deplete the clients reservation.
+
+As the server inherits the clients priority, this design has the same preemption overheads \gls{PIP}, discussed in \Cref{sec:priority-inheritance}.
+Implementing priority inheritance requires the kernel to track dependencies between servers and clients, which requires a large amount of book keeping.
+
+Further challenges arise if the clients reservation expires while the server is still executing.
+Without further mechanisms, the resulting scenario leaves the server unable to service other clients, as it is in the middle of serving another clients request.
+
+In the context of a hard real-time system, expiry will not occur, as client reservations are based on \gls{WCET}.
+However, systems that support other real-time models -- soft real time and rate based tasks --  must solve the issue.
+In Fiasco.O.C expiry is ameliorated by further applying priority inheritance, which the authors refer to as \emph{helping}.
+If a server is stuck servicing a request, and a second client attempts to make a request of the server, the server will finish the previous clients request on the second clients budget and priority.
+
+Dependency tracking in this model quickly becomes very complex when clients and servers use chained requests.
+Additionally, because priorities must be returned to clients, this model does not support the data-flow scenario outlined earlier.
+
+\subsubsection{Migrating threads}
+
+\composite~\citep{Parmer_10} takes a different approach to solving the resource sharing model, by using migrating threads (also termed stack-migrating IPC).
+On every IPC, client execution contexts (and CPU reservation) transfer to a new stack running in the servers protection domain, resulting in multi-threaded servers.
+
+To implement migrating threads, \composite requires that every server have a mechanism for allocating stacks.
+If no memory is available to allocate stacks then the request is blocked.
+This solution forces servers to be multi-threaded, and does not solve the problem of a clients budget expiring while the server is in a critical section, which is solved by providing atomic primitives that call the kernel.
+
+We perceive the migrating thread model as valid for systems suited to multi-threaded servers, but do not think it is suitable for microkernel mechanisms to require multi-threaded servers.
+Like the reservation-per-thread model, we choose to support this approach, but not enforce it, unlike \composite.
+
+\subsubsection{Summary}
+
+We have outlined reservation-per-thread, timeslice donation and migrating threads.
+Our model supports reservations-per-thread and migrating threads, while introducing a design based on timeslice donation without the shortcomings: we remove the need for dependency tracking trees and add support for the data-flow scenario.
+
+\subsection{Scheduling Context Donation}
+
+Finally we present \emph{scheduling context donation}, the new mechanism we have added to the kernel to support resource sharing with temporal isolation.
+This model is inspired by timeslice donation, however we utilise \gls{HLP} rather than priority inheritance to reduce preemption and remove the need for a dependency tracking tree.
+First we present the basic model, then in the next section we will describe design alternatives for handling budget expiry, which complicates the scenario.
+
+Using \gls{HLP} is not without drawbacks.
+Recall that under \gls{HLP} servers run at the ceiling of the priorities of all clients that will access them.
+Many claim that such a policy is inappropriate for open systems, as \emph{a priori} knowledge is required of all clients, servers and their priorities in a system.
+However, this claim is somewhat unsubstantiated: a system should have a general policy on priorities, especially a system running real-time components.
+For example, if a mobile phone operating system allowed all apps to run at the highest priority levels in the system then the phone could be rendered inoperable by apps running at this priority.
+Therefore, we believe that is is not unreasonable to deploy \gls{HLP} in our scenario.
+
+Although \gls{PCP} offers greater processor utilisation than \gls{HLP}, we consider its use impractical as it requires too much system state to be drawn into the kernel: the kernel must track a system ceiling and implement priority inheritance.
+Using ceilings instead of priority inheritance results in a very clean model when budget expiry is excluded.
+Servers inherit the scheduling context of their clients, basically inheriting their budget, while executing on their own priority, resulting in reduced preemption overheads.
+When the server replies to clients, the budget is returned.
+The kernel has no need to track the dependency relationship, as the reply \gls{IPC} is sufficient to return the scheduling context.
+By removing dependency tracking, we can support the data-flow model: instead of replying, a dataflow component simply sends the scheduling context along to the next component.
+
+Unfortunately, scheduling context donation is complicated by budget expiry.
+However, since we aim to support rate-based, best-effort and soft real-time threads, budget expiry is required.
+The next section will canvas the design options and outline our proposed solutions and mechanisms.
+
+\subsection{Budget Expiry}
+
+In a hard real-time system, we can assume that a client reservations are sufficient to complete requests to servers.
+However, in systems with best-effort and soft real-time tasks, no such assumption can be made and client budgets may expire during a server request.
+This leaves the server in a state where it cannot take new requests as it is stuck without an active reservation to complete the previous request.
+Without a mechanism to handle this event the server, and any potential clients, would be blocked until the client's budget is replenished.
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}[node distance=3cm,on grid,>=stealth,very thick]
+        \node[state] (a)              {$A_{tcb}$};
+        \node[state] (b) [right of=a] {$B_{tcb}$};
+        \node[state] (s) [right of=b] {$S_{tcb}$};
+    \path[->]
+(a) edge [bend left]  node [above] {Call} (s)
+(b) edge [bend right] node [below] {Call} (s);
+\end{tikzpicture}
+\caption{\textbf{Budget expiry:} client A makes a request of server S, but runs out of budget during the request and is blocked. Another client, B, attempts to make a request but finds S blocked.}
+\label{fig:budget-expiry}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}[node distance=3cm,on grid,>=stealth,very thick]
+        \node[state] (a)              {$A_{tcb}$};
+        \node[state] (b) [right of=a] {$B_{tcb}$};
+        \node[state] (s1) [right of=b] {$S1_{tcb}$};
+        \node[state] (s2) [right of=s1] {$S2_{tcb}$};
+    \path[->]
+(a) edge [bend left]  node [above] {Call} (s1)
+(b) edge [bend right] node [below] {Call} (s1)
+(s1) edge [bend left] node [above] {Call} (s2);
+\end{tikzpicture}
+\caption{\textbf{Nested budget expiry:} client A makes a request of server S1, which makes a nested request to S1, but runs out of budget during the request and is blocked. Another client, B, attempts to make a request but finds S1 blocked on S2 who has no budget to complete the request.}
+\label{fig:nested-budget-expiry}
+\end{figure}
+
+\Cref{fig:budget-expiry} illustrates the problem, and \Cref{tab:notation} outlines the notation used.
+$A$ makes a request to $S$, such that $A_{sc}$ is donated to $S_{tcb}$.
+$A_{sc}$ expires while $S$ is executing $A$'s request.
+Then $B$ makes a request to $S$, however $S$ cannot take new requests as it is still still servicing $A$'s request and will not be available until $A_{sc}$ is replenished.
+
+%TODO move
+\begin{table}
+	\centering
+	\begin{tabular}{| c | l |} \hline
+    \textbf{Notation} &  \textbf{Meaning}                           \\\hline
+       $A$, $B$, $C$, ...   & A task, or user application           \\\hline
+	   $S1$, $S2$, $S3$ ... & Resource servers.                     \\\hline
+	   $A_{sc}$             & Scheduling context of task A.         \\\hline
+	   $A_{tcb}$            & Thread control block of task $A$ \\\hline
+	   $A_{b}$              & The budget of task $A$ \\\hline
+       $A_{d}$              & Deadline of task $A$                  \\\hline
+	   $A_{p}$              & Period of task $A$.                   \\\hline
+       $A_{e}$              & The \gls{WCET} of task $A$. \\\hline
+     \end{tabular}
+	 \caption{Summary of notation used.}
+	 \label{tab:notation}
+\end{table}
+
+Our goal is to support systems that run best-effort, soft real-time and hard real-time tasks where all tasks can share resources while preserving temporal isolation.
+Resource sharing may occur between tasks sharing a real-time model (i.e where all tasks are soft real-time), or between tasks with different real-time models.
+In the latter case the resource server must comply with the strictest real-time model of all clients.
+This means that for a server that serves hard real-time and soft real-time tasks, the server must have a known \gls{WCET} even though the soft real-time tasks do not.
+
+We outline several potential mechanisms for handling budget expiry: blocking, denying unfeasible requests, emergency reservations for completing requests, rolling back unfinished requests, raising an exception on budget expiry, bandwidth inheritance, and leveraging migrating threads.
+Each is analysed according to the following qualities:
+
+\begin{description}
+    \item[Schedulable utilisation] The longer the maximum blocking time of each server request, the larger client reservations must be to handle potential blocking. This reduces overall system utilisation, impacting schedulability. What is the impact on schedulability?
+    \item[Temporal containment] Tasks sharing a resource cannot be truly temporally isolated, as one task can block the other by simply using the resource. Temporal containment places a limit on the amount of time one task can block another, by bounding the maximum blocking time due to a resource contention. Does the policy offer temporal containment?
+	\item[Nested budget expiry] Nested requests (see \Cref{fig:nested-budget-expiry}) is required in both the client-server and data-flow scenarios. Can the policy support expiry in the case of nested requests?
+    \item[User-level implications] What changes to user-level applications are required by the mechanism?
+    \item[Kernel implementation implications] What changes to the kernel are required by the mechanism.
+\end{description}
+
+
+\subsubsection{Blocking}
+
+Blocking is the default case, where budget expiry is not handled at all and the server is blocked until the clients reservation is replenished.
+In the example in \Cref{fig:budget-expiry}, $S_{tcb}$ is blocked until $A_{sc}$ is replenished, and therefore so is $B_{tcb}$.
+While clearly not a viable solution we present analysis for the blocking technique as a baseline.
+
+In the best case, if $A_{tcb}$'s request completes when $A_{sc}$ is recharged, then $B$ is only delayed by $A_{p} + S_{e}$.
+However, in a pathologically bad (or malicious) case, where $A_{b} \leq S_{e}$, $A_{sc}$ will need to be recharged multiple times before the server request completes.
+An upper bound on the delay to other clients caused by one budget expiry is $\frac{S_{e}}{A_{b}} * A_{p}$, which would result in an incredibly pessimistic schedulability test.
+If the delay is not factored into the schedulability test, then temporal isolation is violated as $A$ can cause $B$ to miss deadlines.
+
+As far as implementation considerations go, neither the kernel or user-level see any impact as this policy requires no implementation.
+Chained invocations only make the schedulability test worse.
+
+\subsubsection{Deny requests}
+
+A simple approach to solving this problem is to deny requests if a client does not have sufficient budget.
+The kernel could be configured with the \gls{WCET} of each server and simply deny or post-pone client requests where the budget is insufficient.
+
+This would have a 0 schedulability penalty, but would starve clients and deny requests even if there was no contention for the resource.
+Forcing clients to have available budget that matches a servers \gls{WCET} could also see requests denied that would have been possible to complete, since \gls{WCET} estimates are generally orders of magnitude beyond average execution times.
+Additionally, nested requests would not work, so although simple and effective, this policy is impractical.
+
+\subsubsection{Emergency reservation}
+
+Under this policy, servers are assigned an emergency reservation (ER), which the kernel switches the server to when a clients reservation expires.
+
+Server reservations need to be sufficient: if the servers emergency reservation expires, the schedulability impact will degrade to that of the blocking case.
+Sufficient reservations are derived by \citep{deNiz_LSR_2001}, although their work assumed servers always execute on their own reservation (never billing a clients reservation), the bounds still apply.
+A sufficient reservation is the sum of all non hard-real time client requests, replenished at the highest rate of all of those clients, in order to guarantee that no hard real time task is blocked by the server for more than the length of a single server request.
+This large, pessimistic reservation for the server must then be incorporated into the schedulability test, which then suffers a large utilisation penalty.
+
+\Citet{deNiz_LSR_2001} reduce this penalty by observing that the main source of pessimism in this estimate is due to the use of a single reservation, whose period must be the highest period of all non hard real-time clients.
+The schedulability penalty can be reduced by assigning the server one reservation per client, such that each reservation can have a period matching the client.
+However, for a dynamic system this requires dynamic allocations of scheduling contexts, and one wonders if such effort were to go into creating and assigning reservations for servers, then what was preventing clients reservations from being specified sufficiently initially?
+For this reason we do not consider the multiple reservation alternative.
+
+As long as the server reservation is sufficient, the maximum blocking time encountered by a task is $S_{e}$, proving temporal containment.
+However the schedulability test is impacted by the size of the server reservation.
+Additionally, this mechanism results in client requests always being finished immediately after budget expiry, even if the resource is not contended.
+This results in unrelated threads lower than the servers priority being blocked, and will impact total utilisation and restrict deadline constraints.
+
+Nested requests in this model can be handled, when $S2$ finishes its request, the expired $A_{sc}$ is passed back to $S1$, which switches to its emergency reservation since the received reservation is depleted.
+
+Using a single emergency reservation, the kernel must be able to track two reservations per thread, and switch between them on budget expiry.
+The kernel will need extra logic to track replenishment of emergency reservations.
+Multiple reservations make the kernel even more complicated.
+
+User-level implications are minimal, except that a user must specify the parameters for emergency reservations for each server.
+
+\subsubsection{Rollback}
+
+Under the rollback mechanism, clients whose budget runs out during a server request have their request cancelled and the server rolls back to a previous state, as if the request did not occur.
+The kernel sends a notification to the server in the form of an upcall.
+The rollback itself could either run on the clients reservation or a dedicated server reservation for rollback.
+
+Using a reservation to rollback faces the same schedulability penalty as the emergency reservation: the rollback budget must be enough to service all potential client requests.
+The penalty is less severe assuming that the rollback time is less than the time for the server to execute the request.
+Sending a notification to the server requires the kernel to know the \gls{WCET} value for the server rollback process, such that a notification can be sent in time.
+If the reservation, or notification, is not sufficient then behaviour will degrade to that of the blocking case.
+
+Nested requests make the kernel notification option complicated.
+If a nested request fails, in the client-server scenario, then kernel must send a notification to the nested server with enough time in the clients budget for both the nested server and the first server to rollback, including the IPC time.
+Emergency reservations allow nested requests to be more easily handled: the kernel can detect that a server is running on an expired reservation and switch to the emergency reservation.
+However, if the server needs to rollback previous nested requests by recontacting servers this model is also insufficient.
+
+User level implications are as follows:
+\begin{itemize}
+\item Client reservations are returned to them and the request fails, meaning clients must be able to handle failed requests.
+\item Starvation is possible: if clients don't have enough budget to complete a single server request.
+\item Rollback is compulsory even if the resource is not contended. A possible fix is to only rollback the request if the server is contended, switching to the rollback reservation when the resource is contended.
+\item All servers must implement rollback, or degrade to the blocking case.
+\item Servers must be preemptible for the rollback, requiring servers to be lock-free or to use atomic primitives provided by the kernel.
+\end{itemize}
+
+The kernel would require a mechanism for notifying the server that a rollback is required, and the server needs to be able to execute atomic updates in the face of that.
+
+\subsubsection{Exception}
+
+When a clients budget expires, an exception is delivered to a temporal fault endpoint, and the thread waiting on that endpoint handles the exception with its own reservation.
+The temporal fault endpoint is separate to the standard fault endpoint for a thread.
+
+The thread waiting on the endpoint could then choose a strategy: it could reset the server (doing a rollback) or extend the current budget.
+In some cases, this would require the server to be preemptible but it would be specific to the design.
+
+Schedulability impact and temporal isolation would depend on the user-level fault handler.
+
+Nested requests would need to be handled by the exception handler, or the kernel could deliver an exception when an expired scheduling context was sent back via a reply, but only if the reply is not to the client who owns the scheduling context.
+
+% TODO finish
+
+\subsubsection{Bandwidth inheritance}
+\label{sec:bandwidth-inheritance}
+
+The bandwidth inheritance (BI) strategy takes the helping concept from Fiasco, without the priority inheritance.
+When a $B_{tcb}$ makes a request to blocked $S_{tcb}$, it donates $B_{sc}$ to $S_{tcb}$ and $A_{tcb}$'s request is completed on $B_{sc}$.
+The difference to priority inheritance is that the server still runs at the ceiling priority.
+
+This provides temporal isolation, with the maximum blocking time for a single resource access being $S_{e}$.
+Schedulability-wise, a pessimistic schedulability test requires that all hard real-time jobs contain enough budget to help every resource that they access.
+This is effectively the same penalty as under the emergency reservation scheme, except that the budget is included in the hard real-time tasks instead of in a separate reservation.
+This should result in a less pessimistic schedulability test, as it can take into account the different periods tasks, rather than being the maximum time that clients could need the emergency reservation at the highest rate.
+
+ The main difference is that client requests finish on their own budgets in cases with no contention, rather than finishing immediately.
+
+ Nested requests require inheritance chains to be followed in this model.
+
+
+\subsubsection{Migrating threads}
+
+The migrating thread (MT) model used by \composite inherently solves the problem of budget expiry by requiring multi-threaded servers: since servers spawn a new thread for each request, budget expiry for one client does not block the server for other clients.
+This option offers nearly perfect temporal isolation, although this is achieved mostly by pushing real-time synchronisation problems to user level.
+Not only are servers forced to be multi-threaded, but they must either be lock-free or use a kernel-provided atomic primitives to implement server critical sections.
+
+\subsubsection{Summary}
+
+
+\begin{table}
+    \centering
+	\begin{tabular}{| p{4cm} | c | c | c | c | c | c | c |} \hline
+                       & \textbf{Block}                & \textbf{ER}  & \textbf{Rollback} & \textbf{Deny} & \textbf{BI} & \textbf{MT} \\\hline
+Temporally contained   & \no                           & \yes         & \yes              & \yes          & \yes        & \yes        \\\hline
+Bound on single request
+PI                     & $\frac{S_{e}}{A_{b}} * A_{p}$ & $S_{e}$*     & $S_{r}$*          & 0             & $S_{e}$     & 0*          \\\hline
+Schedulable
+utilisation            & Worst                         & Medium       & Better            & Best          & Better      & Best        \\\hline
+Nested Requests        & \yes                          & \yes         & \yes              & \no           & Complex     & \yes        \\\hline
+Non-preemptible servers& \yes                          & \yes         &\no                & \yes          & \yes        & \no         \\\hline
+Requests succeeds without contention
+                       & \yes                          & \yes         & \no               & \no           & \yes        & \yes        \\\hline
+Requests completes on clients budget
+without contention     & \yes                          & \no          & \no               & \no           & \yes        & \yes         \\\hline
+Isolation strength     & Worst                         & Medium       & High              & Best          & High        & Best        \\\hline
+\end{tabular}
+\caption{Comparison of options for handling budget expiry. The `exception' option is omitted, as the properties of this policy depend on user-level exception handling.}
+\label{tab:policy-summary}
+\end{table}
+
+\Cref{tab:policy-summary} summarises all of the analysis presented so far.
+Immediately we rule out Block, as it provides no temporal isolation and Deny, as it cannot handle nested resources.
+To further understand the trade-offs between ER, Rollback, Except., BI, and MT we present \Cref{tab:policy-implementation} which summarises the implementation issues for each policy.
+
+We exclude the emergency reservation mechanism as it requires \emph{a priori} knowledge of all non-hard real-time resource access patterns in order to specify a sufficient reservation.
+In this case a system should be able to use a full reservation for the server: resource access patterns for hard real-time tasks should also be known.
+
+Rollback as a policy can be implemented using the exception mechanism, and as a result we provide no kernel mechanisms to require rollback.
+Exceptions for budget expiry are introduced, in the form of temporal faults.
+Since not all tasks require temporal faults, we allow a temporal fault endpoint to be specified per thread -- if a thread does not have a temporal fault endpoint then no fault will be delivered.
+This is in contrast to how normal fault endpoints work in seL4 -- if there is no fault endpoint, the kernel will fault trying to deliver the fault message and then kill the target thread.
+
+While we do not rule out the migrating thread approach, but we do not force this through kernel mechanisms as in \composite.
+In the next section we will outline how such a system can be built on the current primitives.
+However, we the leave atomic operations provided by the kernel in order to make this approach viable to future work.
+
+Since bandwidth inheritance is the only mechanism that allows threads without known resource access patterns to share resources while avoiding the requirement for preemptive servers, we believe this mechanism to be worth implementing, although systems are not required to use it.
+
+\begin{table}
+    \centering
+	\begin{tabular}{| p{3cm} | p{4cm} | p{4cm} |} \hline
+\textbf{Mechanism}    & \textbf{Kernel impact}                                              & \textbf{User-level impact}                    \\\hline
+ER                    & \itemcol{\item Track two reservations per thread.
+                                 \item Doubles length of release queue.}                    & \itemcol{\item Must specify emergency reservation parameters.} \\\hline
+Rollback              & \itemcol{\item Track two reservations per thread.
+                                 \item Doubles length of release queue.
+								 \item Provide rollback upcall mechanism.
+	 						     \item Provide atomic operation mechanism.}                 & \itemcol{\item Provide rollback functionality.
+                                                                                                       \item Servers must be thread safe.} \\\hline
+Except.               & \itemcol{\item Requires significantly more transparency between kernel and user-level} & \itemcol{\item Must choose and implement a policy compatible with kernel transparency.} \\\hline
+BI                    & \itemcol{\item Kernel must follow forwarding chains to handle
+                                       nested budget expiry.
+							     \item Kernel must track inheritance links.}                & \itemcol{\item None.} \\\hline
+MT                    & \itemcol{\item Provide atomic operation mechanism.}                 & \itemcol{\item Servers must be thread safe.} \\\hline
+	\end{tabular}
+	\caption{Kernel and user-level impact of different budget-expiry handling policies.}
+	\label{tab:policy-implementation}
+\end{table}
+
+\subsection{Summary}
+
+In this chapter we have outlined our model for introducing resource kernel concepts and resource sharing to seL4, presenting a more principled approach to time.
+We introduce support for user-level admission tests and add processor reservations to the kernel in the form of scheduling contexts.
+We have also altered the scheduler, providing optional \gls{EDF} scheduling and provided accounting and enforcement mechanisms to implement temporal isolation.
+By decoupling priorities from reservations, asymmetric protection is also supported, a key requirement of mixed-criticality systems.
+
+Finally, we outlined existing models for integrating real-time resource sharing and IPC and present a new one: scheduling context donation, which unlike previous donation over IPC uses \gls{HLP} rather than \gls{PIP}, eliminating many overheads while adding the restriction that a policy on priorities be present in the system.
+Our model supports reservations-per-thread, migrating threads, or scheduling context donation policies for resource sharing.
+
+Budget expiry is the largest concern for systems using scheduling context donation.
+We solve this using temporal exceptions or bandwidth inheritance, as it is the only mechanism which provides temporal containment while allowing for non-thread-safe, single-threaded resources.
+
+In the next section we will outline the implementation of our model, covering changes to the kernel, and how user-level can utilise the mechanisms to implement a variety of systems with policy freedom.
+
+\section{Model}
+
+% priority
+
+% criticality
+
+% scheduling contexts
+
+% scheduling context donation
+
+% timeout exceptions
+
+\section{Summary}
+

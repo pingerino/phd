@@ -1,0 +1,264 @@
+
+
+\chapter{Operating Systems}
+
+In this chapter we propvide a survey of existing operating systems, with a focus on how each one provides mechanisms for temporal isolation, asymmetric protection, and resource sharing. 
+
+% TODO break up into sections: dicuss resource sharing, isolation approaches
+% summarise with short comings: things you will solve
+
+\section{POSIX}
+
+The \gls{POSIX} standard specifies real-time operating systems interfaces~\citep{Harbour_1993} which influence a large amount of \glspl{OS}. 
+Scheduling policies specified by \gls{POSIX} are shown in \Cref{tab:posix-sched}. 
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|c|p{.7\textwidth}|}\hline
+\textbf{Policy} & \textbf{Description} \\\hline
+\schedfifo & Real-time tasks can run at a minumum of 32 fixed-priorities until they are preempted or yield. \\\hline
+\schedrr   & As per \schedfifo but with an added timeslice. If the timeslice for a thread expires, it is added to the tail of the scheduling queue for its priority.\\\hline
+\schedsporadic & Specifies sporadic servers as described in \Cref{p:sporadic} and can be used for temporal isolation. For practical requirements, the POSIX specification of \schedsporadic specifies a maximum number of replenishments which is implementation defined. \\\hline
+\end{tabular}
+\caption{\gls{POSIX} real-time scheduling policies}
+\label{tab:posix-sched}
+\end{center}
+\end{table}
+
+\citet{Faggioli_2008} provides an implementation of \schedsporadic, which \citet{Stanovic_BWH_2010} use to show that the POSIX definition of the sporadic server is incorrect and can allow tasks to exceed their utilisation bound.
+The authors provide a modified algorithm for merging and abandoning replenishments which fixes these problems, of which corrections to the pseudo code were published in \citet{Danish_LW_2011}.
+In further work \citet{Stanovic_BW_2011} show that while sporadic servers provide better reponse times than polling servers under average load, under high load the overhead of preemptions due to fine-grained replenishments causes worse response times when compared to polling servers.
+Consequently they evaluate an approach where servers alternate between sporadic and polling servers depending on load, where the transition involves reducing the maximum number of replenishments to 1 and merging available refills.
+
+
+Resource sharing in the \gls{POSIX} \gls{OS} interface is permitted through mutexes, which can be used to build higher synchronisation protocols.
+\Cref{tab:posix-mutex} shows the specified protocols. 
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|c|p{.7\textwidth}|}\hline
+\textbf{Policy} & \textbf{Description} \\\hline
+\noprioinherit & Standard mutexes that do not protect against priority inversion. \\\hline
+\prioinherit  & Mutexes with \gls{PIP} to prevent priority inversion, recall \Cref{sec:pip}. \\\hline
+\prioprotect & Mutexes with \gls{HLP} to prevent priority inverstion, recall \Cref{sec:hlp}. \\\hline
+\end{tabular}
+\caption{\gls{POSIX} real-time mutex policies for resource sharing.}
+\label{tab:posix-mutex}
+\end{center}
+\end{table}
+
+Although \gls{POSIX} provides \schedsporadic which can be used for temporal isolation (however flawed), the intention of the policy is to contain aperiodic tasks. 
+Since \schedsporadic allows tasks to run at a lower priority when they have exceeded their allowed budget in any given period, it follows that the locking protocols \prioinherit and \prioprotect would continue to operate -- although the excess time is not billed to the task. 
+If a task never releases a locked resource, temporal isolation is completed violated.
+As a result, \gls{POSIX} is insufficient for mixed-criticality systems where tasks of different criticalities share resources.
+Few \glspl{OS} implement the full \gls{POSIX} standard, however many incorporate features of it, including Linux.
+
+\subsection{Linux}
+
+While Linux cannot be considered a real-time operating system for high criticality applications, it is frequently used for lower criticality applications with \gls{SRT} demands.
+Additionally, Linux is often used as a platform for conducting real-time systems research. 
+% TODO cite completely fair scheduler
+Linux has fixed-priority preemtive scheduler which is split into scheduling classes. 
+Real-time threads can be scheduled with \gls{POSIX} \schedfifo and \schedsporadic.
+\gls{NRT} threads are scheduled with \gls{CFS}, and real-time threads are scheduled either \gls{FIFO} or round-robin, and are prioritised over the \gls{NRT} tasks. 
+Fixed priority threads in Linux are completly trusted: apart from a bound on total execution time for real-time threads which guarantees that \gls{NRT} threads are scheduled (referred to as real-time throttling~\citep{Corbet_2008}), individual temporal isolation is not possible.
+
+Linux version 3.14 saw the introduction of an \gls{EDF} scheduling class to Linux~\citep{Corbet_2009}, which is between the fair and the fixed priority scheduling classes.
+The \gls{EDF} implementation allows threads to be temporally isolated using \gls{CBS}.
+
+Scheduling in Linux promotes the false correlation we see in many systems: real-time tasks are automatically trusted (unless scheduled with \gls{EDF}) and assumed to be more important, or more critical, than \gls{NRT} tasks.
+In reality, criticality and real-time strictness are orthogonal.
+Linux does not provide any mechansims for assymettric protection.
+
+On the resource sharing side Linux provides real-time locking via the POSIX  as per \Cref{tab:posix-mutex}.
+ 
+\subsection{Real-time Linux Extensions}
+
+A large amount of projects exist that attempt to retrofit more extensive real-time features onto Linux.
+We briefly summarise major and relevant works here. 
+One of the original works~\citep{Yodaiken_Barabanov_97} runs Linux as a fully preemptable task via virtualisation and kernel modifications.
+Interrupts are handled by the virtualisation layer, and only directed to Linux if required.
+This means that real-time tasks do not have to suffer from long interrupt latencies, however it also means that devices drivers need to be rewritten from scratch for real-time.
+
+\litmus~\citep{Calandrino_LBDA_2007} is an extension of Linux that allows for pluggable real-time schedulers to be easily developed for testing multiprocessor schedulers.
+
+Linux/RK~\citep{Oikawa_Rajkumar_1998} is a resource kernel implementation Linux that is often used to implement new scheduling algorithms.
+\gls{ZS} scheduling~\citep{deNiz_LR_2009} was implemented and tested using Linux/RK.
+
+Whilst Linux implementations are suitable for implementing algorithms, being used as test-beds and even being deployed for non-critical \gls{SRT} applications, ultimately Linux is not a suitable \gls{RTOS} for running safety-critical \gls{HRT} applications. The large amount of source code results in a colossal trusted computing base,where it is impossible to guarantee correctness through formal verification or timeliness through {\gls{WCET}} analysis.  Major reasons for adapting Linux to real-time are the existing applications and wide array of device and platform support. For mixed-criticality systems these advantages can be leveraged by virtualising Linux to run \gls{SRT} and \gls{NRT} applications.
+
+\subsection{Commercial RTOSes}
+%TODO add details on resource sharing to this section
+There are several widely deployed \glspl{RTOS} used commercially. 
+The majority implement part or all of \gls{POSIX}.
+We present three popular alternatives: VxWorks, QNX Neutrino and RTEMS.
+
+\paragraph{RTEMS}~\citep{RTEMS:URL} is an open-source \gls{RTOS} that operates with or without memory protection, although in either case it is statically configured.
+Although it is an open source project, RTEMS is used widely in industry and research.
+The main scheduling policy is \gls{FPRM}, however \gls{EDF} is also available with temporal isolation an option using \gls{CBS}.
+No temporal isolation mechanisms are present for fixed-priority scheduling.
+RTEMS provides semaphores with priority inheritance or immediate priority ceilings for resource sharing, as well as higher level primitives for these. 
+
+\paragraph{QNX Neutrino}~\citep{QNX_2010} is a commercial, microkernel-based \gls{RTOS} that provides \gls{FP} scheduling and resource sharing with POSIX semantics.
+QNX satisfies many industry certification standards, although these in practice do not require {\gls{WCET}} analysis or formal verification of correctness.
+
+\paragraph{VxWorks}~\citep{VxWorks_2008} is a monolithic \gls{RTOS} deployed most notably in aircraft and spacecraft. 
+It supports \gls{FP} scheduling with a native POSIX-compliant scheduler. 
+VxWorks also has a pluggable scheduler framework, allowing developers to implement their own, in-kernel scheduler.
+
+There are many other \gls{RTOS}es used commercially, but the general pattern is POSIX-compliant, \gls{FP} scheduling and resource sharing.
+ \citet{Deos:URL} and \citet{PikeOS:URL} are two more examples.
+This brief survey shows that \gls{FP} scheduling is dominant in industry due to its place in the POSIX standard. 
+Although temporal isolation is sometimes provided with the possibility of bounded bandwidth via \glspl{CBS}, asymmetric protection is not provided.
+In addition to scheduling, code-bases are generally large and complex, and beyond the grasp of modern {\gls{WCET}} analysis.
+Although all of these \gls{RTOS}es are deployed in safety critical systems, their support for mixed-criticality applications is questionable if non-existent.
+
+
+%TODO{Where does Free RTOS go??}
+
+\section{Microkernels}
+
+Real-time concepts are not new microkernels.
+
+Real-Time
+First we review some common microkernel based concepts, before presenting an overview of relevant microkernel designs.
+
+
+Many microkernels with varying real-time support have arisen since.
+\subsection{Capabilities}
+\citet{Dennis_VanHorn_66} 
+
+\subsection{IPC}
+%TODO{describe IPC, how it can be used to make resource servers}
+
+\subsection{Timeslice Donation}
+
+%TODO{diagrams}
+%TODO{describe timeslice donation}
+%TODO{and migrating threads}
+
+
+
+\subsection{Scheduling contexts}
+
+Many kernels distinguish between a threads execution context (the registers, stack etc) and scheduling context (access to processing time) in order to allow the scheduling context to transfer between threads for accounting purposes.
+This is a more explicit form of timeslice donation: when the scheduling context is passed between client and server, the scheduling context of the client is billed for activity on the servers behalf. 
+Designs differ as to whether scheduling context donation is required or optional. 
+Some designs allow multiple execution contexts to be attached to one scheduling context, such that the scheduling context forms a secondary run queue. 
+In others, multiple scheduling contexts can be bound to one execution context, allowing the execution context to execute on any scheduling context with available execution time. 
+
+\citet{Steinburg_WH_2005} scheduling context consisted of a time quanta and a priority and were donated across \gls{IPC}.
+
+\subsection{Examples}
+
+\paragraph{Real-time Mach}~\citep{Mercer_RZ_1994, Mercer_ST_1993} first introduced the concept of processor capacity reserves, which is the first form of scheduling contexts in microkernel design.
+In Real-time Mach, scheduling context donation was compulsory where processor capacity reserves were used to implement temporal isolation, however threads could be reserved or non-reserved threads. 
+Threads which had exhausted their reservation were able to be scheduled by a second level time-sharing scheduler that scheduled all of the unreserved threads, if no unexhausted reservations were present in the scheduler.
+Real-time Mach used fixed-priority scheduling and rate-monotonic analysis to conduct an admission test for reservations in the kernel.
+If a server exausted the donated reservation, it would finish the operation using the time-sharing scheduler. 
+Finally, Real-time Mach provided \gls{PIP} over \gls{IPC} to avoid priority inversion~\citep{Tokuda_NR_1990}.
+
+\paragraph{KeyKOS}~\citep{Bromberger_FFHLS_92}
+
+\paragraph{EROS}~\citep{Shapiro_SF_99} is a capability based operating system designed to demonstrate the viability of capability-based systems in terms of performance. 
+EROS introduced the idea of a single-use reply capability, termed a \emph{resume} capability, which when invoked would be consumed and allows the receiver to reply to the sender.
+EROS also used what is known as an \emph{entry} capability, which allowed the holder to invoke the services provided by a program within a particular process. 
+EROS uses the same scheduling and resource sharing policies as Real-time Mach, using capacity reserves, however these are not accessed via the capability system.
+
+\paragraph{DROPS} (Dresden Real-time OPerating System)~\citep{Haertig_BBHHMRSW_98} is an L4 based real-time microkernel that also takes the resource reservation route to temporal isolation.
+The scheduling scheme in DROPS allows a process to reserve a priority for an amount of cycles during a time period.
+Page colouring is used to reserve parts of the caches for real-time tasks, significantly decreasing upper bounds on \gls{WCET}.
+
+\paragraph{NOVA}~\citep{Steinburg_Kauer_10} is a capability-based microkernel aimed at virtulisation. 
+NOVA provides fixed-priority round-robin scheduling, with priority inheritance across IPC~\citep{Steinburg_BK_2010}.
+Priorities in NOVA reflect importance: it is not a real-time kernel, and periodic scheduling is not available.  
+NOVA provides bandwidth inheritance through the microkernel mechanism of donation is used, so NOVA does not provide concrete reservations, but when a timeslice expires other tasks waiting for the resource \emph{help} the blocked task, where the blocked task excecutes on the pending tasks timeslice.
+If the task holding the resource does not release it, all pending tasks will block forever.
+
+
+\paragraph{Fiasco.O.C} is an L4 microkernel where scheduling, accounting, enforcement and admission are all implemented in the kernel, with the motivation that these functions would have high overheads if implemented at user-level. 
+Resource reservations are realised as \emph{scheduling contexts} which act as timeslices: a budget paired with a priority, and a replenishment rule. 
+Some scheduling mechanisms are exposed to the user;~\citet{Lackorzynski_WVH_12} alter the system call interface to support multiple mixed-criticality guests.
+They find that the only way to avoid scheduling integrity violations is to export scheduling information to the host \gls{VM}.
+Guests can change scheduling contexts on priority switches such that the host schedules guests with enough time to schedule all tasks.
+Additionally, guests associate scheduling contexts to \glspl{ISR}.
+
+An \gls{RBED} implementation has also been completed on OKL4~\citep{Petters_LHE_09}.
+%TODO{more on OKL4}
+
+\paragraph{seL4} is a microkernel that is particularly suited to safety-critical, real-time systems with one major caveat: the lack of real-time scheduling support.
+Three main features of seL4 support this claim: it has been formally verified for correctness~\citep{Klein_EHACDEEKNSTW_09} and other properties~\citep{Sewell_WGMAK_11}; All memory management, including kernel memory, is all at user-level~\citep{Elkaduwe_Derrin_06}; Finally it is the only \gls{OS} to date with full \gls{WCET} analysis~\citep{Blackham_SCRH_11}.
+The scheduler in seL4 has been left intentionally underspecified~\citep{Petters_EH_12} for later work.
+The current implementation is a placeholder, and follows the traditional L4 scheduling model~\citep{Ruocco_06} --- a fixed-priority, round-robin scheduler with 256 priorities.
+
+\paragraph{\textsc{Minix 3}}~\citep{Herder_BGHT_06} is a traditional microkernel with a focus on reliability rather than performance.
+{\sc Minix 3} has been adapted for real-time with temporal isolation provided by resource servers~\citep{Mancina_LFHGT_2009}.
+ The implementation is designed for bandwidth servers to be implemented at user-level. 
+This is achieved by adding system calls allowing for the kernel's best-effort scheduling policy to be switched to \gls{EDF} per process. 
+Eight system calls are added, as well as semantics for the kernel to up-call the resource server when a real-time task is blocked, unblocked, exits or exhausts its budget.
+Real-time tasks execute as the second-highest priority tasks in the system, the highest being reserved for the bandwidth server. 
+The advantage of this implementation is that different types of bandwidth servers can be implemented on top of {\sc Minix 3} without kernel modifications.
+ Although not covered in the paper, this could be extended to a split, user-level \gls{RBED} implementation, however the overheads of such an approach are unclear. 
+The {\sc Minix 3} implementation is a good example of implementing bandwidth servers with minimal kernel modifications.
+ {\sc Minix 3} is not aimed at hard-real time, supporting only mixed-criticality between \gls{SRT} and \gls{NRT} processes.
+
+
+\section{Other research kernels}
+
+\paragraph{\composite} is a component-based \gls{OS} with similar with goals to a microkernel, however with a more dominant focus on support for fine-grained components.
+In \composite all four mechanisms are implemented at user-level, however unlike a microkernel, \composite contains device drivers inside the kernel.
+
+A hierarchical scheduling framework, \hires\citep{Parmer_West_2011}, is used in \composite.
+\hires delivers timer interrupts to a root, user-level scheduling component, which are then forwarded through the hierarchy to child schedulers.
+Consequently, scheduling overhead increases as the hierarchy deepens.
+Child schedulers with adequate permissions use a dedicated system call to tell the kernel to switch threads.
+The kernel itself does not provide blocking semantics, which are also provided by user-level schedulers.
+This design offers total scheduling policy freedom, as user-level scheduling components can implement all of the goals of a resource kernel according to their own policy.
+ 
+% TipToe what is it and how does it schedule
+\paragraph{Tiptoe}~\citep{Craciunas_KPRS_2009} is a now-defunct research microkernel that also aims at temporal isolation between user-level processes and the operating system.
+Like {\sc Minix 3}, Tiptoe uses the \gls{CBS} approach, although it uses variable bandwidth servers which allow for bandwidths to be altered.
+Tiptoe implements bandwidth servers inside the kernel.
+%TODO{look into tiptoe more detail on how it handles resource sharing}
+
+\paragraph{Barrelfish}~\citep{Peter_SBBIHR_2010} is a capability-based multi-kernel \gls{OS}, where a separate kernel runs on each processing core and kernels themselves share no memory and are essentially \emph{\gls{CPU}-drivers}.
+Each CPU-driver is single-threaded and non-preemtible. 
+ , although not explicitly real-time, implements a version of \gls{RBED} for managing distributed \gls{SRT} processes.
+Barrelfish schedules dispatchers, which are roughly equivalent to processes. 
+Execution context and scheduling context are not split.
+When messages are sent between dispatchers on barrelfish the sender can choose to yield to the receiver or not by flags on the message.
+
+TODO Quest first, then quest v. 
+As a separation kernel, Quest does not provide resource sharing mechanisms by definition. 
+
+\paragraph{Quest-V}~\citep{Danish_LW_2011} is a separation kernel / hypervisor with fixed priority scheduling.
+Temporal isolation is provided by sporadic servers, however I/O and normal processes are ditinguished statically: I/O processes use polling servers and normal processes use sporadic servers, with a maximum replenishment length of 32.
+%TODO{there are more quest papers reference them}
+
+
+\subsection{Summary}
+
+%TODO{what did we learn in this chapter?}
+%TODO{note gap between rt theory and systems}
+%TODO{note the false correlation of priority, rt model, trust, criticality etc}
+
+\begin{tabular}{|l|c|c|c|c|}\hline
+\textbf{OS} & \textbf{Scheduler}  & \textbf{Isolation} & \textbf{Asymmetric Protection} & \textbf{Resource Sharing}\\\hline
+Linux       & \gls{FP} + \gls{EDF} & \gls{CBS}          & No  & \gls{PIP}, \gls{HLP}\\\hline
+POSIX       & \gls{FP}             & \gls{SS}           & No  & \gls{PIP}, \gls{HLP} \\\hline
+Linux/RK    & TODO                 & TODO               & No  & TODO \\\hline
+RTEMS       & \gls{FP} + \gls{EDF} & \gls{CBS}          & No  & \gls{PIP}, \gls{HLP}\\\hline
+QNX         & \gls{FP}             & \gls{SS}           & No  & TODO \\\hline
+VxWorks     & \gls{FP}             & TODO               & No  & TODO  \\\hline
+Real-Time Mach & \gls{FP}          & \gls{DS}           & No  & \gls{PIP} \\\hline
+EROS        & \gls{FP}             & \gls{DS}           & No  & \gls{PIP} \\\hline
+Minix 3     & TODO                 & TODO               & No  & TODO \\\hline
+Tiptoe      & TODO                 & TODO               & No  & TODO   \\\hline
+Barrelfish  & \gls{EDF}            & \gls{RBED}         & No  & Timeslice donation   \\\hline
+DROPS       & \gls{FP}             & TODO               & No  & TODO \\\hline
+NOVA        & \gls{FP}             & No                 & No  & \gls{BWI} \\\hline
+Quest-V     & \gls{FP}             & \gls{SS}           & No  & No \\\hline
+seL4        & \gls{FP}             & No                 & No  & No \\\hline
+\end{tabular}
+
+

@@ -46,11 +46,11 @@ non-fastpath kernel entries, and when performing a scheduling context switch. Fo
 platforms, we show the results of microbenchmarks of both of these operations in \Cref{t:timer}.
 
 \begin{table}[ht]\centering
-\begin{tabular}{|c|c|l|}\hline
-    \textbf{Platform} & \texttt{Read time} & \texttt{Set timeout} \\\hline
-    SBR              &     23 (0) & 36 (0)  \\\hline
-    ODX              &     16 (0) & 6 (0) \\\hline
-    x64              &     11 (2.3)   & 217 (2.0)    \\\hline 
+\begin{tabular}{|c|l|l|l|}\hline
+    \textbf{Platform} & \texttt{Read time} & \texttt{Set timeout} & \textbf{Sum} \\\hline
+    SBR              &     23 (0) & 36 (0)  & 59 \\\hline
+    ODX              &     16 (0) & 6 (0) & 22 \\\hline
+    x64              &     11 (2.3)   & 217 (2.0) & 228    \\\hline 
 \end{tabular}
 \caption{Latency of timer operations per platform in cycles. Standard deviations shown
 in brackets.}
@@ -59,8 +59,9 @@ in brackets.}
 
 For both microbenchmarks, we read the timestamp before and after the operation, and do this 102
 times, discarding the first two results to prime the cache.  We take the difference of the cycle
-counts, and subtract the cost of measuring the cycle counter itself. For both platforms, the results
-are uniform with no variance. 
+counts, and subtract the cost of measuring the cycle counter itself. The results show the cost of
+both operations separately, and then their sum, which is the total measured overhead introduced by timers on
+scheduling context switch.
 
 On SBR timer we use the 64-bit ARM global timer, which is a memory mapped device with banked registers shared
 between all four cores. Timer operations on the ODX timer are considerably faster, as the
@@ -194,6 +195,8 @@ with a hot cache as 36 cycles.
 \caption{Microbenchmarks of \selfour slowpath \gls{IPC} between active threads.}
 \label{t:slowpath-ipc-active-micro}
 \end{table}
+
+\input{data/generated/ipc-perf.inc}
 
 \subsection{Faults}
 
@@ -336,10 +339,11 @@ the provided functionality.
 
 % TODO summarise results of overheads discovered in microbenchmarks
 
-\subsection{Temporal Isolation}
+\section{Temporal Isolation}
 
 % Show isolation between processes using different scheduling contexts
-\paragraph{Process isolation} We demonstrate our isolation properties
+\subsection{Process isolation} 
+We demonstrate our isolation properties
 in a single-core setup consisting of a Linux VM,
 running at high priority with a
 constrained budget and a UDP echo server running at a lower priority,
@@ -394,7 +398,9 @@ when Linux has a full budget (10\,ms), and thus able to monopolise the
 processor, does the UDP server miss its deadlines, resulting in a
 latency blowout.  This result shows that our sporadic server implementation is effective in bounding interference of a high-priority process.
 
-\paragraph{Network benchmark} We evaluate the overhead of our implementation and
+\subsection{Network benchmark} 
+
+We evaluate the overhead of our implementation and
 again demonstrate temporal isolation by running the Yahoo! Cloud Serving Benchmark
 (YCSB)~\citep{Cooper_STRS_10}.
  We run it against a server using the Redis
@@ -453,7 +459,9 @@ and consequently throughput scales linearly with available CPU
 bandwidth.
 
 % Show isolation in a shared server
-\paragraph{Server isolation} As an example of a shared server running out of budget, we implement
+\subsection{Server isolation} 
+
+As an example of a shared server running out of budget, we implement
 the scenario of a passive server (see \autoref{f:passive}) with two
 clients, A and B. The server is providing an encryption service using AES-256
 with a block size of 16~bytes. The server alternates between two
@@ -496,7 +504,7 @@ encrypted so far. The faulting client can then continue its request once its bud
 We measure rollback time, from the time the exception handler is
 invoked, until the server is ready for the next request. Given the
 small amount of rollback state, this measures the baseline
-overhead. For schedulability analysis, the actual cost of the rollback would
+    overhead. For schedulability analysis, the actual cost of the rollback would
 have to be added.
 
 \emph{Emergency (Emg.)} gives the server a one-off emergency budget to finish
