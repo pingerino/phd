@@ -315,6 +315,7 @@ Many other more sophisticated locking protocols exist, however we do not survey 
 
 
 \section{Operating systems}
+\label{sec:background-operating-systems}
 
 An \gls{OS} is a software system that interfaces with hardware and devices in order to present a common interface to applications.
 The \emph{kernel} is the part of the operating system that operates with privileged access to the processor(s) in order to safely perform tasks that allow applications to run independently of each other.
@@ -333,6 +334,15 @@ Modern microkernel implementation is guided by the minimality principle~\citep{L
 	\end{center}
 \end{figure}
 
+Which services and utilities are included as part of the microkernel varies per implementation. In
+larger kernels thread scheduling, memory allocation and some device drivers are included in the kernel.
+In others, subsets of these functionality are included and the kernel and others delegated to
+user-mode. 
+
+Microkernels are far more amendable to security domains, due to their small trusted computing base.
+Services on top of the microkernel can be isolated and assigned different levels of trust, unlike
+the services in a monolithic \gls{OS} which all run at the same privilege level and a fault in one
+can compromise the entire system. 
 
 \subsection{Open vs. Closed Systems}
 

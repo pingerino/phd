@@ -19,12 +19,15 @@ operations.
 In addition to several load generators running Linux on experiments are conducted on:
 
 \begin{description}
-    \item[SBR:] Quad-core 1\,GHz ARM Cortex~A9 system-on-chip on a Freescale i.MX6 SABRE Lite
+    \item[SBR:] Quad-core 1\,GHz ARM Cortex~A9 \gls{SoC} on a Freescale i.MX6 SABRE Lite
         development board. This is the verified platform for \selfour.
     \item[ODX:] Quad-core 1.6\,GHz ARM Cortex~A15 system-on-chip on an Odroid-XU development board.
         This \gls{SoC} is a big.LITTLE architecture, but the little cores are unused by \selfour.
         Additionally, there is no SMP support for this platform in \selfour.
+    \item[ZNQ:] Dual core 677\,MHz ARM Cortex~A9 \gls{SoC} on a Xilinx Zynq-7000 ZC706 evaluation
+        kit.
     \item[x64:] Quad-core 3.1\,GHz 64-bit Haswell i7-4770 machine.
+    
 \end{description}
 
 
@@ -50,6 +53,7 @@ platforms, we show the results of microbenchmarks of both of these operations in
     \textbf{Platform} & \texttt{Read time} & \texttt{Set timeout} & \textbf{Sum} \\\hline
     SBR              &     23 (0) & 36 (0)  & 59 \\\hline
     ODX              &     16 (0) & 6 (0) & 22 \\\hline
+    ZNQ              &     19 (0) & 36 (0) & 55 \\\hline
     x64              &     11 (2.3)   & 217 (2.0) & 228    \\\hline 
 \end{tabular}
 \caption{Latency of timer operations per platform in cycles. Standard deviations shown
@@ -110,12 +114,15 @@ active threads.
 \multirow{2}{*}{ODX}
 \input{data/generated/odroidxu-fastpath-ipc-micro.inc}
 \hline
+\multirow{2}{*}{ZNQ}
+\input{data/generated/zynq7000-fastpath-ipc-micro.inc}
+\hline
 \multirow{2}{*}{x64}
 \input{data/generated/haswell-fastpath-ipc-micro.inc}
 \hline
 \end{tabular}
 \caption{Microbenchmarks of \selfour fastpath \gls{IPC}.}
-\label{t:fastpah-ipc-micro}
+\label{t:fastpath-ipc-micro}
 \end{table}
 
 
@@ -156,6 +163,9 @@ the resume capability, the ordered IPC checks, and accessing the \gls{SCO} and r
 \multirow{2}{*}{ODX}
 \input{data/generated/odroidxu-slowpath-ipc-micro.inc}
 \hline
+\multirow{2}{*}{ODX}
+\input{data/generated/zynq7000-slowpath-ipc-micro.inc}
+\hline
 \multirow{2}{*}{x64}
 \input{data/generated/haswell-slowpath-ipc-micro.inc}
 \hline
@@ -187,6 +197,9 @@ with a hot cache as 36 cycles.
 \hline
 \multirow{2}{*}{ODX}
 \input{data/generated/odroidxu-slowpath-active-ipc-micro.inc}
+\hline
+\multirow{2}{*}{ZNQ}
+\input{data/generated/zynq7000-slowpath-active-ipc-micro.inc}
 \hline
 \multirow{2}{*}{x64}
 \input{data/generated/haswell-slowpath-active-ipc-micro.inc}
@@ -225,6 +238,9 @@ and the extra lookup of the resume object add overhead.
 \input{data/generated/sabre-fault-micro.inc}
 \hline
 \multirow{2}{*}{ODX}
+\input{data/generated/odroidxu-fault-micro.inc}
+\hline
+\multirow{2}{*}{ZNQ}
 \input{data/generated/odroidxu-fault-micro.inc}
 \hline
 \multirow{2}{*}{x64}
