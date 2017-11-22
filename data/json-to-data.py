@@ -265,8 +265,8 @@ def build_aes_shared_dat(rt, arch, clk):
 def main():
 
     parser = argparse.ArgumentParser(description="Convert json to graph data")
-    parser.add_argument('-b', type=str, dest='baseline', help='baseline json to convert', required='True')
-    parser.add_argument('-rt', type=str, dest='rt', help='rt json to convert', required='True')
+    parser.add_argument('-b', type=str, dest='baseline', help='baseline json to convert')
+    parser.add_argument('-rt', type=str, dest='rt', help='rt json to convert')
     parser.add_argument('-c', type=str, dest='crit', help='criticality json')
     parser.add_argument('-aes', type=str, dest='aes', help='aes json')
     parser.add_argument('-a', type=str, dest='arch', help='arch', required='True')
@@ -282,8 +282,11 @@ def main():
         clk = 677
 
     pwd = os.getcwd()
-    rt_file = os.path.join(pwd, args.rt)
-    baseline_file = os.path.join(pwd, args.baseline)
+ 
+    if args.rt:
+        rt_file = os.path.join(pwd, args.rt)
+        baseline_file = os.path.join(pwd, args.baseline)
+        build_microbenchmark_dat(rt_file, baseline_file, args.arch)
 
     if args.crit:
         crit_file = os.path.join(pwd, args.crit)
@@ -294,11 +297,6 @@ def main():
         build_aes_dat(aes_file, args.arch, clk)
         build_aes_shared_dat(aes_file, args.arch, clk)
     
-    outdir = os.path.join(pwd, DATA_DIR)
-    if not os.path.exists(outdir):
-        os.mkdir(os.path.join(pwd,DATA_DIR))
-
-    build_microbenchmark_dat(rt_file, baseline_file, args.arch)
-
+  
 if __name__ == '__main__':
     sys.exit(main())
