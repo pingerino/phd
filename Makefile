@@ -17,6 +17,7 @@ endif
 
 .PHONY: all
 
+GEN_DIR = ${PWD}/data/generated
 BIBDIR     ?= /home/disy/lib/BibTeX:../../../bibtex:../bibtex
 LaTeXEnv   = TEXINPUTS=".:/home/disy/lib/TeX:/home/disy/lib/ps:${TEXINPUTS}:"
 BibTexEnv  = BIBINPUTS=".:${BIBDIR}:${BIBINPUTS}:"
@@ -56,14 +57,9 @@ Targets    = phd
 # but should appear here with just the .pdf extension.
 ModeSwRoot=all up
 ModeSwFigs=$(patsubst %,imgs/mode-switch-%.pdf,$(ModeSwRoot)) 
-IncRoot=aes fastpath-ipc-micro slowpath-ipc-micro active-slowpath-ipc-micro schedule-micro irq-micro
-SabreIncs=$(patsubst %,data/generated/sabre-%.inc,$(IncRoot))
-HaswellIncs=$(patsubst %,data/generated/haswell-%.inc,$(IncRoot))
-OdroidXUIncs=$(patsubst %,data/generated/odroidxu-%.inc,$(IncRoot))
-Zynq7000Incs=$(patsubst %,data/generated/zynq7000-%.inc,$(IncRoot))
-ExtraFigRoot= edf ipbench
+xtraFigRoot= edf ipbench
 ExtraFigs= $(patsubst %,imgs/%.pdf,$(ExtraFigRoot)) $(ModeSwFigs)
-TexIncludes= $(SabreIncs) $(HaswellIncs) $(wildcard *.tex)
+TexIncludes= $(wildcard data/generated/*.inc) $(wildcard *.tex) crit_includes micro_includes aes_includes
 # For ACM SIG camera ready submission. This will only work if Target
 # is a single identifier. You should then be able to use the "camera" target,
 # after setting CamRoot appropriately. Answer "no" for re-making references.bib
@@ -398,33 +394,130 @@ data/generated/netbsd-redis.dat: $(RUMP_REDIS_FILES) data/ycsb-results.py
 data/generated/linux-redis.dat: $(RUMP_REDIS_FILES) data/ycsb-results.py
 	(cd data && ./ycsb-results.py --platform=linux --num_runs=3)
 
-
+# 
 # data processing
 #
-process_data:	data/generated/sabre-aes.inc data/generated/haswell-aes.inc
+
+# first the microbenchmark data
+define process_micro_data
+$1_process_micro_data: data/json-to-data.py data/baseline-$1.json data/rt-$1.json $(wildcard ipc-perf-*-$1.json)
+	@mkdir -p ${PWD}/data/generated
+	@echo '==== generating $1 data'
+	@python3 ${PWD}/data/json-to-data.py -b ${PWD}/data/baseline-$1.json -rt ${PWD}/data/rt-$1.json -a $1 > gen-$1.log || \
+		(cat gen-$1.log; false)
+endef
+
+$(eval $(call process_micro_data,haswell))
+$(eval $(call process_micro_data,sabre))
+$(eval $(call process_micro_data,tk1))
+$(eval $(call process_micro_data,odroidxu))
+$(eval $(call process_micro_data,zynq7000))
+
+process_micro_data: $(PLATS:%=%_process_micro_data)
+
+# aes data data
+define process_aes_data
+$1_process_aes_data: data/json-to-data.py data/aes-$1.json
+	@mkdir -p ${PWD}/data/generated
+	@echo '==== generating $1 aes data'
+	@python3 ${PWD}/data/json-to-data.py -aes ${PWD}/data/aes-$1.json -a $1 > gen-aes-$1.log || \
+		(cat gen-aes-$1.log; false)
+endef
+
+$(eval $(call process_aes_data,haswell))
+$(eval $(call process_aes_data,sabre))
+
+# crit data
+define process_crit_data
+$1_process_crit_data: data/json-to-data.py data/criticality-$1.json
+	@mkdir -p ${PWD}/data/generated
+	@echo '==== generating $1 crit data'
+	@python3 ${PWD}/data/json-to-data.py -c ${PWD}/data/criticality-$1.json -a $1 > gen-crit-$1-rest.log || \
+		(cat gen-crit-$1-rest.log; false)
+endef
+
+$(eval $(call process_crit_data,haswell))
+$(eval $(call process_crit_data,sabre))
+
+#
+# latex includes
+#
+
+# microbenchmarks
+define micro_includes
+${GEN_DIR}/$1-fastpath-ipc-micro.inc: $1_process_micro_data
+${GEN_DIR}/$1-slowpath-ipc-micro.inc: $1_process_micro_data
+${GEN_DIR}/$1-active-slowpath-ipc-micro.inc: $1_process_micro_data
+${GEN_DIR}/$1-schedule-micro.inc: $1_process_micro_data
+${GEN_DIR}/$1-irq-micro.inc: $1_process_micro_data
+$1_micro_includes: ${GEN_DIR}/$1-fastpath-ipc-micro.inc ${GEN_DIR}/$1-slowpath-ipc-micro.inc \
+                   ${GEN_DIR}/$1-active-slowpath-ipc-micro.inc ${GEN_DIR}/$1-schedule-micro.inc \
+				   ${GEN_DIR}/$1-irq-micro.inc
+endef
+
+$(eval $(call micro_includes,haswell))
+$(eval $(call micro_includes,sabre))
+$(eval $(call micro_includes,tk1))
+$(eval $(call micro_includes,odroidxu))
+$(eval $(call micro_includes,zynq7000))
+
+micro_includes: $(PLATS:%=%_micro_includes)
+
+# aes
+define aes_includes
+$1-aes.inc: $1_process_aes_data
+$1_aes_includes: $1-aes.inc
+endef
+
+$(eval $(call aes_includes,haswell))
+$(eval $(call aes_includes,sabre))
+
+aes_includes: sabre_aes_includes haswell_aes_includes
+
+# criticality
+define crit_includes
+${GEN_DIR}/$1-down-hi-cold.dat: $1_process_crit_data
+${GEN_DIR}/$1-down-hi-hot.dat: $1_process_crit_data
+${GEN_DIR}/$1-down-lo-cold.dat: $1_process_crit_data
+${GEN_DIR}/$1-down-lo-hot.dat: $1_process_crit_data
+${GEN_DIR}/$1-up-hi-cold.dat: $1_process_crit_data
+${GEN_DIR}/$1-up-hi-hot.dat: $1_process_crit_data
+${GEN_DIR}/$1-up-lo-cold.dat: $1_process_crit_data
+${GEN_DIR}/$1-up-lo-hot.dat: $1_process_crit_data
+$1_crit_includes: ${GEN_DIR}/$1-down-hi-cold.dat ${GEN_DIR}/$1-down-hi-hot.dat \
+	              ${GEN_DIR}/$1-down-lo-cold.dat ${GEN_DIR}/$1-down-lo-hot.dat \
+                  ${GEN_DIR}/$1-up-hi-cold.dat ${GEN_DIR}/$1-up-hi-hot.dat \
+				  ${GEN_DIR}/$1-up-lo-cold.dat ${GEN_DIR}/$1-up-lo-hot.dat
+endef
+
+$(eval $(call crit_includes,haswell))
+$(eval $(call crit_includes,sabre))
+ 
+crit_includes: haswell_crit_includes sabre_crit_includes
+
+#
+# gnuplot dat files
+#
+
+define aes_dat
+${GEN_DIR}/$1-shared-aes-1000.dat: $1_process_aes_data
+${GEN_DIR}/$1-shared-aes-100.dat: $1_process_aes_data
+${GEN_DIR}/$1-shared-aes-10.dat: $1_process_aes_data
+$1_aes_dat: $1-shared-aes-1000.dat $1-aes-shared-100.dat $1-shared-aes-10.dat
+endef
+
+$(eval $(call aes_dat,haswell))
+$(eval $(call aes_dat,sabre))
+
+aes_dat: haswell_aes_dat sabre_aes_dat
+
+# images
+
+imgs/aes-shared.eps: aes_dat
+
 ModeSwEps= $(patsubst %.pdf,%.eps,$(ModeSwFigs))
-$(ModeSwEps): $(SabreIncs) $(HaswellIncs)
-$(OdroidXUIncs): data/json-to-data.py data/*.json
-	@mkdir -p ${PWD}/data/generated
-	@echo '====> generating OdroidXU data'
-	@python3 ${PWD}/data/json-to-data.py -b ${PWD}/data/baseline-odroidxu.json -rt ${PWD}/data/rt-odroidxu.json -a odroidxu > gen-odroidxu.log || \
-		( cat gen-odroidxu.log; false )
+$(ModeSwEps): crit_includes
 
-$(Zynq7000Incs): data/json-to-data.py data/*.json
-	@mkdir -p ${PWD}/data/generated
-	@echo '====> generating Zynq7000 data'
-	@python3 ${PWD}/data/json-to-data.py -b ${PWD}/data/baseline-zynq7000.json -rt ${PWD}/data/rt-zynq7000.json -a zynq7000 > gen-zynq7000.log || \
-		( cat gen-zynq7000.log; false )
-
-$(SabreIncs): data/json-to-data.py data/*.json
-	@mkdir -p ${PWD}/data/generated
-	@echo '====> generating Sabre data'
-	@python3 ${PWD}/data/json-to-data.py -b ${PWD}/data/baseline-sabre.json -rt ${PWD}/data/rt-sabre.json -c ${PWD}/data/criticality-sabre.json -aes ${PWD}/data/aes-sabre.json -a sabre > gen-sabre.log || \
-		( cat gen-sabre.log; false )
-$(HaswellIncs): data/json-to-data.py data/*.json
-	@echo '====> generating Haswell data'
-	@python3 ${PWD}/data/json-to-data.py -b ${PWD}/data/baseline-haswell.json -rt ${PWD}/data/rt-haswell.json -c ${PWD}/data/criticality-haswell.json -aes ${PWD}/data/aes-haswell.json -a haswell > gen-haswell.log || \
-		( cat gen-haswell.log; false )
 
 ipbench.eps:	data/generated/ipbench.dat
 data/generated/ipbench.dat:	data/ipbench.csv data/ipbench_data.py
@@ -445,13 +538,10 @@ data/generated/haswell-edf-%.dat: data/ul-haswell.json data/sched_results.py
 	@echo '====> generating haswell ulsched data'
 	@python3 ${PWD}/data/sched_results.py -a haswell -i ${PWD}/data/ul-haswell.json -o ${PWD}/data/generated/ > gen-edf.log
 
+
+
 EdfRoot=haswell-edf-coop haswell-edf-preempt sabre-edf-coop sabre-edf-preempt
-AesRoot=haswell-shared-aes-10 haswell-shared-aes-100 haswell-shared-aes-1000 \
-	sabre-shared-aes-10 sabre-shared-aes-100 sabre-shared-aes-1000
 EdfFiles=$(patsubst %,data/generated/%.dat,$(EdfRoot))
-AesFiles=$(patsubst %,data/generated/%.dat,$(AesRoot))
-$(AesFiles):	$(SabreIncs) $(HaswellIncs) $(OdroidXUIncs) $(Zynq7000Incs)
 imgs/edf.eps: $(EdfFiles) data/linux-edf.dat
-imgs/aes-shared.eps: ${AesFiles}
 imgs/redis.eps: data/generated/redis.dat
 imgs/ipbench.eps: data/generated/ipbench.dat
