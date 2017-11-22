@@ -342,40 +342,47 @@ UL=EDF-RB
 RT=EDF-PB
 CRIT=EDF-CB
 AES=EDF-AB
-HASWELL=x64-haswell3-results.json/results.json
-SABRE=Sabre-sabre-results.json/results.json
-ODROIDXU=OdroidXU-odroid-xu-results.json/results.json
-ZYNQ7000=zynq7000-zc706-results.json/results.json
 DIR=/latestSuccessful/artifact/shared/
 RUMP_REDIS_TEST_NUMBER=30
 PERF_BASE=EDF-BPP
 PERF_RT=EDF-PPP
 PERF_NUMBERS= 0 1 2 3 4 5 6
+PLATS = tk1 sabre zynq7000 odroidxu haswell 
 
-# get the raw data from benchmarks in bamboo
-raw_data:
-	wget -O ${PWD}/data/baseline-haswell.json ${BAMBOO}${BASE}${DIR}${HASWELL}
-	wget -O ${PWD}/data/baseline-sabre.json ${BAMBOO}${BASE}${DIR}${SABRE}
-	wget -O ${PWD}/data/baseline-odroidxu.json ${BAMBOO}${BASE}${DIR}${ODROIDXU}
-	wget -O ${PWD}/data/baseline-zynq7000.json ${BAMBOO}${BASE}${DIR}${ZYNQ7000}
-	wget -O ${PWD}/data/rt-haswell.json ${BAMBOO}${RT}${DIR}${HASWELL}
-	wget -O ${PWD}/data/rt-sabre.json ${BAMBOO}${RT}${DIR}${SABRE}
-	wget -O ${PWD}/data/rt-odroidxu.json ${BAMBOO}${RT}${DIR}${ODROIDXU}
-	wget -O ${PWD}/data/rt-zynq7000.json ${BAMBOO}${RT}${DIR}${ZYNQ7000}
-	wget -O ${PWD}/data/criticality-haswell.json ${BAMBOO}${CRIT}${DIR}${HASWELL}
-	wget -O ${PWD}/data/criticality-sabre.json ${BAMBOO}${CRIT}${DIR}${SABRE}
-	wget -O ${PWD}/data/aes-haswell.json ${BAMBOO}${AES}${DIR}${HASWELL}
-	wget -O ${PWD}/data/aes-sabre.json ${BAMBOO}${AES}${DIR}${SABRE}
-	wget -O ${PWD}/data/ul-haswell.json ${BAMBOO}${UL}${DIR}${HASWELL}
-	wget -O ${PWD}/data/ul-sabre.json ${BAMBOO}${UL}${DIR}${SABRE}
-	$(foreach var, $(PERF_NUMBERS), wget -O ${PWD}/data/ipc-perf-$(var)-baseline-sabre.json ${BAMBOO}${PERF_BASE}$(var)${DIR}${SABRE};)
-	$(foreach var, $(PERF_NUMBERS), wget -O ${PWD}/data/ipc-perf-$(var)-baseline-odroidxu.json ${BAMBOO}${PERF_BASE}$(var)${DIR}${ODROIDXU};)
-	$(foreach var, $(PERF_NUMBERS), wget -O ${PWD}/data/ipc-perf-$(var)-baseline-haswell.json ${BAMBOO}${PERF_BASE}$(var)${DIR}${HASWELL};)
-	$(foreach var, $(PERF_NUMBERS), wget -O ${PWD}/data/ipc-perf-$(var)-baseline-zynq7000.json ${BAMBOO}${PERF_BASE}$(var)${DIR}${ZYNQ7000};)
-	$(foreach var, $(PERF_NUMBERS), wget -O ${PWD}/data/ipc-perf-$(var)-rt-sabre.json ${BAMBOO}${PERF_RT}$(var)${DIR}${SABRE};)
-	$(foreach var, $(PERF_NUMBERS), wget -O ${PWD}/data/ipc-perf-$(var)-rt-odroidxu.json ${BAMBOO}${PERF_RT}$(var)${DIR}${ODROIDXU};)
-	$(foreach var, $(PERF_NUMBERS), wget -O ${PWD}/data/ipc-perf-$(var)-rt-haswell.json ${BAMBOO}${PERF_RT}$(var)${DIR}${HASWELL};)
-	$(foreach var, $(PERF_NUMBERS), wget -O ${PWD}/data/ipc-perf-$(var)-rt-zynq7000.json ${BAMBOO}${PERF_RT}$(var)${DIR}${ZYNQ7000};)
+# get the microbenchmark data, we run this for all platforms
+define micro_raw_data
+.PHONY: $1_micro_raw_data
+$1_micro_raw_data:
+	wget -O ${PWD}/data/baseline-$1.json ${BAMBOO}${BASE}${DIR}$2/results.json
+	wget -O ${PWD}/data/rt-$1.json ${BAMBOO}${RT}${DIR}$2/results.json
+	$(foreach var, $(PERF_NUMBERS), \
+		wget -O ${PWD}/data/ipc-perf-$(var)-rt-$1.json ${BAMBOO}${PERF_RT}$(var)${DIR}$2/results.json;)
+	$(foreach var, $(PERF_NUMBERS), \
+		wget -O ${PWD}/data/ipc-perf-$(var)-baseline-$1.json ${BAMBOO}${PERF_BASE}$(var)${DIR}$2/results.json;)
+endef
+
+$(eval $(call micro_raw_data,haswell,x64-haswell3-results.json))
+$(eval $(call micro_raw_data,sabre,Sabre-sabre-results.json))
+$(eval $(call micro_raw_data,tk1,tk1-jetson-results.json))
+$(eval $(call micro_raw_data,odroidxu,OdroidXU-odroid-xu-results.json))
+$(eval $(call micro_raw_data,zynq7000,zynq7000-zc706-results.json))
+
+micro_raw_data: $(PLATS:%=%_micro_raw_data)
+
+# get the bigger benchmark data, we only run this on some platforms
+define rest_raw_data
+.PHONY: $1_rest_raw_data
+$1_rest_raw_data: 
+	wget -O ${PWD}/data/aes-$1.json ${BAMBOO}${AES}${DIR}$2/results.json
+	wget -O ${PWD}/data/criticality-$1.json ${BAMBOO}${CRIT}${DIR}$2/results.json
+	wget -O ${PWD}/data/ul-$1.json ${BAMBOO}${UL}${DIR}$2/results.json
+endef
+
+
+$(eval $(call rest_raw_data,haswell,x64-haswell3-results.json))
+$(eval $(call rest_raw_data,sabre,Sabre-sabre-results.json))
+
+rest_raw_data: haswell_rest_raw_data sabre_rest_raw_data
 
 RUMP_REDIS_FILES = $(wildcard data/redis/*.json)
 
