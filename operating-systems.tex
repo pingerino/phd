@@ -118,18 +118,30 @@ Although all of these \gls{RTOS}es are deployed in safety critical systems, thei
 
 \section{Microkernels}
 
-Real-time concepts are not new microkernels.
+Microkernels, as introduced in  are small operating systems kernels which contain the minimum amount of software to
+implement an OS. 
+meal-time concepts are not new microkernels.
 
 Real-Time
 First we review some common microkernel based concepts, before presenting an overview of relevant microkernel designs.
 
 
 Many microkernels with varying real-time support have arisen since.
+
+
 \subsection{Capabilities}
-\citet{Dennis_VanHorn_66} 
+
+Capabilities~\citep{Dennis_VanHorn_66} are an established mechanism for fine-grained access control
+to spatial resources. A capability is a unique, unforgeable token that gives the possessor
+permission to access an entity or object in system. Capabilities can have different levels of access
+rights, e.g. read, write, execute etc.
 
 \subsection{IPC}
 %TODO{describe IPC, how it can be used to make resource servers}
+% TODO picture of ipc, to build on and refer to later
+% TODO performance of ipc, why its important
+% TODO define fastpath here. 
+
 
 \subsection{Timeslice Donation}
 

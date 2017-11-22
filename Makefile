@@ -60,6 +60,7 @@ IncRoot=aes fastpath-ipc-micro slowpath-ipc-micro active-slowpath-ipc-micro sche
 SabreIncs=$(patsubst %,data/generated/sabre-%.inc,$(IncRoot))
 HaswellIncs=$(patsubst %,data/generated/haswell-%.inc,$(IncRoot))
 OdroidXUIncs=$(patsubst %,data/generated/odroidxu-%.inc,$(IncRoot))
+Zynq7000Incs=$(patsubst %,data/generated/zynq7000-%.inc,$(IncRoot))
 ExtraFigRoot= edf ipbench
 ExtraFigs= $(patsubst %,imgs/%.pdf,$(ExtraFigRoot)) $(ModeSwFigs)
 TexIncludes= $(SabreIncs) $(HaswellIncs) $(wildcard *.tex)
@@ -341,27 +342,40 @@ UL=EDF-RB
 RT=EDF-PB
 CRIT=EDF-CB
 AES=EDF-AB
-HASWELL=x86-64-results.json/results.json
-SABRE=Sabre-results.json/results.json
-ODROIDXU=Odroid-XU-results.json/results.json
+HASWELL=x64-haswell3-results.json/results.json
+SABRE=Sabre-sabre-results.json/results.json
+ODROIDXU=OdroidXU-odroid-xu-results.json/results.json
+ZYNQ7000=zynq7000-zc706-results.json/results.json
 DIR=/latestSuccessful/artifact/shared/
 RUMP_REDIS_TEST_NUMBER=30
+PERF_BASE=EDF-BPP
+PERF_RT=EDF-PPP
+PERF_NUMBERS= 0 1 2 3 4 5 6
 
 # get the raw data from benchmarks in bamboo
 raw_data:
 	wget -O ${PWD}/data/baseline-haswell.json ${BAMBOO}${BASE}${DIR}${HASWELL}
 	wget -O ${PWD}/data/baseline-sabre.json ${BAMBOO}${BASE}${DIR}${SABRE}
 	wget -O ${PWD}/data/baseline-odroidxu.json ${BAMBOO}${BASE}${DIR}${ODROIDXU}
+	wget -O ${PWD}/data/baseline-zynq7000.json ${BAMBOO}${BASE}${DIR}${ZYNQ7000}
 	wget -O ${PWD}/data/rt-haswell.json ${BAMBOO}${RT}${DIR}${HASWELL}
 	wget -O ${PWD}/data/rt-sabre.json ${BAMBOO}${RT}${DIR}${SABRE}
 	wget -O ${PWD}/data/rt-odroidxu.json ${BAMBOO}${RT}${DIR}${ODROIDXU}
+	wget -O ${PWD}/data/rt-zynq7000.json ${BAMBOO}${RT}${DIR}${ZYNQ7000}
 	wget -O ${PWD}/data/criticality-haswell.json ${BAMBOO}${CRIT}${DIR}${HASWELL}
 	wget -O ${PWD}/data/criticality-sabre.json ${BAMBOO}${CRIT}${DIR}${SABRE}
 	wget -O ${PWD}/data/aes-haswell.json ${BAMBOO}${AES}${DIR}${HASWELL}
 	wget -O ${PWD}/data/aes-sabre.json ${BAMBOO}${AES}${DIR}${SABRE}
 	wget -O ${PWD}/data/ul-haswell.json ${BAMBOO}${UL}${DIR}${HASWELL}
 	wget -O ${PWD}/data/ul-sabre.json ${BAMBOO}${UL}${DIR}${SABRE}
-#	(cd data && ./ycsb-results.py --build-number ${RUMP_REDIS_TEST_NUMBER})
+	$(foreach var, $(PERF_NUMBERS), wget -O ${PWD}/data/ipc-perf-$(var)-baseline-sabre.json ${BAMBOO}${PERF_BASE}$(var)${DIR}${SABRE};)
+	$(foreach var, $(PERF_NUMBERS), wget -O ${PWD}/data/ipc-perf-$(var)-baseline-odroidxu.json ${BAMBOO}${PERF_BASE}$(var)${DIR}${ODROIDXU};)
+	$(foreach var, $(PERF_NUMBERS), wget -O ${PWD}/data/ipc-perf-$(var)-baseline-haswell.json ${BAMBOO}${PERF_BASE}$(var)${DIR}${HASWELL};)
+	$(foreach var, $(PERF_NUMBERS), wget -O ${PWD}/data/ipc-perf-$(var)-baseline-zynq7000.json ${BAMBOO}${PERF_BASE}$(var)${DIR}${ZYNQ7000};)
+	$(foreach var, $(PERF_NUMBERS), wget -O ${PWD}/data/ipc-perf-$(var)-rt-sabre.json ${BAMBOO}${PERF_RT}$(var)${DIR}${SABRE};)
+	$(foreach var, $(PERF_NUMBERS), wget -O ${PWD}/data/ipc-perf-$(var)-rt-odroidxu.json ${BAMBOO}${PERF_RT}$(var)${DIR}${ODROIDXU};)
+	$(foreach var, $(PERF_NUMBERS), wget -O ${PWD}/data/ipc-perf-$(var)-rt-haswell.json ${BAMBOO}${PERF_RT}$(var)${DIR}${HASWELL};)
+	$(foreach var, $(PERF_NUMBERS), wget -O ${PWD}/data/ipc-perf-$(var)-rt-zynq7000.json ${BAMBOO}${PERF_RT}$(var)${DIR}${ZYNQ7000};)
 
 RUMP_REDIS_FILES = $(wildcard data/redis/*.json)
 
@@ -389,6 +403,11 @@ $(OdroidXUIncs): data/json-to-data.py data/*.json
 	@python3 ${PWD}/data/json-to-data.py -b ${PWD}/data/baseline-odroidxu.json -rt ${PWD}/data/rt-odroidxu.json -a odroidxu > gen-odroidxu.log || \
 		( cat gen-odroidxu.log; false )
 
+$(Zynq7000Incs): data/json-to-data.py data/*.json
+	@mkdir -p ${PWD}/data/generated
+	@echo '====> generating Zynq7000 data'
+	@python3 ${PWD}/data/json-to-data.py -b ${PWD}/data/baseline-zynq7000.json -rt ${PWD}/data/rt-zynq7000.json -a zynq7000 > gen-zynq7000.log || \
+		( cat gen-zynq7000.log; false )
 
 $(SabreIncs): data/json-to-data.py data/*.json
 	@mkdir -p ${PWD}/data/generated
@@ -397,12 +416,8 @@ $(SabreIncs): data/json-to-data.py data/*.json
 		( cat gen-sabre.log; false )
 $(HaswellIncs): data/json-to-data.py data/*.json
 	@echo '====> generating Haswell data'
-	@echo Incs = $(HaswellIncs)
-	@echo Sw Figs = $(ModeSwFigs)
 	@python3 ${PWD}/data/json-to-data.py -b ${PWD}/data/baseline-haswell.json -rt ${PWD}/data/rt-haswell.json -c ${PWD}/data/criticality-haswell.json -aes ${PWD}/data/aes-haswell.json -a haswell > gen-haswell.log || \
 		( cat gen-haswell.log; false )
-
-
 
 ipbench.eps:	data/generated/ipbench.dat
 data/generated/ipbench.dat:	data/ipbench.csv data/ipbench_data.py
@@ -428,7 +443,7 @@ AesRoot=haswell-shared-aes-10 haswell-shared-aes-100 haswell-shared-aes-1000 \
 	sabre-shared-aes-10 sabre-shared-aes-100 sabre-shared-aes-1000
 EdfFiles=$(patsubst %,data/generated/%.dat,$(EdfRoot))
 AesFiles=$(patsubst %,data/generated/%.dat,$(AesRoot))
-$(AesFiles):	$(SabreIncs) $(HaswellIncs) $(OdroidXUIncs)
+$(AesFiles):	$(SabreIncs) $(HaswellIncs) $(OdroidXUIncs) $(Zynq7000Incs)
 imgs/edf.eps: $(EdfFiles) data/linux-edf.dat
 imgs/aes-shared.eps: ${AesFiles}
 imgs/redis.eps: data/generated/redis.dat

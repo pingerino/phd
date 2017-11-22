@@ -278,6 +278,8 @@ def main():
         clk = 996
     elif args.arch == 'odroidxu':
         clk = 2000
+    elif args.arch == 'zynq7000':
+        clk = 677
 
     pwd = os.getcwd()
     rt_file = os.path.join(pwd, args.rt)
