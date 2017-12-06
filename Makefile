@@ -364,7 +364,7 @@ $(eval $(call micro_raw_data,odroidxu,OdroidXU-odroid-xu-results.json))
 $(eval $(call micro_raw_data,zynq7000,zynq7000-zc706-results.json))
 $(eval $(call micro_raw_data,rpi3,rpi3-rpi3-results.json))
 $(eval $(call micro_raw_data,hikey32,hikey32-hikey-results.json))
-$(eval $(call micro_raw_data,hikey64,hikey32-hikey-results.json))
+$(eval $(call micro_raw_data,hikey64,hikey64-hikey-results.json))
 $(eval $(call micro_raw_data,tx1,tx1-jetson-tx1-family-results.json))
 micro_raw_data: $(PLATS:%=%_micro_raw_data)
 

@@ -103,7 +103,7 @@ def main():
     parser.add_argument('-o', dest='outdir', type=str, help='dir to generate files in', required=True);
     args = parser.parse_args()
 
-    arches = ['haswell', 'sabre', 'odroidxu', 'zynq7000', 'tk1', 'rpi3']
+    arches = ['haswell', 'sabre', 'odroidxu', 'zynq7000', 'tk1', 'rpi3', 'tx1', 'hikey32', 'hikey64']
     
     with open(os.path.join(os.getcwd(), args.outdir, 'ipc-perf.inc'), 'w') as output:
         for arch in arches:

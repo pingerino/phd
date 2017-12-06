@@ -126,6 +126,18 @@ active threads.
 \multirow{2}{*}{x64}
 \input{data/generated/haswell-fastpath-ipc-micro.inc}
 \hline
+
+\multirow{2}{*}{tx1}
+\input{data/generated/tx1-fastpath-ipc-micro.inc}
+\hline
+
+\multirow{2}{*}{hikey32}
+\input{data/generated/hikey32-fastpath-ipc-micro.inc}
+\hline
+
+\multirow{2}{*}{hikey64}
+\input{data/generated/hikey64-fastpath-ipc-micro.inc}
+\hline
 \end{tabular}
 \caption{Microbenchmarks of \selfour fastpath \gls{IPC}.}
 \label{t:fastpath-ipc-micro}
@@ -181,6 +193,15 @@ the resume capability, the ordered IPC checks, and accessing the \gls{SCO} and r
 \multirow{2}{*}{x64}
 \input{data/generated/haswell-slowpath-ipc-micro.inc}
 \hline
+\multirow{2}{*}{TX1}
+\input{data/generated/tx1-slowpath-ipc-micro.inc}
+\hline
+\multirow{2}{*}{hikey32}
+\input{data/generated/hikey32-slowpath-ipc-micro.inc}
+\hline
+\multirow{2}{*}{hikey64}
+\input{data/generated/hikey64-slowpath-ipc-micro.inc}
+\hline
 \end{tabular}
 \caption{Microbenchmarks of \selfour slowpath \gls{IPC} between passive threads.}
 \label{t:slowpath-ipc-micro}
@@ -221,6 +242,15 @@ with a hot cache as 36 cycles.
 \hline
 \multirow{2}{*}{x64}
 \input{data/generated/haswell-slowpath-active-ipc-micro.inc}
+\hline
+\multirow{2}{*}{TX1}
+\input{data/generated/tx1-slowpath-active-ipc-micro.inc}
+\hline
+\multirow{2}{*}{H32}
+\input{data/generated/hikey32-slowpath-active-ipc-micro.inc}
+\hline
+\multirow{2}{*}{H64}
+\input{data/generated/hikey64-slowpath-active-ipc-micro.inc}
 \hline
 \end{tabular}
 \caption{Microbenchmarks of \selfour slowpath \gls{IPC} between active threads.}
