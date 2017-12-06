@@ -343,7 +343,7 @@ RUMP_REDIS_TEST_NUMBER=30
 PERF_BASE=EDF-BPP
 PERF_RT=EDF-PPP
 PERF_NUMBERS= 0 1 2 3 4 5 6
-PLATS = tk1 sabre zynq7000 odroidxu haswell 
+PLATS = tk1 sabre zynq7000 odroidxu haswell rpi3 hikey32 hikey64 
 
 # get the microbenchmark data, we run this for all platforms
 define micro_raw_data
@@ -362,7 +362,9 @@ $(eval $(call micro_raw_data,sabre,Sabre-sabre-results.json))
 $(eval $(call micro_raw_data,tk1,tk1-jetson-results.json))
 $(eval $(call micro_raw_data,odroidxu,OdroidXU-odroid-xu-results.json))
 $(eval $(call micro_raw_data,zynq7000,zynq7000-zc706-results.json))
-
+$(eval $(call micro_raw_data,rpi3,rpi3-rpi3-results.json))
+$(eval $(call micro_raw_data,hikey32,hikey32-hikey-results.json))
+$(eval $(call micro_raw_data,hikey64,hikey32-hikey-results.json))
 micro_raw_data: $(PLATS:%=%_micro_raw_data)
 
 # get the bigger benchmark data, we only run this on some platforms
@@ -407,11 +409,8 @@ $1_process_micro_data: data/json-to-data.py data/baseline-$1.json data/rt-$1.jso
 		(cat gen-$1.log; false)
 endef
 
-$(eval $(call process_micro_data,haswell))
-$(eval $(call process_micro_data,sabre))
-$(eval $(call process_micro_data,tk1))
-$(eval $(call process_micro_data,odroidxu))
-$(eval $(call process_micro_data,zynq7000))
+# process microbenchmark includes for each platform
+$(foreach var,${PLATS},$(eval $(call process_micro_data,$(var))))
 
 process_micro_data: $(PLATS:%=%_process_micro_data)
 
@@ -455,11 +454,8 @@ $1_micro_includes: ${GEN_DIR}/$1-fastpath-ipc-micro.inc ${GEN_DIR}/$1-slowpath-i
 				   ${GEN_DIR}/$1-irq-micro.inc
 endef
 
-$(eval $(call micro_includes,haswell))
-$(eval $(call micro_includes,sabre))
-$(eval $(call micro_includes,tk1))
-$(eval $(call micro_includes,odroidxu))
-$(eval $(call micro_includes,zynq7000))
+# generate micro includes for each platform
+$(foreach var,${PLATS},$(eval $(call micro_includes,$(var))))
 
 micro_includes: $(PLATS:%=%_micro_includes)
 
