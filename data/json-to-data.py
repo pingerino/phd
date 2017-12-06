@@ -13,11 +13,17 @@ def getbenchmark(json, name):
     print(name)
     return next(x for x in json if x['Benchmark'] == name)['Results']
 
-def ipc_result(json, name, length, client, server, passive=True):
-    return next(x for x in json if x['Function'] == name and not x['Same vspace?'] and 
-            x['IPC length'] == length and x['Client Prio'] == client and x['Server Prio'] == server and
+def ipc_result(json, name, length, passive=True):
+    try:
+        return next(x for x in json if x['Function'] == name and not x['Same vspace?'] and 
+            x['IPC length'] == length and
         ('passive?' not in x.keys() or x['passive?'] == passive))
-
+    except:
+        print("Failed to find")
+        print("   function: " + name)
+        print("   length  : " + str(length))
+        print(" passive?  : " + str(passive))
+        sys.exit(1)
 
 def crit_row(row, output):
     output.write(str(row['threads']))
@@ -99,30 +105,30 @@ def build_microbenchmark_dat(rt, baseline, arch):
             out.write('%Operation\tBaseline\tRT\tDiff\tOverhead\n')
             # call
             microbenchmark_row(out, '\\call', 
-                    ipc_result(rt_ipc, 'seL4_Call', 0, 0, 254),
-                    ipc_result(b_ipc, 'seL4_Call', 0, 0, 254))
+                    ipc_result(rt_ipc, 'seL4_Call', 0),
+                    ipc_result(b_ipc, 'seL4_Call', 0))
 
             microbenchmark_row(out, '\\replyrecv', 
-                    ipc_result(rt_ipc, 'seL4_ReplyRecv', 0, 254, 0),
-                    ipc_result(b_ipc, 'seL4_ReplyRecv', 0, 254, 0))
+                    ipc_result(rt_ipc, 'seL4_ReplyRecv', 0),
+                    ipc_result(b_ipc, 'seL4_ReplyRecv', 0))
 
         with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-slowpath-ipc-micro.inc'), 'w') as out:
             microbenchmark_row(out, '\\call', 
-                    ipc_result(rt_ipc, 'seL4_Call', 0, 254, 0),
-                    ipc_result(b_ipc, 'seL4_Call', 0, 254, 0))
+                    ipc_result(rt_ipc, 'seL4_Call', 10),
+                    ipc_result(b_ipc, 'seL4_Call', 10))
 
             microbenchmark_row(out, '\\replyrecv', 
-                    ipc_result(rt_ipc, 'seL4_ReplyRecv', 0, 0, 254),
-                    ipc_result(b_ipc, 'seL4_ReplyRecv', 0, 0, 254))
+                    ipc_result(rt_ipc, 'seL4_ReplyRecv', 10),
+                    ipc_result(b_ipc, 'seL4_ReplyRecv', 10))
 
         with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-slowpath-active-ipc-micro.inc'), 'w') as out:
             microbenchmark_row(out, '\\call', 
-                    ipc_result(rt_ipc, 'seL4_Call', 0, 254, 0, passive=False),
-                    ipc_result(b_ipc, 'seL4_Call', 0, 254, 0))
+                    ipc_result(rt_ipc, 'seL4_Call', 10, passive=False),
+                    ipc_result(b_ipc, 'seL4_Call', 10))
 
             microbenchmark_row(out, '\\replyrecv', 
-                    ipc_result(rt_ipc, 'seL4_ReplyRecv', 0, 0, 254, passive=False),
-                    ipc_result(b_ipc, 'seL4_ReplyRecv', 0, 0, 254))
+                    ipc_result(rt_ipc, 'seL4_ReplyRecv', 10, passive=False),
+                    ipc_result(b_ipc, 'seL4_ReplyRecv', 10))
 
 
         with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-fault-micro.inc'), 'w') as out:
@@ -280,6 +286,10 @@ def main():
         clk = 2000
     elif args.arch == 'zynq7000':
         clk = 677
+    elif args.arch == 'tk1':
+        clk = 800
+    elif args.arch == 'rpi3':
+        clk = 1200
 
     pwd = os.getcwd()
  
