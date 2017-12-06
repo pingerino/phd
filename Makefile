@@ -56,7 +56,7 @@ Targets    = phd
 # Note that PDF files should be added to the repo with an additional -shipped extension,
 # but should appear here with just the .pdf extension.
 ModeSwRoot=all up
-ModeSwFigs=$(patsubst %,imgs/mode-switch-%.pdf,$(ModeSwRoot)) 
+ModeSwFigs=$(patsubst %,imgs/mode-switch-%.pdf,$(ModeSwRoot))
 xtraFigRoot= edf ipbench
 ExtraFigs= $(patsubst %,imgs/%.pdf,$(ExtraFigRoot)) $(ModeSwFigs)
 TexIncludes= $(wildcard data/generated/*.inc) $(wildcard *.tex) crit_includes micro_includes aes_includes
@@ -343,7 +343,7 @@ RUMP_REDIS_TEST_NUMBER=30
 PERF_BASE=EDF-BPP
 PERF_RT=EDF-PPP
 PERF_NUMBERS= 0 1 2 3 4 5 6
-PLATS = tk1 sabre zynq7000 odroidxu haswell rpi3 hikey32 hikey64 
+PLATS = tx1 tk1 sabre zynq7000 odroidxu haswell rpi3 hikey32 hikey64
 
 # get the microbenchmark data, we run this for all platforms
 define micro_raw_data
@@ -365,12 +365,13 @@ $(eval $(call micro_raw_data,zynq7000,zynq7000-zc706-results.json))
 $(eval $(call micro_raw_data,rpi3,rpi3-rpi3-results.json))
 $(eval $(call micro_raw_data,hikey32,hikey32-hikey-results.json))
 $(eval $(call micro_raw_data,hikey64,hikey32-hikey-results.json))
+$(eval $(call micro_raw_data,tx1,tx1-jetson-tx1-family-results.json))
 micro_raw_data: $(PLATS:%=%_micro_raw_data)
 
 # get the bigger benchmark data, we only run this on some platforms
 define rest_raw_data
 .PHONY: $1_rest_raw_data
-$1_rest_raw_data: 
+$1_rest_raw_data:
 	wget -O ${PWD}/data/aes-$1.json ${BAMBOO}${AES}${DIR}$2/results.json
 	wget -O ${PWD}/data/criticality-$1.json ${BAMBOO}${CRIT}${DIR}$2/results.json
 	wget -O ${PWD}/data/ul-$1.json ${BAMBOO}${UL}${DIR}$2/results.json
@@ -396,7 +397,7 @@ data/generated/netbsd-redis.dat: $(RUMP_REDIS_FILES) data/ycsb-results.py
 data/generated/linux-redis.dat: $(RUMP_REDIS_FILES) data/ycsb-results.py
 	(cd data && ./ycsb-results.py --platform=linux --num_runs=3)
 
-# 
+#
 # data processing
 #
 
@@ -488,7 +489,7 @@ endef
 
 $(eval $(call crit_includes,haswell))
 $(eval $(call crit_includes,sabre))
- 
+
 crit_includes: haswell_crit_includes sabre_crit_includes
 
 #
