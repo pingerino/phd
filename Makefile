@@ -403,25 +403,27 @@ data/generated/linux-redis.dat: $(RUMP_REDIS_FILES) data/ycsb-results.py
 
 # first the microbenchmark data
 define process_micro_data
-$1_process_micro_data: data/json-to-data.py data/baseline-$1.json data/rt-$1.json $(wildcard ipc-perf-*-$1.json)
+.$1_process_micro_data: data/json-to-data.py data/baseline-$1.json data/rt-$1.json $(wildcard data/ipc-perf-*-$1.json)
 	@mkdir -p ${PWD}/data/generated
 	@echo '==== generating $1 data'
 	@python3 ${PWD}/data/json-to-data.py -b ${PWD}/data/baseline-$1.json -rt ${PWD}/data/rt-$1.json -a $1 > gen-$1.log || \
 		(cat gen-$1.log; false)
+	touch $$@
 endef
 
 # process microbenchmark includes for each platform
 $(foreach var,${PLATS},$(eval $(call process_micro_data,$(var))))
 
-process_micro_data: $(PLATS:%=%_process_micro_data)
+process_micro_data: $(PLATS:%=.%_process_micro_data)
 
 # aes data data
 define process_aes_data
-$1_process_aes_data: data/json-to-data.py data/aes-$1.json
+.$1_process_aes_data: data/json-to-data.py data/aes-$1.json
 	@mkdir -p ${PWD}/data/generated
 	@echo '==== generating $1 aes data'
 	@python3 ${PWD}/data/json-to-data.py -aes ${PWD}/data/aes-$1.json -a $1 > gen-aes-$1.log || \
 		(cat gen-aes-$1.log; false)
+	touch $$@
 endef
 
 $(eval $(call process_aes_data,haswell))
@@ -445,12 +447,12 @@ $(eval $(call process_crit_data,sabre))
 
 # microbenchmarks
 define micro_includes
-${GEN_DIR}/$1-fastpath-ipc-micro.inc: $1_process_micro_data
-${GEN_DIR}/$1-slowpath-ipc-micro.inc: $1_process_micro_data
-${GEN_DIR}/$1-active-slowpath-ipc-micro.inc: $1_process_micro_data
-${GEN_DIR}/$1-schedule-micro.inc: $1_process_micro_data
-${GEN_DIR}/$1-irq-micro.inc: $1_process_micro_data
-$1_micro_includes: ${GEN_DIR}/$1-fastpath-ipc-micro.inc ${GEN_DIR}/$1-slowpath-ipc-micro.inc \
+${GEN_DIR}/$1-fastpath-ipc-micro.inc: .$1_process_micro_data
+${GEN_DIR}/$1-slowpath-ipc-micro.inc: .$1_process_micro_data
+${GEN_DIR}/$1-active-slowpath-ipc-micro.inc: .$1_process_micro_data
+${GEN_DIR}/$1-schedule-micro.inc: .$1_process_micro_data
+${GEN_DIR}/$1-irq-micro.inc: .$1_process_micro_data
+.$1_micro_includes: ${GEN_DIR}/$1-fastpath-ipc-micro.inc ${GEN_DIR}/$1-slowpath-ipc-micro.inc \
                    ${GEN_DIR}/$1-active-slowpath-ipc-micro.inc ${GEN_DIR}/$1-schedule-micro.inc \
 				   ${GEN_DIR}/$1-irq-micro.inc
 endef
@@ -458,11 +460,11 @@ endef
 # generate micro includes for each platform
 $(foreach var,${PLATS},$(eval $(call micro_includes,$(var))))
 
-micro_includes: $(PLATS:%=%_micro_includes)
+micro_includes: $(PLATS:%=.%_micro_includes)
 
 # aes
 define aes_includes
-$1-aes.inc: $1_process_aes_data
+$1-aes.inc: .$1_process_aes_data
 $1_aes_includes: $1-aes.inc
 endef
 
