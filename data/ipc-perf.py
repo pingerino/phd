@@ -41,21 +41,15 @@ def build_microbenchmark_table(rt, baseline, out, slowpath=False, passive=True, 
 
         op =  'seL4_ReplyRecv' if replyRecv else 'seL4_Call'
        
-        # Client is high prio if we are not replying, or we're calling and its the slowpath
-        client_higher = (replyRecv and not slowpath) or (not replyRecv and slowpath)
-
-        if client_higher:
-            client_prio = 254
-            server_prio = 0
-        else:
-            client_prio = 0
-            server_prio = 254
+        client_prio = 254
+        server_prio = 254
+        length = 10 if slowpath else 0
 
         # call fastpath
         print ("Getting {0} {1} {2}".format(client_prio, server_prio, passive))
         microbenchmark_row(out, 
-                ipc_result(rt_ipc, op, 0, client_prio, server_prio, passive=passive),
-                ipc_result(b_ipc, op, 0, client_prio, server_prio))
+                ipc_result(rt_ipc, op, length, client_prio, server_prio, passive=passive),
+                ipc_result(b_ipc, op, length, client_prio, server_prio))
 
 
 
@@ -69,7 +63,7 @@ counters = [
     "memory access     "
 ]
 
-def gen_arch_table(arch, output, slowpath, passive, replyRecv, name):
+def gen_plat_table(plat, output, slowpath, passive, replyRecv, name):
     
     output.write('\\begin{table}[ht]\centering\n')
     output.write('\\begin{tabular}{|l|c|c|c|c|c|c|c|c|}\\hline\n')
@@ -77,8 +71,8 @@ def gen_arch_table(arch, output, slowpath, passive, replyRecv, name):
     # cycles first
     output.write("cycles")
     print("Name {0} r cycles".format(name))
-    rt_file = os.path.join(os.getcwd(), 'data', 'rt-{0}.json'.format(arch))
-    baseline_file = os.path.join(os.getcwd(), 'data', 'baseline-{0}.json'.format(arch))
+    rt_file = os.path.join(os.getcwd(), 'data', 'rt-{0}.json'.format(plat))
+    baseline_file = os.path.join(os.getcwd(), 'data', 'baseline-{0}.json'.format(plat))
     build_microbenchmark_table(rt_file, baseline_file, output, slowpath=slowpath, passive=passive,
             replyRecv=replyRecv)
     output.write(' \\\\\\hline\n')
@@ -86,8 +80,8 @@ def gen_arch_table(arch, output, slowpath, passive, replyRecv, name):
     for i in range(0, 7):
         output.write(counters[i])
         print("Name {0} r {1}".format(name, counters[i]))
-        rt_file = os.path.join(os.getcwd(), 'data', 'ipc-perf-{0}-rt-{1}.json'.format(i, arch))
-        baseline_file = os.path.join(os.getcwd(), 'data', 'ipc-perf-{0}-baseline-{1}.json'.format(i, arch))
+        rt_file = os.path.join(os.getcwd(), 'data', 'ipc-perf-{0}-rt-{1}.json'.format(i, plat))
+        baseline_file = os.path.join(os.getcwd(), 'data', 'ipc-perf-{0}-baseline-{1}.json'.format(i, plat))
         build_microbenchmark_table(rt_file, baseline_file, output, slowpath=slowpath,
                 passive=passive, replyRecv=replyRecv)
         output.write(' \\\\\\hline\n')
@@ -100,23 +94,21 @@ def gen_arch_table(arch, output, slowpath, passive, replyRecv, name):
 def main():
 
     parser = argparse.ArgumentParser(description="Convert ipc perf data to graph data")
-    parser.add_argument('-o', dest='outdir', type=str, help='dir to generate files in', required=True);
+    parser.add_argument('-o', dest='outfile', type=str, help='output file', required=True);
+    parser.add_argument('-p', dest='platform', type=str, help='plat to generate files for', required=True);
     args = parser.parse_args()
 
-    arches = ['haswell', 'sabre', 'odroidxu', 'zynq7000', 'tk1', 'rpi3', 'tx1', 'hikey32', 'hikey64']
+    # actual set of hardware
+    #plates = ['haswell', 'sabre', 'tx1', 'hikey32', 'hikey64']
+    plat = args.platform
     
-    with open(os.path.join(os.getcwd(), args.outdir, 'ipc-perf.inc'), 'w') as output:
-        for arch in arches:
-
-            output.write('\\clearpage')
-            gen_arch_table(arch, output, False, True, False, arch + " Call fastpath")
-            gen_arch_table(arch, output, True, True, False, arch + " Call passive slowpath")
-            gen_arch_table(arch, output, True, False, False, arch + " Call active slowpath")
-            
-            gen_arch_table(arch, output, False, True, True, arch + " Reply recv fastpath")
-            gen_arch_table(arch, output, True, True, True, arch + " Reply passive slowpath")
-            gen_arch_table(arch, output, True, False, True, arch + " Reply active slowpath")
-            output.write('\\clearpage')
+    with open(args.outfile, 'w') as output:
+        gen_plat_table(plat, output, False, True, False, plat + " Call fastpath")
+        #    gen_plat_table(plat, output, True, True, False, plat + " Call passive slowpath")
+        #    gen_plat_table(plat, output, True, False, False, plat + " Call active slowpath")
+        gen_plat_table(plat, output, False, True, True, plat + " Reply recv fastpath")
+       #     gen_plat_table(plat, output, True, True, True, plat + " Reply passive slowpath")
+       #     gen_plat_table(plat, output, True, False, True, plat + " Reply active slowpath")
 
 
 

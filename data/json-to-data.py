@@ -133,18 +133,20 @@ def build_microbenchmark_dat(rt, baseline, arch):
 
         with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-fault-micro.inc'), 'w') as out:
             # fault
-            rt = getbenchmark(rt_content, 'faulter -> fault handler')[0]
-            b = getbenchmark(b_content, 'faulter -> fault handler')[0]
-            microbenchmark_row(out, '\\texttt{fault}', rt, b)
+            print('\'{0}\''.format(arch))
+            if arch != 'kzm':
+                rt = getbenchmark(rt_content, 'faulter -> fault handler')[0]
+                b = getbenchmark(b_content, 'faulter -> fault handler')[0]
+                microbenchmark_row(out, '\\texttt{fault}', rt, b)
              
-            rt = getbenchmark(rt_content, 'fault handler -> faulter')[0]
-            b = getbenchmark(b_content, 'fault handler -> faulter')[0]
-            microbenchmark_row(out, '\\texttt{reply}', rt, b)
+                rt = getbenchmark(rt_content, 'fault handler -> faulter')[0]
+                b = getbenchmark(b_content, 'fault handler -> faulter')[0]
+                microbenchmark_row(out, '\\texttt{reply}', rt, b)
            
-            rt = getbenchmark(rt_content, 'fault round trip')[0]
-            b = getbenchmark(b_content, 'fault round trip')[0]
-            microbenchmark_row(out, '\\texttt{round trip}', rt, b)
-           # TODO add non-passive numbers 
+                rt = getbenchmark(rt_content, 'fault round trip')[0]
+                b = getbenchmark(b_content, 'fault round trip')[0]
+                microbenchmark_row(out, '\\texttt{round trip}', rt, b)
+                # TODO add non-passive numbers ??
 
         with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-irq-micro.inc'), 'w') as out:
             rt_irq = getbenchmark(rt_content, 'IRQ path cycle count (measured from user level)')[1]

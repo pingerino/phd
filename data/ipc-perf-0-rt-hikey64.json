@@ -10,15 +10,15 @@
         "Same vspace?": true,
         "passive?": true,
         "IPC length": 0,
-        "Min": 289,
-        "Max": 309,
-        "Mean": 299.3125,
-        "Stddev": 4.568004670166906,
-        "Variance": 19.5625,
-        "Mode": 298,
-        "Median": 298,
-        "1st quantile": 298,
-        "3rd quantile": 300,
+        "Min": 0,
+        "Max": 0,
+        "Mean": 0,
+        "Stddev": 0,
+        "Variance": 0,
+        "Mode": 0,
+        "Median": 0,
+        "1st quantile": 0,
+        "3rd quantile": 0,
         "Samples": 16
       },
       {
@@ -29,15 +29,15 @@
         "Same vspace?": true,
         "passive?": true,
         "IPC length": 0,
-        "Min": 1180,
-        "Max": 1631,
-        "Mean": 1436.9375,
-        "Stddev": 90.80858990205718,
-        "Variance": 7730.8125,
-        "Mode": 1406,
-        "Median": 1460.5,
-        "1st quantile": 1406,
-        "3rd quantile": 1471,
+        "Min": 0,
+        "Max": 0,
+        "Mean": 0,
+        "Stddev": 0,
+        "Variance": 0,
+        "Mode": 0,
+        "Median": 0,
+        "1st quantile": 0,
+        "3rd quantile": 0,
         "Samples": 16
       },
       {
@@ -48,15 +48,15 @@
         "Same vspace?": false,
         "passive?": true,
         "IPC length": 0,
-        "Min": 286,
-        "Max": 306,
-        "Mean": 298.125,
-        "Stddev": 7.004760286167305,
-        "Variance": 46,
-        "Mode": 295,
-        "Median": 295,
-        "1st quantile": 295,
-        "3rd quantile": 306,
+        "Min": 0,
+        "Max": 2,
+        "Mean": 0.875,
+        "Stddev": 1.3662601021279464,
+        "Variance": 1.75,
+        "Mode": 0,
+        "Median": 0,
+        "1st quantile": 0,
+        "3rd quantile": 2,
         "Samples": 16
       },
       {
@@ -67,15 +67,15 @@
         "Same vspace?": false,
         "passive?": true,
         "IPC length": 0,
-        "Min": 1395,
-        "Max": 1749,
-        "Mean": 1479.1875,
-        "Stddev": 78.63035885288413,
-        "Variance": 5796.3125,
-        "Mode": 1472,
-        "Median": 1472,
-        "1st quantile": 1451.75,
-        "3rd quantile": 1479.25,
+        "Min": 1,
+        "Max": 3,
+        "Mean": 2.25,
+        "Stddev": 0.9660917830792959,
+        "Variance": 0.875,
+        "Mode": 1,
+        "Median": 3,
+        "1st quantile": 1,
+        "3rd quantile": 3,
         "Samples": 16
       },
       {
@@ -86,15 +86,15 @@
         "Same vspace?": false,
         "passive?": false,
         "IPC length": 0,
-        "Min": 1017,
-        "Max": 1035,
-        "Mean": 1025.375,
-        "Stddev": 7.474400756359446,
-        "Variance": 52.375,
-        "Mode": 1017,
-        "Median": 1026,
-        "1st quantile": 1017,
-        "3rd quantile": 1031.25,
+        "Min": 0,
+        "Max": 0,
+        "Mean": 0,
+        "Stddev": 0,
+        "Variance": 0,
+        "Mode": 0,
+        "Median": 0,
+        "1st quantile": 0,
+        "3rd quantile": 0,
         "Samples": 16
       },
       {
@@ -105,15 +105,15 @@
         "Same vspace?": false,
         "passive?": false,
         "IPC length": 0,
-        "Min": 1324,
-        "Max": 1537,
-        "Mean": 1388.6875,
-        "Stddev": 59.478287354854686,
-        "Variance": 3316.5625,
-        "Mode": 1375,
-        "Median": 1375,
-        "1st quantile": 1361.75,
-        "3rd quantile": 1395.25,
+        "Min": 2,
+        "Max": 4,
+        "Mean": 2.3125,
+        "Stddev": 0.7745966692414834,
+        "Variance": 0.5625,
+        "Mode": 2,
+        "Median": 2,
+        "1st quantile": 2,
+        "3rd quantile": 2,
         "Samples": 16
       },
       {
@@ -124,1196 +124,92 @@
         "Same vspace?": false,
         "passive?": false,
         "IPC length": 0,
-        "Min": 922,
-        "Max": 964,
-        "Mean": 939.0625,
-        "Stddev": 14.026166024018584,
-        "Variance": 184.4375,
-        "Mode": 922,
-        "Median": 935,
-        "1st quantile": 930.5,
-        "3rd quantile": 945.25,
-        "Samples": 16
-      },
-      {
-        "Function": "seL4_Call",
-        "Direction": "client->server",
-        "Client Prio": 254,
-        "Server Prio": 254,
-        "Same vspace?": false,
-        "passive?": true,
-        "IPC length": 10,
-        "Min": 1050,
-        "Max": 1107,
-        "Mean": 1078.4375,
-        "Stddev": 16.09347693943108,
-        "Variance": 242.8125,
-        "Mode": 1050,
-        "Median": 1078.5,
-        "1st quantile": 1069.75,
-        "3rd quantile": 1089.25,
-        "Samples": 16
-      },
-      {
-        "Function": "seL4_ReplyRecv",
-        "Direction": "server->client",
-        "Client Prio": 254,
-        "Server Prio": 254,
-        "Same vspace?": false,
-        "passive?": true,
-        "IPC length": 10,
-        "Min": 1188,
-        "Max": 1258,
-        "Mean": 1228.25,
-        "Stddev": 22.3308456325923,
-        "Variance": 467.5,
-        "Mode": 1233,
-        "Median": 1233,
-        "1st quantile": 1216.75,
-        "3rd quantile": 1246,
-        "Samples": 16
-      },
-      {
-        "Function": "seL4_Call",
-        "Direction": "client->server",
-        "Client Prio": 254,
-        "Server Prio": 254,
-        "Same vspace?": false,
-        "passive?": false,
-        "IPC length": 10,
-        "Min": 1017,
-        "Max": 1096,
-        "Mean": 1055.6875,
-        "Stddev": 19.85111247932132,
-        "Variance": 369.4375,
-        "Mode": 1047,
-        "Median": 1051,
-        "1st quantile": 1046,
-        "3rd quantile": 1069.75,
-        "Samples": 16
-      },
-      {
-        "Function": "seL4_ReplyRecv",
-        "Direction": "server->client",
-        "Client Prio": 254,
-        "Server Prio": 254,
-        "Same vspace?": false,
-        "passive?": false,
-        "IPC length": 10,
-        "Min": 1106,
-        "Max": 1153,
-        "Mean": 1128.4375,
-        "Stddev": 11.991663771137015,
-        "Variance": 134.8125,
-        "Mode": 1129,
-        "Median": 1129,
-        "1st quantile": 1122.25,
-        "3rd quantile": 1136,
-        "Samples": 16
-      }
-    ]
-  },
-  {
-    "Benchmark": "IRQ path cycle count (measured from user level)",
-    "Results": [
-      {
-        "Type": "Measurement overhead",
         "Min": 1,
-        "Max": 1,
-        "Mean": 1,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 1,
-        "Median": 1,
-        "1st quantile": 1,
-        "3rd quantile": 1,
-        "Samples": 100
-      },
-      {
-        "Type": "Without context switch",
-        "Min": 630,
-        "Max": 779,
-        "Mean": 640.58,
-        "Stddev": 16.010097823662175,
-        "Variance": 253.76,
-        "Mode": 646,
-        "Median": 639,
-        "1st quantile": 632,
-        "3rd quantile": 646,
-        "Samples": 100
-      },
-      {
-        "Type": "With context switch",
-        "Min": 650,
-        "Max": 671,
-        "Mean": 654.32,
-        "Stddev": 2.233808181088741,
-        "Variance": 4.94,
-        "Mode": 656,
-        "Median": 654,
-        "1st quantile": 653,
-        "3rd quantile": 655,
-        "Samples": 100
-      }
-    ]
-  },
-  {
-    "Benchmark": "Signal overhead",
-    "Results": [
-      {
-        "Min": 3,
-        "Max": 3,
-        "Mean": 3,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 3,
-        "Median": 3,
-        "1st quantile": 3,
-        "3rd quantile": 3,
-        "Samples": 100
-      }
-    ]
-  },
-  {
-    "Benchmark": "Signal to thread of higher prio",
-    "Results": [
-      {
-        "Prio": 1,
-        "Min": 973,
-        "Max": 1020,
-        "Mean": 990.68,
-        "Stddev": 6.897518218588305,
-        "Variance": 47.1,
-        "Mode": 990,
-        "Median": 990,
-        "1st quantile": 989,
-        "3rd quantile": 991,
-        "Samples": 100
-      },
-      {
-        "Prio": 65,
-        "Min": 972,
-        "Max": 1114,
-        "Mean": 982.72,
-        "Stddev": 15.435103635623062,
-        "Variance": 235.86,
-        "Mode": 980,
-        "Median": 980,
-        "1st quantile": 979,
-        "3rd quantile": 980,
-        "Samples": 100
-      },
-      {
-        "Prio": 129,
-        "Min": 972,
-        "Max": 1112,
-        "Mean": 985.81,
-        "Stddev": 15.01615291893528,
-        "Variance": 223.23,
-        "Mode": 984,
-        "Median": 984,
-        "1st quantile": 983,
-        "3rd quantile": 984,
-        "Samples": 100
-      },
-      {
-        "Prio": 193,
-        "Min": 972,
-        "Max": 1110,
-        "Mean": 986.07,
-        "Stddev": 14.322053348637272,
-        "Variance": 203.07,
-        "Mode": 984,
-        "Median": 984,
-        "1st quantile": 984,
-        "3rd quantile": 985,
-        "Samples": 100
-      }
-    ]
-  },
-  {
-    "Benchmark": "Signal to process of higher prio",
-    "Results": [
-      {
-        "Prio": 1,
-        "Min": 984,
-        "Max": 1024,
-        "Mean": 986.74,
-        "Stddev": 4.348458452036872,
-        "Variance": 18.72,
-        "Mode": 986,
-        "Median": 986,
-        "1st quantile": 986,
-        "3rd quantile": 986,
-        "Samples": 100
-      },
-      {
-        "Prio": 65,
-        "Min": 977,
-        "Max": 1114,
-        "Mean": 985.32,
-        "Stddev": 13.1033190336254,
-        "Variance": 169.98,
-        "Mode": 984,
-        "Median": 984,
-        "1st quantile": 984,
-        "3rd quantile": 984,
-        "Samples": 100
-      },
-      {
-        "Prio": 129,
-        "Min": 983,
-        "Max": 1111,
-        "Mean": 985.16,
-        "Stddev": 12.882530650442714,
-        "Variance": 164.3,
-        "Mode": 983,
-        "Median": 983.5,
-        "1st quantile": 983,
-        "3rd quantile": 984,
-        "Samples": 100
-      },
-      {
-        "Prio": 193,
-        "Min": 975,
-        "Max": 1107,
-        "Mean": 987.71,
-        "Stddev": 12.401938590723663,
-        "Variance": 152.27,
-        "Mode": 987,
-        "Median": 987,
-        "1st quantile": 987,
-        "3rd quantile": 987,
-        "Samples": 100
-      }
-    ]
-  },
-  {
-    "Benchmark": "Average to reschedule current thread",
-    "Results": [
-      {
-        "Event": "L1 i-cache misses",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "L1 d-cache misses",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "L1 i-tlb misses",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "L1 d-tlb misses",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "Instructions",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "Branch mispredict",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "Memory access",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "Cycle counter",
-        "Min": 847,
-        "Max": 877,
-        "Mean": 853.1727272727272,
-        "Stddev": 4.3123462610543415,
-        "Variance": 18.427272727272726,
-        "Mode": 854,
-        "Median": 854,
-        "1st quantile": 851,
-        "3rd quantile": 854.75,
-        "Samples": 110
-      }
-    ]
-  },
-  {
-    "Benchmark": "Read ccnt overhead",
-    "Results": [
-      {
-        "Min": 1,
-        "Max": 1,
-        "Mean": 1,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 1,
-        "Median": 1,
-        "1st quantile": 1,
-        "3rd quantile": 1,
-        "Samples": 100
-      }
-    ]
-  },
-  {
-    "Benchmark": "Thread yield",
-    "Results": [
-      {
-        "Min": 559,
-        "Max": 876,
-        "Mean": 575.52,
-        "Stddev": 41.577237362127214,
-        "Variance": 1711.38,
-        "Mode": 559,
-        "Median": 559,
-        "1st quantile": 559,
-        "3rd quantile": 579,
-        "Samples": 100
-      }
-    ]
-  },
-  {
-    "Benchmark": "Process yield",
-    "Results": [
-      {
-        "Min": 542,
-        "Max": 746,
-        "Mean": 589.72,
-        "Stddev": 46.2675574099916,
-        "Variance": 2119.28,
-        "Mode": 570,
-        "Median": 570,
-        "1st quantile": 570,
-        "3rd quantile": 580.75,
-        "Samples": 100
-      }
-    ]
-  },
-  {
-    "Benchmark": "Average seL4_Yield (no thread switch)",
-    "Results": [
-      {
-        "Event": "L1 i-cache misses",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "L1 d-cache misses",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "L1 i-tlb misses",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "L1 d-tlb misses",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "Instructions",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "Branch mispredict",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "Memory access",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "Cycle counter",
-        "Min": 579,
-        "Max": 587,
-        "Mean": 584.9181818181818,
-        "Stddev": 2.8878105099338502,
-        "Variance": 8.263636363636364,
-        "Mode": 586,
-        "Median": 586,
-        "1st quantile": 586,
-        "3rd quantile": 586,
-        "Samples": 110
-      }
-    ]
-  },
-  {
-    "Benchmark": "Signal overhead",
-    "Results": [
-      {
-        "Min": 3,
-        "Max": 3,
-        "Mean": 3,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 3,
-        "Median": 3,
-        "1st quantile": 3,
-        "3rd quantile": 3,
-        "Samples": 100
-      }
-    ]
-  },
-  {
-    "Benchmark": "Signal to high prio thread",
-    "Results": [
-      {
-        "Min": 773,
-        "Max": 1290,
-        "Mean": 962.48,
-        "Stddev": 105.61546412635919,
-        "Variance": 11043.08,
-        "Mode": 845,
-        "Median": 968,
-        "1st quantile": 886,
-        "3rd quantile": 1029.5,
-        "Samples": 100
-      }
-    ]
-  },
-  {
-    "Benchmark": "Signal to low prio thread",
-    "Results": [
-      {
-        "Min": 187,
-        "Max": 305,
-        "Mean": 197.88,
-        "Stddev": 14.133562033598457,
-        "Variance": 197.76,
-        "Mode": 205,
-        "Median": 205,
-        "1st quantile": 187,
-        "3rd quantile": 205,
-        "Samples": 100
-      }
-    ]
-  },
-  {
-    "Benchmark": "Average signal to low prio thread",
-    "Results": [
-      {
-        "Event": "L1 i-cache misses",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "L1 d-cache misses",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "L1 i-tlb misses",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "L1 d-tlb misses",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "Instructions",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "Branch mispredict",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "Memory access",
-        "Min": 0,
-        "Max": 0,
-        "Mean": 0,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 0,
-        "Median": 0,
-        "1st quantile": 0,
-        "3rd quantile": 0,
-        "Samples": 110
-      },
-      {
-        "Event": "Cycle counter",
-        "Min": 193,
-        "Max": 193,
-        "Mean": 193,
-        "Stddev": 0,
-        "Variance": 0,
-        "Mode": 193,
-        "Median": 193,
-        "1st quantile": 193,
-        "3rd quantile": 193,
-        "Samples": 110
-      }
-    ]
-  },
-  {
-    "Benchmark": "fault overhead",
-    "Results": [
-      {
-        "Min": 4,
         "Max": 4,
-        "Mean": 4,
+        "Mean": 2.375,
+        "Stddev": 1.3165611772087666,
+        "Variance": 1.625,
+        "Mode": 1,
+        "Median": 2.5,
+        "1st quantile": 1,
+        "3rd quantile": 3.25,
+        "Samples": 16
+      },
+      {
+        "Function": "seL4_Call",
+        "Direction": "client->server",
+        "Client Prio": 254,
+        "Server Prio": 254,
+        "Same vspace?": false,
+        "passive?": true,
+        "IPC length": 10,
+        "Min": 0,
+        "Max": 0,
+        "Mean": 0,
         "Stddev": 0,
         "Variance": 0,
-        "Mode": 4,
-        "Median": 4,
-        "1st quantile": 4,
-        "3rd quantile": 4,
-        "Samples": 100
-      }
-    ]
-  },
-  {
-    "Benchmark": "fault round trip",
-    "Results": [
+        "Mode": 0,
+        "Median": 0,
+        "1st quantile": 0,
+        "3rd quantile": 0,
+        "Samples": 16
+      },
       {
-        "Min": 1890,
-        "Max": 2122,
-        "Mean": 1956.19,
-        "Stddev": 55.54459487836796,
-        "Variance": 3054.35,
-        "Mode": 1891,
-        "Median": 1952,
-        "1st quantile": 1916.5,
-        "3rd quantile": 1967,
-        "Samples": 100
-      }
-    ]
-  },
-  {
-    "Benchmark": "faulter -> fault handler",
-    "Results": [
-      {
-        "Min": 713,
-        "Max": 857,
-        "Mean": 783.41,
-        "Stddev": 32.01940699392205,
-        "Variance": 1014.99,
-        "Mode": 745,
-        "Median": 786.5,
-        "1st quantile": 756,
-        "3rd quantile": 802.25,
-        "Samples": 100
-      }
-    ]
-  },
-  {
-    "Benchmark": "read ccnt overhead",
-    "Results": [
-      {
+        "Function": "seL4_ReplyRecv",
+        "Direction": "server->client",
+        "Client Prio": 254,
+        "Server Prio": 254,
+        "Same vspace?": false,
+        "passive?": true,
+        "IPC length": 10,
         "Min": 1,
-        "Max": 1,
-        "Mean": 1,
-        "Stddev": 0,
-        "Variance": 0,
+        "Max": 3,
+        "Mean": 1.5625,
+        "Stddev": 1,
+        "Variance": 0.9375,
         "Mode": 1,
         "Median": 1,
         "1st quantile": 1,
-        "3rd quantile": 1,
-        "Samples": 100
-      }
-    ]
-  },
-  {
-    "Benchmark": "fault handler -> faulter",
-    "Results": [
+        "3rd quantile": 2,
+        "Samples": 16
+      },
       {
-        "Min": 1146,
-        "Max": 1226,
-        "Mean": 1186.97,
-        "Stddev": 13.885898668007837,
-        "Variance": 190.89,
-        "Mode": 1184,
-        "Median": 1184,
-        "1st quantile": 1183,
-        "3rd quantile": 1193,
-        "Samples": 100
-      }
-    ]
-  },
-  {
-    "Benchmark": "Hardware null_syscall thread",
-    "Results": [
-      {
-        "Min": 146,
-        "Max": 260,
-        "Mean": 154.19,
-        "Stddev": 13.771952173409066,
-        "Variance": 187.77,
-        "Mode": 146,
-        "Median": 146,
-        "1st quantile": 146,
-        "3rd quantile": 163,
-        "Samples": 100
-      }
-    ]
-  },
-  {
-    "Benchmark": "Nop syscall overhead",
-    "Results": [
-      {
-        "Min": 2,
-        "Max": 2,
-        "Mean": 2,
+        "Function": "seL4_Call",
+        "Direction": "client->server",
+        "Client Prio": 254,
+        "Server Prio": 254,
+        "Same vspace?": false,
+        "passive?": false,
+        "IPC length": 10,
+        "Min": 0,
+        "Max": 0,
+        "Mean": 0,
         "Stddev": 0,
         "Variance": 0,
-        "Mode": 2,
-        "Median": 2,
-        "1st quantile": 2,
-        "3rd quantile": 2,
-        "Samples": 100
-      }
-    ]
-  },
-  {
-    "Benchmark": "Wait time",
-    "Results": [
-      {
-        "Waiter": 0,
-        "Min": 3097,
-        "Max": 3528,
-        "Mean": 3246.52,
-        "Stddev": 89.4684986176585,
-        "Variance": 7844.52,
-        "Mode": 3173,
-        "Median": 3226,
-        "1st quantile": 3187,
-        "3rd quantile": 3280.5,
-        "Samples": 50
+        "Mode": 0,
+        "Median": 0,
+        "1st quantile": 0,
+        "3rd quantile": 0,
+        "Samples": 16
       },
       {
-        "Waiter": 1,
-        "Min": 4223,
-        "Max": 4766,
-        "Mean": 4434.7,
-        "Stddev": 128.0863069996802,
-        "Variance": 16077.98,
-        "Mode": 4360,
-        "Median": 4390.5,
-        "1st quantile": 4345.75,
-        "3rd quantile": 4502,
-        "Samples": 50
-      },
-      {
-        "Waiter": 2,
-        "Min": 5271,
-        "Max": 6015,
-        "Mean": 5526.04,
-        "Stddev": 180.60476636194588,
-        "Variance": 31965.72,
-        "Mode": 5401,
-        "Median": 5462.5,
-        "1st quantile": 5401,
-        "3rd quantile": 5572,
-        "Samples": 50
-      },
-      {
-        "Waiter": 3,
-        "Min": 6294,
-        "Max": 7074,
-        "Mean": 6563.64,
-        "Stddev": 198.60698551127942,
-        "Variance": 38655.84,
-        "Mode": 6404,
-        "Median": 6499.5,
-        "1st quantile": 6418.75,
-        "3rd quantile": 6710.5,
-        "Samples": 50
-      },
-      {
-        "Waiter": 4,
-        "Min": 7264,
-        "Max": 8054,
-        "Mean": 7609.36,
-        "Stddev": 198.9391251368219,
-        "Variance": 38785.24,
-        "Mode": 7514,
-        "Median": 7584.5,
-        "1st quantile": 7449,
-        "3rd quantile": 7744,
-        "Samples": 50
-      },
-      {
-        "Waiter": 5,
-        "Min": 8355,
-        "Max": 9205,
-        "Mean": 8760.56,
-        "Stddev": 191.9452515480306,
-        "Variance": 36106.12,
-        "Mode": 8355,
-        "Median": 8762.5,
-        "1st quantile": 8617,
-        "3rd quantile": 8877,
-        "Samples": 50
-      },
-      {
-        "Waiter": 6,
-        "Min": 9371,
-        "Max": 10165,
-        "Mean": 9773.34,
-        "Stddev": 184.9586274753114,
-        "Variance": 33525.5,
-        "Mode": 9807,
-        "Median": 9797.5,
-        "1st quantile": 9615.75,
-        "3rd quantile": 9890,
-        "Samples": 50
-      },
-      {
-        "Waiter": 7,
-        "Min": 10333,
-        "Max": 11107,
-        "Mean": 10766.96,
-        "Stddev": 175.4573033707131,
-        "Variance": 30169.56,
-        "Mode": 10333,
-        "Median": 10788.5,
-        "1st quantile": 10707,
-        "3rd quantile": 10875.75,
-        "Samples": 50
-      },
-      {
-        "Waiter": 8,
-        "Min": 11389,
-        "Max": 12115,
-        "Mean": 11785.74,
-        "Stddev": 149.5063304918653,
-        "Variance": 21905.1,
-        "Mode": 11625,
-        "Median": 11784,
-        "1st quantile": 11717.75,
-        "3rd quantile": 11866,
-        "Samples": 50
-      },
-      {
-        "Waiter": 9,
-        "Min": 12340,
-        "Max": 13167,
-        "Mean": 12788,
-        "Stddev": 173.88595840553728,
-        "Variance": 29631.6,
-        "Mode": 12340,
-        "Median": 12778,
-        "1st quantile": 12698.25,
-        "3rd quantile": 12888.5,
-        "Samples": 50
-      },
-      {
-        "Waiter": 10,
-        "Min": 13276,
-        "Max": 14460,
-        "Mean": 13812.26,
-        "Stddev": 238.861799339437,
-        "Variance": 55913.86,
-        "Mode": 13276,
-        "Median": 13788,
-        "1st quantile": 13667.25,
-        "3rd quantile": 13915,
-        "Samples": 50
-      },
-      {
-        "Waiter": 11,
-        "Min": 14280,
-        "Max": 15424,
-        "Mean": 14818.46,
-        "Stddev": 257.69167623343986,
-        "Variance": 65076.9,
-        "Mode": 14765,
-        "Median": 14765,
-        "1st quantile": 14640.5,
-        "3rd quantile": 15008.25,
-        "Samples": 50
-      },
-      {
-        "Waiter": 12,
-        "Min": 15278,
-        "Max": 16394,
-        "Mean": 15818.78,
-        "Stddev": 263.46664583849656,
-        "Variance": 68026.38,
-        "Mode": 15729,
-        "Median": 15770,
-        "1st quantile": 15621.25,
-        "3rd quantile": 16012.25,
-        "Samples": 50
-      },
-      {
-        "Waiter": 13,
-        "Min": 16273,
-        "Max": 17395,
-        "Mean": 16830.3,
-        "Stddev": 265.7598655223339,
-        "Variance": 69215.74,
-        "Mode": 16719,
-        "Median": 16812,
-        "1st quantile": 16607.5,
-        "3rd quantile": 17019.25,
-        "Samples": 50
-      },
-      {
-        "Waiter": 14,
-        "Min": 17241,
-        "Max": 18343,
-        "Mean": 17828.28,
-        "Stddev": 254.1339836240975,
-        "Variance": 63292.4,
-        "Mode": 17703,
-        "Median": 17866,
-        "1st quantile": 17643.75,
-        "3rd quantile": 17999.75,
-        "Samples": 50
-      },
-      {
-        "Waiter": 15,
-        "Min": 18170,
-        "Max": 19324,
-        "Mean": 18826.14,
-        "Stddev": 253.18062439971305,
-        "Variance": 62818.42,
-        "Mode": 18867,
-        "Median": 18867,
-        "1st quantile": 18679.75,
-        "3rd quantile": 18993.25,
-        "Samples": 50
-      },
-      {
-        "Waiter": 16,
-        "Min": 19182,
-        "Max": 20266,
-        "Mean": 19843.26,
-        "Stddev": 230.71587792462532,
-        "Variance": 52165.22,
-        "Mode": 19871,
-        "Median": 19870.5,
-        "1st quantile": 19691.75,
-        "3rd quantile": 19980.75,
-        "Samples": 50
-      },
-      {
-        "Waiter": 17,
-        "Min": 20161,
-        "Max": 21511,
-        "Mean": 20834.62,
-        "Stddev": 263.26664530588044,
-        "Variance": 67923.14,
-        "Mode": 20832,
-        "Median": 20837.5,
-        "1st quantile": 20712.25,
-        "3rd quantile": 21009.75,
-        "Samples": 50
-      },
-      {
-        "Waiter": 18,
-        "Min": 21081,
-        "Max": 22488,
-        "Mean": 21830.38,
-        "Stddev": 308.06012532673964,
-        "Variance": 93003.02,
-        "Mode": 21806,
-        "Median": 21802.5,
-        "1st quantile": 21685.25,
-        "3rd quantile": 21984.5,
-        "Samples": 50
-      },
-      {
-        "Waiter": 19,
-        "Min": 22080,
-        "Max": 23460,
-        "Mean": 22838.62,
-        "Stddev": 324.25314499757184,
-        "Variance": 103037.3,
-        "Mode": 22808,
-        "Median": 22797,
-        "1st quantile": 22669.5,
-        "3rd quantile": 23090.5,
-        "Samples": 50
-      },
-      {
-        "Waiter": 20,
-        "Min": 22993,
-        "Max": 24422,
-        "Mean": 23828.82,
-        "Stddev": 335.468937702532,
-        "Variance": 110288.62,
-        "Mode": 22993,
-        "Median": 23776.5,
-        "1st quantile": 23608.25,
-        "3rd quantile": 24086,
-        "Samples": 50
-      },
-      {
-        "Waiter": 21,
-        "Min": 23976,
-        "Max": 25398,
-        "Mean": 24823.9,
-        "Stddev": 333.486988394707,
-        "Variance": 108989.3,
-        "Mode": 24856,
-        "Median": 24856,
-        "1st quantile": 24604.5,
-        "3rd quantile": 25063.5,
-        "Samples": 50
-      },
-      {
-        "Waiter": 22,
-        "Min": 24912,
-        "Max": 26355,
-        "Mean": 25813.96,
-        "Stddev": 325.15710488492,
-        "Variance": 103612.6,
-        "Mode": 24912,
-        "Median": 25869,
-        "1st quantile": 25658.25,
-        "3rd quantile": 26012,
-        "Samples": 50
-      },
-      {
-        "Waiter": 23,
-        "Min": 25909,
-        "Max": 27386,
-        "Mean": 26805.58,
-        "Stddev": 327.7889129128248,
-        "Variance": 105296.66,
-        "Mode": 26703,
-        "Median": 26850,
-        "1st quantile": 26701.5,
-        "3rd quantile": 27012.5,
-        "Samples": 50
-      },
-      {
-        "Waiter": 24,
-        "Min": 26640,
-        "Max": 28104,
-        "Mean": 27545.96,
-        "Stddev": 321.95290567004946,
-        "Variance": 101580.6,
-        "Mode": 27876,
-        "Median": 27621,
-        "1st quantile": 27424.5,
-        "3rd quantile": 27739.75,
-        "Samples": 50
-      }
-    ]
-  },
-  {
-    "Benchmark": "Broadcast time",
-    "Results": [
-      {
-        "Min": 1790,
-        "Max": 2010,
-        "Mean": 1888.14,
-        "Stddev": 48.45763982224946,
-        "Variance": 2301.18,
-        "Mode": 1845,
-        "Median": 1889,
-        "1st quantile": 1859.25,
-        "3rd quantile": 1916.75,
-        "Samples": 50
-      }
-    ]
-  },
-  {
-    "Benchmark": "Producer to consumer",
-    "Results": [
-      {
-        "Min": 927,
-        "Max": 2334,
-        "Mean": 968.6,
-        "Stddev": 198.5615619337011,
-        "Variance": 38638.16,
-        "Mode": 927,
-        "Median": 927,
-        "1st quantile": 927,
-        "3rd quantile": 963,
-        "Samples": 50
-      }
-    ]
-  },
-  {
-    "Benchmark": "Consumer to producer",
-    "Results": [
-      {
-        "Min": 919,
-        "Max": 1072,
-        "Mean": 941.12,
-        "Stddev": 26.990550122558957,
-        "Variance": 713.92,
-        "Mode": 926,
-        "Median": 926,
-        "1st quantile": 926,
-        "3rd quantile": 962,
-        "Samples": 50
+        "Function": "seL4_ReplyRecv",
+        "Direction": "server->client",
+        "Client Prio": 254,
+        "Server Prio": 254,
+        "Same vspace?": false,
+        "passive?": false,
+        "IPC length": 10,
+        "Min": 1,
+        "Max": 3,
+        "Mean": 1.625,
+        "Stddev": 1.1547005383792515,
+        "Variance": 1.25,
+        "Mode": 1,
+        "Median": 1,
+        "1st quantile": 1,
+        "3rd quantile": 3,
+        "Samples": 16
       }
     ]
   }
