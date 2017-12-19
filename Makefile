@@ -306,7 +306,7 @@ $(Bib): $(addsuffix .tex, $(Targets))
 	fi;
 	${Q}rm -f all_refs.aux tmp.aux references.diff
 
-%.pdf: %.tex $(Bib) $(Figures) $(Styles) Makefile
+%.pdf: %.tex $(TexIncludes) $(Bib) $(Figures) $(Styles) Makefile
 	${Q}if ! test -e $*.bbl || test $(Bib) -nt $*.bbl; then rm -f $*.bbl; fi
 	@echo "====> LaTeX first pass: $(<)"
 	${Q}$(LaTeX) $< >.log || if egrep -q $(Error) $*.log ; then cat .log; rm $@; false ; fi
@@ -343,7 +343,7 @@ RUMP_REDIS_TEST_NUMBER=30
 PERF_BASE=EDF-BPP
 PERF_RT=EDF-PPP
 PERF_NUMBERS= 0 1 2 3 4 5 6
-PLATS = tx1 tk1 sabre zynq7000 odroidxu haswell rpi3 hikey32 hikey64
+PLATS = tx1 sabre haswell rpi3 hikey32 hikey64 kzm
 
 # get the microbenchmark data, we run this for all platforms
 define micro_raw_data
@@ -366,6 +366,7 @@ $(eval $(call micro_raw_data,rpi3,rpi3-rpi3-results.json))
 $(eval $(call micro_raw_data,hikey32,hikey32-hikey-results.json))
 $(eval $(call micro_raw_data,hikey64,hikey64-hikey-results.json))
 $(eval $(call micro_raw_data,tx1,tx1-jetson-tx1-family-results.json))
+$(eval $(call micro_raw_data,kzm,kzm-kzm-results.json))
 micro_raw_data: $(PLATS:%=%_micro_raw_data)
 
 # get the bigger benchmark data, we only run this on some platforms
@@ -403,12 +404,13 @@ data/generated/linux-redis.dat: $(RUMP_REDIS_FILES) data/ycsb-results.py
 
 # first the microbenchmark data
 define process_micro_data
-.$1_process_micro_data: data/json-to-data.py data/baseline-$1.json data/rt-$1.json $(wildcard data/ipc-perf-*-$1.json)
+.$1_process_micro_data: data/json-to-data.py data/baseline-$1.json data/rt-$1.json $(wildcard data/ipc-perf-*-$1.json) data/ipc-perf.py
 	@mkdir -p ${PWD}/data/generated
 	@echo '==== generating $1 data'
 	@python3 ${PWD}/data/json-to-data.py -b ${PWD}/data/baseline-$1.json -rt ${PWD}/data/rt-$1.json -a $1 > gen-$1.log || \
 		(cat gen-$1.log; false)
-	touch $$@
+	@python3 ${PWD}/data/ipc-perf.py -p $1 -o ${PWD}/data/generated/$1-ipc-perf.inc
+	@touch $$@
 endef
 
 # process microbenchmark includes for each platform
@@ -423,7 +425,7 @@ define process_aes_data
 	@echo '==== generating $1 aes data'
 	@python3 ${PWD}/data/json-to-data.py -aes ${PWD}/data/aes-$1.json -a $1 > gen-aes-$1.log || \
 		(cat gen-aes-$1.log; false)
-	touch $$@
+	@touch $$@
 endef
 
 $(eval $(call process_aes_data,haswell))
@@ -452,9 +454,10 @@ ${GEN_DIR}/$1-slowpath-ipc-micro.inc: .$1_process_micro_data
 ${GEN_DIR}/$1-active-slowpath-ipc-micro.inc: .$1_process_micro_data
 ${GEN_DIR}/$1-schedule-micro.inc: .$1_process_micro_data
 ${GEN_DIR}/$1-irq-micro.inc: .$1_process_micro_data
+${GEN_DIR}/$1-ipc-perf.inc: .$1_process_micro_data
 .$1_micro_includes: ${GEN_DIR}/$1-fastpath-ipc-micro.inc ${GEN_DIR}/$1-slowpath-ipc-micro.inc \
                    ${GEN_DIR}/$1-active-slowpath-ipc-micro.inc ${GEN_DIR}/$1-schedule-micro.inc \
-				   ${GEN_DIR}/$1-irq-micro.inc
+				   ${GEN_DIR}/$1-irq-micro.inc ${GEN_DIR}/$1-ipc-perf.inc
 endef
 
 # generate micro includes for each platform
@@ -499,20 +502,18 @@ crit_includes: haswell_crit_includes sabre_crit_includes
 #
 
 define aes_dat
-${GEN_DIR}/$1-shared-aes-1000.dat: $1_process_aes_data
-${GEN_DIR}/$1-shared-aes-100.dat: $1_process_aes_data
-${GEN_DIR}/$1-shared-aes-10.dat: $1_process_aes_data
-$1_aes_dat: $1-shared-aes-1000.dat $1-aes-shared-100.dat $1-shared-aes-10.dat
+${GEN_DIR}/$1-shared-aes-1000.dat: .$1_process_aes_data
+${GEN_DIR}/$1-shared-aes-100.dat: .$1_process_aes_data
+${GEN_DIR}/$1-shared-aes-10.dat: .$1_process_aes_data
 endef
 
-$(eval $(call aes_dat,haswell))
-$(eval $(call aes_dat,sabre))
-
-aes_dat: haswell_aes_dat sabre_aes_dat
+$(eval $(call .aes_dat,haswell))
+$(eval $(call .aes_dat,sabre))
 
 # images
 
-imgs/aes-shared.eps: aes_dat
+
+imgs/aes-shared.eps: $(foreach plat,sabre haswell,$(foreach var,10 100 1000,${GEN_DIR}/$(plat)-$(var)-shared-aes.dat))
 
 ModeSwEps= $(patsubst %.pdf,%.eps,$(ModeSwFigs))
 $(ModeSwEps): crit_includes
