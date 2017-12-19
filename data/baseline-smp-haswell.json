@@ -1,0 +1,455 @@
+[
+  {
+    "Benchmark": "SMP Benchmark",
+    "Results": [
+      {
+        "Cycles": 500,
+        "Cores": 1,
+        "Min": 982636,
+        "Max": 982636,
+        "Mean": 982636,
+        "Variance": 0,
+        "Mode": 982636,
+        "Median": 982636,
+        "1st quantile": 982636,
+        "3rd quantile": 982636,
+        "Samples": 1,
+        "Raw results": [
+          982636
+        ]
+      },
+      {
+        "Cycles": 500,
+        "Cores": 2,
+        "Min": 1465900,
+        "Max": 1465900,
+        "Mean": 1465900,
+        "Variance": 0,
+        "Mode": 1465900,
+        "Median": 1465900,
+        "1st quantile": 1465900,
+        "3rd quantile": 1465900,
+        "Samples": 1,
+        "Raw results": [
+          1465900
+        ]
+      },
+      {
+        "Cycles": 500,
+        "Cores": 3,
+        "Min": 1769287,
+        "Max": 1769287,
+        "Mean": 1769287,
+        "Variance": 0,
+        "Mode": 1769287,
+        "Median": 1769287,
+        "1st quantile": 1769287,
+        "3rd quantile": 1769287,
+        "Samples": 1,
+        "Raw results": [
+          1769287
+        ]
+      },
+      {
+        "Cycles": 500,
+        "Cores": 4,
+        "Min": 1646916,
+        "Max": 1646916,
+        "Mean": 1646916,
+        "Variance": 0,
+        "Mode": 1646916,
+        "Median": 1646916,
+        "1st quantile": 1646916,
+        "3rd quantile": 1646916,
+        "Samples": 1,
+        "Raw results": [
+          1646916
+        ]
+      },
+      {
+        "Cycles": 1000,
+        "Cores": 1,
+        "Min": 851725,
+        "Max": 851725,
+        "Mean": 851725,
+        "Variance": 0,
+        "Mode": 851725,
+        "Median": 851725,
+        "1st quantile": 851725,
+        "3rd quantile": 851725,
+        "Samples": 1,
+        "Raw results": [
+          851725
+        ]
+      },
+      {
+        "Cycles": 1000,
+        "Cores": 2,
+        "Min": 851885,
+        "Max": 851885,
+        "Mean": 851885,
+        "Variance": 0,
+        "Mode": 851885,
+        "Median": 851885,
+        "1st quantile": 851885,
+        "3rd quantile": 851885,
+        "Samples": 1,
+        "Raw results": [
+          851885
+        ]
+      },
+      {
+        "Cycles": 1000,
+        "Cores": 3,
+        "Min": 851851,
+        "Max": 851851,
+        "Mean": 851851,
+        "Variance": 0,
+        "Mode": 851851,
+        "Median": 851851,
+        "1st quantile": 851851,
+        "3rd quantile": 851851,
+        "Samples": 1,
+        "Raw results": [
+          851851
+        ]
+      },
+      {
+        "Cycles": 1000,
+        "Cores": 4,
+        "Min": 1378727,
+        "Max": 1378727,
+        "Mean": 1378727,
+        "Variance": 0,
+        "Mode": 1378727,
+        "Median": 1378727,
+        "1st quantile": 1378727,
+        "3rd quantile": 1378727,
+        "Samples": 1,
+        "Raw results": [
+          1378727
+        ]
+      },
+      {
+        "Cycles": 2000,
+        "Cores": 1,
+        "Min": 605756,
+        "Max": 605756,
+        "Mean": 605756,
+        "Variance": 0,
+        "Mode": 605756,
+        "Median": 605756,
+        "1st quantile": 605756,
+        "3rd quantile": 605756,
+        "Samples": 1,
+        "Raw results": [
+          605756
+        ]
+      },
+      {
+        "Cycles": 2000,
+        "Cores": 2,
+        "Min": 605738,
+        "Max": 605738,
+        "Mean": 605738,
+        "Variance": 0,
+        "Mode": 605738,
+        "Median": 605738,
+        "1st quantile": 605738,
+        "3rd quantile": 605738,
+        "Samples": 1,
+        "Raw results": [
+          605738
+        ]
+      },
+      {
+        "Cycles": 2000,
+        "Cores": 3,
+        "Min": 605785,
+        "Max": 605785,
+        "Mean": 605785,
+        "Variance": 0,
+        "Mode": 605785,
+        "Median": 605785,
+        "1st quantile": 605785,
+        "3rd quantile": 605785,
+        "Samples": 1,
+        "Raw results": [
+          605785
+        ]
+      },
+      {
+        "Cycles": 2000,
+        "Cores": 4,
+        "Min": 1072359,
+        "Max": 1072359,
+        "Mean": 1072359,
+        "Variance": 0,
+        "Mode": 1072359,
+        "Median": 1072359,
+        "1st quantile": 1072359,
+        "3rd quantile": 1072359,
+        "Samples": 1,
+        "Raw results": [
+          1072359
+        ]
+      },
+      {
+        "Cycles": 4000,
+        "Cores": 1,
+        "Min": 364558,
+        "Max": 364558,
+        "Mean": 364558,
+        "Variance": 0,
+        "Mode": 364558,
+        "Median": 364558,
+        "1st quantile": 364558,
+        "3rd quantile": 364558,
+        "Samples": 1,
+        "Raw results": [
+          364558
+        ]
+      },
+      {
+        "Cycles": 4000,
+        "Cores": 2,
+        "Min": 364086,
+        "Max": 364086,
+        "Mean": 364086,
+        "Variance": 0,
+        "Mode": 364086,
+        "Median": 364086,
+        "1st quantile": 364086,
+        "3rd quantile": 364086,
+        "Samples": 1,
+        "Raw results": [
+          364086
+        ]
+      },
+      {
+        "Cycles": 4000,
+        "Cores": 3,
+        "Min": 364502,
+        "Max": 364502,
+        "Mean": 364502,
+        "Variance": 0,
+        "Mode": 364502,
+        "Median": 364502,
+        "1st quantile": 364502,
+        "3rd quantile": 364502,
+        "Samples": 1,
+        "Raw results": [
+          364502
+        ]
+      },
+      {
+        "Cycles": 4000,
+        "Cores": 4,
+        "Min": 364476,
+        "Max": 364476,
+        "Mean": 364476,
+        "Variance": 0,
+        "Mode": 364476,
+        "Median": 364476,
+        "1st quantile": 364476,
+        "3rd quantile": 364476,
+        "Samples": 1,
+        "Raw results": [
+          364476
+        ]
+      },
+      {
+        "Cycles": 8000,
+        "Cores": 1,
+        "Min": 198911,
+        "Max": 198911,
+        "Mean": 198911,
+        "Variance": 0,
+        "Mode": 198911,
+        "Median": 198911,
+        "1st quantile": 198911,
+        "3rd quantile": 198911,
+        "Samples": 1,
+        "Raw results": [
+          198911
+        ]
+      },
+      {
+        "Cycles": 8000,
+        "Cores": 2,
+        "Min": 198362,
+        "Max": 198362,
+        "Mean": 198362,
+        "Variance": 0,
+        "Mode": 198362,
+        "Median": 198362,
+        "1st quantile": 198362,
+        "3rd quantile": 198362,
+        "Samples": 1,
+        "Raw results": [
+          198362
+        ]
+      },
+      {
+        "Cycles": 8000,
+        "Cores": 3,
+        "Min": 198947,
+        "Max": 198947,
+        "Mean": 198947,
+        "Variance": 0,
+        "Mode": 198947,
+        "Median": 198947,
+        "1st quantile": 198947,
+        "3rd quantile": 198947,
+        "Samples": 1,
+        "Raw results": [
+          198947
+        ]
+      },
+      {
+        "Cycles": 8000,
+        "Cores": 4,
+        "Min": 199258,
+        "Max": 199258,
+        "Mean": 199258,
+        "Variance": 0,
+        "Mode": 199258,
+        "Median": 199258,
+        "1st quantile": 199258,
+        "3rd quantile": 199258,
+        "Samples": 1,
+        "Raw results": [
+          199258
+        ]
+      },
+      {
+        "Cycles": 16000,
+        "Cores": 1,
+        "Min": 103889,
+        "Max": 103889,
+        "Mean": 103889,
+        "Variance": 0,
+        "Mode": 103889,
+        "Median": 103889,
+        "1st quantile": 103889,
+        "3rd quantile": 103889,
+        "Samples": 1,
+        "Raw results": [
+          103889
+        ]
+      },
+      {
+        "Cycles": 16000,
+        "Cores": 2,
+        "Min": 103493,
+        "Max": 103493,
+        "Mean": 103493,
+        "Variance": 0,
+        "Mode": 103493,
+        "Median": 103493,
+        "1st quantile": 103493,
+        "3rd quantile": 103493,
+        "Samples": 1,
+        "Raw results": [
+          103493
+        ]
+      },
+      {
+        "Cycles": 16000,
+        "Cores": 3,
+        "Min": 103540,
+        "Max": 103540,
+        "Mean": 103540,
+        "Variance": 0,
+        "Mode": 103540,
+        "Median": 103540,
+        "1st quantile": 103540,
+        "3rd quantile": 103540,
+        "Samples": 1,
+        "Raw results": [
+          103540
+        ]
+      },
+      {
+        "Cycles": 16000,
+        "Cores": 4,
+        "Min": 103305,
+        "Max": 103305,
+        "Mean": 103305,
+        "Variance": 0,
+        "Mode": 103305,
+        "Median": 103305,
+        "1st quantile": 103305,
+        "3rd quantile": 103305,
+        "Samples": 1,
+        "Raw results": [
+          103305
+        ]
+      },
+      {
+        "Cycles": 32000,
+        "Cores": 1,
+        "Min": 52620,
+        "Max": 52620,
+        "Mean": 52620,
+        "Variance": 0,
+        "Mode": 52620,
+        "Median": 52620,
+        "1st quantile": 52620,
+        "3rd quantile": 52620,
+        "Samples": 1,
+        "Raw results": [
+          52620
+        ]
+      },
+      {
+        "Cycles": 32000,
+        "Cores": 2,
+        "Min": 52709,
+        "Max": 52709,
+        "Mean": 52709,
+        "Variance": 0,
+        "Mode": 52709,
+        "Median": 52709,
+        "1st quantile": 52709,
+        "3rd quantile": 52709,
+        "Samples": 1,
+        "Raw results": [
+          52709
+        ]
+      },
+      {
+        "Cycles": 32000,
+        "Cores": 3,
+        "Min": 52383,
+        "Max": 52383,
+        "Mean": 52383,
+        "Variance": 0,
+        "Mode": 52383,
+        "Median": 52383,
+        "1st quantile": 52383,
+        "3rd quantile": 52383,
+        "Samples": 1,
+        "Raw results": [
+          52383
+        ]
+      },
+      {
+        "Cycles": 32000,
+        "Cores": 4,
+        "Min": 52699,
+        "Max": 52699,
+        "Mean": 52699,
+        "Variance": 0,
+        "Mode": 52699,
+        "Median": 52699,
+        "1st quantile": 52699,
+        "3rd quantile": 52699,
+        "Samples": 1,
+        "Raw results": [
+          52699
+        ]
+      }
+    ]
+  }
+]
