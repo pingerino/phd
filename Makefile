@@ -338,6 +338,8 @@ UL=EDF-RB
 RT=EDF-PB
 CRIT=EDF-CB
 AES=EDF-AB
+RTSMP=EDF-PSMP
+BSMP=EDF-BSMP
 DIR=/latestSuccessful/artifact/shared/
 RUMP_REDIS_TEST_NUMBER=30
 PERF_BASE=EDF-BPP
@@ -377,6 +379,8 @@ $1_rest_raw_data:
 	wget -O ${PWD}/data/aes-$1.json ${BAMBOO}${AES}${DIR}$2/results.json
 	wget -O ${PWD}/data/criticality-$1.json ${BAMBOO}${CRIT}${DIR}$2/results.json
 	wget -O ${PWD}/data/ul-$1.json ${BAMBOO}${UL}${DIR}$2/results.json
+	wget -O ${PWD}/data/rt-smp-$1.json ${BAMBOO}${RTSMP}${DIR}$2/results.json
+	wget -O ${PWD}/data/baseline-smp-$1.json ${BAMBOO}${BSMP}${DIR}$2/results.json
 endef
 
 
