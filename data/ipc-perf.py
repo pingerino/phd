@@ -10,7 +10,7 @@ import pdb
 DATA_DIR = 'data/generated'
 
 def getbenchmark(json, name):
-    print(name)
+    #print(name)
     return next(x for x in json if x['Benchmark'] == name)['Results']
 
 def ipc_result(json, name, length, client, server, passive=True):
@@ -46,7 +46,7 @@ def build_microbenchmark_table(rt, baseline, out, slowpath=False, passive=True, 
         length = 10 if slowpath else 0
 
         # call fastpath
-        print ("Getting {0} {1} {2}".format(client_prio, server_prio, passive))
+        #print ("Getting {0} {1} {2}".format(client_prio, server_prio, passive))
         microbenchmark_row(out, 
                 ipc_result(rt_ipc, op, length, client_prio, server_prio, passive=passive),
                 ipc_result(b_ipc, op, length, client_prio, server_prio))
@@ -70,7 +70,7 @@ def gen_plat_table(plat, output, slowpath, passive, replyRecv, name):
     output.write('counter & min(b) & min(rt) & max(b) & max(rt) & avg(b) & avg(rt) & std(b) & std(rt) \\\\\\hline\n')
     # cycles first
     output.write("cycles")
-    print("Name {0} r cycles".format(name))
+    #print("Name {0} r cycles".format(name))
     rt_file = os.path.join(os.getcwd(), 'data', 'rt-{0}.json'.format(plat))
     baseline_file = os.path.join(os.getcwd(), 'data', 'baseline-{0}.json'.format(plat))
     build_microbenchmark_table(rt_file, baseline_file, output, slowpath=slowpath, passive=passive,
@@ -79,7 +79,7 @@ def gen_plat_table(plat, output, slowpath, passive, replyRecv, name):
 
     for i in range(0, 7):
         output.write(counters[i])
-        print("Name {0} r {1}".format(name, counters[i]))
+        #print("Name {0} r {1}".format(name, counters[i]))
         rt_file = os.path.join(os.getcwd(), 'data', 'ipc-perf-{0}-rt-{1}.json'.format(i, plat))
         baseline_file = os.path.join(os.getcwd(), 'data', 'ipc-perf-{0}-baseline-{1}.json'.format(i, plat))
         build_microbenchmark_table(rt_file, baseline_file, output, slowpath=slowpath,

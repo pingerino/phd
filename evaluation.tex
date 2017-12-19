@@ -138,6 +138,7 @@ active threads.
     \ipcmicro{Hikey64}{hikey64}{fastpath}
     \ipcmicro{TX1}{tx1}{fastpath}
     \ipcmicro{x64}{haswell}{fastpath}
+    \ipcmicro{ia32}{ia32}{fastpath}
 % TODO atom
 % TODO ia32
 \end{tabular}
@@ -187,6 +188,7 @@ the resume capability, the ordered IPC checks, and accessing the \gls{SCO} and r
     \ipcmicro{Hikey64}{hikey64}{slowpath}
     \ipcmicro{TX1}{tx1}{slowpath}
     \ipcmicro{x64}{haswell}{slowpath}
+    \ipcmicro{ia32}{ia32}{slowpath}
 % TODO atom
 % TODO ia32
 \end{tabular}
@@ -218,6 +220,7 @@ with a hot cache as 36 cycles.
     \ipcmicro{Hikey64}{hikey64}{slowpath-active}
     \ipcmicro{TX1}{tx1}{slowpath-active}
     \ipcmicro{x64}{haswell}{slowpath-active}
+    \ipcmicro{ia32}{ia32}{slowpath-active}
 % TODO atom
 % TODO ia32
 \end{tabular}
@@ -254,6 +257,7 @@ and the extra lookup of the resume object add overhead.
     \faultmicro{Hikey64}{hikey64}
     \faultmicro{TX1}{tx1}
     \faultmicro{x64}{haswell}
+    \faultmicro{ia32}{ia32}
 \end{tabular}
 \caption{Microbenchmarks of \selfour fault \gls{IPC} between passive threads.}
 \label{t:slowpath-fault-micro}
@@ -282,6 +286,7 @@ is to a higher priority thread.
     \irqmicro{Hikey64}{hikey64}
     \irqmicro{TX1}{tx1}
     \irqmicro{x64}{haswell}
+    \irqmicro{ia32}{ia32}
 \end{tabular}
 \caption{Microbenchmarks of \selfour signal and IRQ latency on \selfour baseline vs. MCS kernels. Standard deviations
 shown in brackets.}
@@ -301,12 +306,15 @@ that when the scheduler is used and a thread switch does not occur, there is no 
                                 & \multicolumn{2}{c|}{\textbf{Base}}
                                 & \multicolumn{2}{c|}{\textbf{MCS}}
                                 & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
+
+    
     \schedulemicro{KZM}{kzm}
     \schedulemicro{Sabre}{sabre}
     \schedulemicro{Hikey32}{hikey32}
     \schedulemicro{Hikey64}{hikey64}
     \schedulemicro{TX1}{tx1}
     \schedulemicro{x64}{haswell}
+    \schedulemicro{ia32}{ia32}
 \end{tabular}
 \caption{Microbenchmarks of \selfour IPC scheduling costs.}
 \label{t:micro-schedule}

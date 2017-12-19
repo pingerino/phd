@@ -343,7 +343,7 @@ RUMP_REDIS_TEST_NUMBER=30
 PERF_BASE=EDF-BPP
 PERF_RT=EDF-PPP
 PERF_NUMBERS= 0 1 2 3 4 5 6
-PLATS = tx1 sabre haswell rpi3 hikey32 hikey64 kzm
+PLATS = tx1 sabre haswell rpi3 hikey32 hikey64 kzm ia32
 
 # get the microbenchmark data, we run this for all platforms
 define micro_raw_data
@@ -367,6 +367,7 @@ $(eval $(call micro_raw_data,hikey32,hikey32-hikey-results.json))
 $(eval $(call micro_raw_data,hikey64,hikey64-hikey-results.json))
 $(eval $(call micro_raw_data,tx1,tx1-jetson-tx1-family-results.json))
 $(eval $(call micro_raw_data,kzm,kzm-kzm-results.json))
+$(eval $(call micro_raw_data,ia32,ia32-haswell3-results.json))
 micro_raw_data: $(PLATS:%=%_micro_raw_data)
 
 # get the bigger benchmark data, we only run this on some platforms
