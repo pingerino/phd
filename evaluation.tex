@@ -97,7 +97,7 @@ On x64 we use the \gls{TSC} with \gls{TSC}-deadline mode~\citep{Intel_64_IA-32:a
 Intel SandyBridge by which a local-APIC timer interrupt is triggered when the \gls{TSC} matches the
 programmed value. 
 
-While \Cref{t:timer} shows the instruction latency of each timer operation, in practice, especially
+While \Cref{t:evaluation-timer} shows the instruction latency of each timer operation, in practice, especially
 for x64, these operations are subject to pipeline parallelism and out-of-order execution, which
 reduces the overhead.
 
@@ -248,24 +248,12 @@ and the extra lookup of the resume object add overhead.
                                 & \multicolumn{2}{c|}{\textbf{Base}}
                                 & \multicolumn{2}{c|}{\textbf{MCS}}
                                 & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
-\multirow{2}{*}{SBR}
-\input{data/generated/sabre-fault-micro.inc}
-\hline
-\multirow{2}{*}{ODX}
-\input{data/generated/odroidxu-fault-micro.inc}
-\hline
-\multirow{2}{*}{ZNQ}
-\input{data/generated/zynq7000-fault-micro.inc}
-\hline
-\multirow{2}{*}{TK1}
-\input{data/generated/tk1-fault-micro.inc}
-\hline
-\multirow{2}{*}{RP3}
-\input{data/generated/rpi3-fault-micro.inc}
-\hline
-\multirow{2}{*}{x64}
-\input{data/generated/haswell-fault-micro.inc}
-\hline
+    % no kzm, fault benchmark doesn't work
+    \faultmicro{Sabre}{sabre}
+    \faultmicro{Hikey32}{hikey32}
+    \faultmicro{Hikey64}{hikey64}
+    \faultmicro{TX1}{tx1}
+    \faultmicro{x64}{haswell}
 \end{tabular}
 \caption{Microbenchmarks of \selfour fault \gls{IPC} between passive threads.}
 \label{t:slowpath-fault-micro}
@@ -288,21 +276,12 @@ is to a higher priority thread.
                                 & \multicolumn{2}{c|}{\textbf{Base}}
                                 & \multicolumn{2}{c|}{\textbf{MCS}}
                                 & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
-\multirow{2}{*}{SBR}
-\input{data/generated/sabre-irq-micro.inc}
-\hline
-\multirow{2}{*}{ODX}
-\input{data/generated/odroidxu-irq-micro.inc}
-\hline
-\multirow{2}{*}{ZNQ}
-\input{data/generated/zynq7000-irq-micro.inc}
-\hline
-\multirow{2}{*}{TK1}
-\input{data/generated/tk1-irq-micro.inc}
-\hline
-\multirow{2}{*}{x64}
-\input{data/generated/haswell-irq-micro.inc}
-\hline
+    \irqmicro{KZM}{kzm}
+    \irqmicro{Sabre}{sabre}
+    \irqmicro{Hikey32}{hikey32}
+    \irqmicro{Hikey64}{hikey64}
+    \irqmicro{TX1}{tx1}
+    \irqmicro{x64}{haswell}
 \end{tabular}
 \caption{Microbenchmarks of \selfour signal and IRQ latency on \selfour baseline vs. MCS kernels. Standard deviations
 shown in brackets.}
@@ -322,21 +301,12 @@ that when the scheduler is used and a thread switch does not occur, there is no 
                                 & \multicolumn{2}{c|}{\textbf{Base}}
                                 & \multicolumn{2}{c|}{\textbf{MCS}}
                                 & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
-\multirow{2}{*}{SBR}
-\input{data/generated/sabre-schedule-micro.inc}
-\hline
-\multirow{2}{*}{ODX}
-\input{data/generated/odroidxu-schedule-micro.inc}
-\hline
-\multirow{2}{*}{ZNQ}
-\input{data/generated/zynq7000-schedule-micro.inc}
-\hline
-\multirow{2}{*}{TK1}
-\input{data/generated/tk1-schedule-micro.inc}
-\hline
-\multirow{2}{*}{x64}
-\input{data/generated/haswell-schedule-micro.inc}
-\hline
+    \schedulemicro{KZM}{kzm}
+    \schedulemicro{Sabre}{sabre}
+    \schedulemicro{Hikey32}{hikey32}
+    \schedulemicro{Hikey64}{hikey64}
+    \schedulemicro{TX1}{tx1}
+    \schedulemicro{x64}{haswell}
 \end{tabular}
 \caption{Microbenchmarks of \selfour IPC scheduling costs.}
 \label{t:micro-schedule}

@@ -208,12 +208,16 @@
 \clubpenalty10000
 
 % evaluation commands
-\newcommand{\ipcmicro}[3]{
+\newcommand{\inputbenchmarkrows}[3]{
     \multirow{2}{*}{#1}
-    \input{data/generated/#2-#3-ipc-micro.inc}
+    \input{data/generated/#2-#3-micro.inc}
     \hline
 }
 
+\newcommand{\ipcmicro}[3]{\inputbenchmarkrows{#1}{#2}{#3-ipc}}
+\newcommand{\faultmicro}[2]{\inputbenchmarkrows{#1}{#2}{fault}}
+\newcommand{\irqmicro}[2]{\inputbenchmarkrows{#1}{#2}{irq}}
+\newcommand{\schedulemicro}[2]{\inputbenchmarkrows{#1}{#2}{schedule}}
 \begin{document}
 \pagenumbering{roman}
 
