@@ -30,3 +30,5 @@ tmp.bib
 .DS_Store
 data/generated/*
 data/generated/*
+*_process_micro_data
+*_process_aes_data
