@@ -207,6 +207,13 @@
 \widowpenalty10000
 \clubpenalty10000
 
+% evaluation commands
+\newcommand{\ipcmicro}[3]{
+    \multirow{2}{*}{#1}
+    \input{data/generated/#2-#3-ipc-micro.inc}
+    \hline
+}
+
 \begin{document}
 \pagenumbering{roman}
 
@@ -345,5 +352,15 @@ The implementation platform will be the \selfour microkernel, which is built for
 %\bibliographystyle{my-abbrvnat}
 %\bibliographystyle{apalike}
 \bibliography{references}
+\clearpage
+\appendix
+\addappheadtotoc
+\section{Fastpath Performance Analysis}
+\input{data/generated/kzm-ipc-perf.inc}
+\input{data/generated/sabre-ipc-perf.inc}
+\input{data/generated/hikey32-ipc-perf.inc}
+\input{data/generated/hikey64-ipc-perf.inc}
+\input{data/generated/tx1-ipc-perf.inc}
+\input{data/generated/haswell-ipc-perf.inc}
 
 \end{document}
