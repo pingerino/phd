@@ -550,3 +550,14 @@ EdfFiles=$(patsubst %,data/generated/%.dat,$(EdfRoot))
 imgs/edf.eps: $(EdfFiles) data/linux-edf.dat
 imgs/redis.eps: data/generated/redis.dat
 imgs/ipbench.eps: data/generated/ipbench.dat
+
+define smp_stuff
+${GEN_DIR}/smp-$1.dat: data/process_smp.py data/baseline-smp-$1.json data/rt-smp-$1.json
+	@echo '===> generating $1 smp data'
+	@python3 data/process_smp.py -o ${GEN_DIR} -p $1 -b ${PWD}/data/baseline-smp-$1.json -rt ${PWD}/data/rt-smp-$1.json
+endef
+
+$(eval $(call smp_stuff,haswell))
+$(eval $(call smp_stuff,sabre))
+
+imgs/smp.pdf: imgs/smp.gnuplot ${GEN_DIR}/smp-haswell.dat ${GEN_DIR}/smp-sabre.dat
