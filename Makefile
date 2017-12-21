@@ -524,7 +524,7 @@ ModeSwEps= $(patsubst %.pdf,%.eps,$(ModeSwFigs))
 $(ModeSwEps): crit_includes
 
 
-ipbench.eps:	data/generated/ipbench.dat
+ipbench.gnuplot:	data/generated/ipbench.dat
 data/generated/ipbench.dat:	data/ipbench.csv data/ipbench_data.py
 	@mkdir -p ${PWD}/data/generated
 	@echo '====> generating ipbench data'
@@ -560,4 +560,7 @@ endef
 $(eval $(call smp_stuff,haswell))
 $(eval $(call smp_stuff,sabre))
 
-imgs/smp.pdf: imgs/smp.gnuplot ${GEN_DIR}/smp-haswell.dat ${GEN_DIR}/smp-sabre.dat
+
+imgs/smp.gnuplot: ${GEN_DIR}/smp-haswell.dat ${GEN_DIR}/smp-sabre.dat
+imgs/smp.eps: imgs/smp.gnuplot ${GEN_DIR}/smp-haswell.dat ${GEN_DIR}/smp-sabre.dat
+imgs/smp.pdf: imgs/smp.eps ${GEN_DIR}/smp-haswell.dat ${GEN_DIR}/smp-sabre.dat
