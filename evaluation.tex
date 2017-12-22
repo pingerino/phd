@@ -336,26 +336,25 @@ recent addition to \selfour: scheduling used to be far more expensive.
 
 \subsection{SMP}
 
-The SMP benchmark is an IPC throughput benchmark, which sets up pairs of IPC ping-pong
-(pong is passive on MCS) threads on each of 2 cores, and for a delay between 0 and 500 cycles.
-We show a slight degradation in IPC throughput on x86, due to the increase in fastpath.
-\begin{table}[ht]\centering
-\begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
-\textbf{Platform}           & \multicolumn{1}{c|}{\textbf{Operation}}
-                                & \multicolumn{2}{c|}{\textbf{Base}}
-                                & \multicolumn{2}{c|}{\textbf{MCS}}
-                                & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
-%\multirow{5}{*}{ARM}
-%\input{data/generated/sabre-ipc-micro.inc}
-%\hline
-%\multirow{6}{*}{x64}
-%\input{data/generated/haswell-ipc-micro.inc}
-& SMP xput & \multicolumn{2}{l|}{1,454,260} & \multicolumn{2}{l|}{1,389,198} & 65k & 4.6\% \\
-\hline
-\end{tabular}
-\caption{SMP throughput}.
-\label{t:micro-smp}
-\end{table}
+We run an SMP throughput benchmark to show that the overheads of the MCS model
+are minimal on multiple cores compared to the baseline kernel. We modify the
+existing SMP IPC throughput benchmark for \selfour to run on the MCS kernel. 
+
+The existing SMP benchmark measures IPC throughput of a client and server, both 
+pinned to the same processor, sending fastpath, 0 length IPC messages of via \call
+and \replyrecv. One pair of client and server is set up per core. Both threads are
+the same priority and the messages are 0 length. Each thread spins for a bounded
+random amount between each subsequent IPC. 
+
+We modify the benchmark such that the server is passive on the MCS kernel.
+Results are displayed in \Cref{f:evaluation-smp}.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{smp}
+    \caption{Results of the SMP IPC throughput benchmark, baseline \selfour vs MCS.}
+    \label{f:evaluation-smp}
+\end{figure}
 
 \subsection{Summary}
 
@@ -386,9 +385,9 @@ runs at a low priority.
 \begin{figure}[ht]
     \centering
     \includegraphics{redis-arch}
-    \caption{Architecture of the networking benchmarks. Dotted lines
+    \caption{Architecture of the networking benchmarks. Dotted lines are
+    passive-server threads.}
     \label{f:redis-arch}
-    are passive-server threads.}
 \end{figure}
 
 

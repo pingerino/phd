@@ -15,8 +15,8 @@ import sys
 
 import pdb
 
-def get_tput(json, core, size):
-    return next(x for x in json if x['Cores'] == core and x['Cycles'] == size)['Mean']
+def get_res(json, core, size):
+    return next(x for x in json if x['Cores'] == core and x['Cycles'] == size)
 
 def main():
     parser = argparse.ArgumentParser(description='process smp data into graph data')
@@ -34,7 +34,7 @@ def main():
         output.write('core')
         length = 500
         for i in range(1,8):
-            output.write('\tb-tput-{0}\trt-tput-{0}'.format(length))
+            output.write('\tb-tput-{0}\tb-std-{0}\trt-tput-{0}\trt-std-{0}'.format(length))
             length = length * 2
         output.write('\n')
         # write the data row
@@ -42,10 +42,11 @@ def main():
             output.write(str(core))
             length = 500
             for i in range(1,8):
-                output.write('\t')
-                output.write(str(get_tput(b_content, core, length)))
-                output.write('\t')
-                output.write(str(get_tput(rt_content, core, length)))
+                rt_res = get_res(rt_content, core, length)
+                b_res = get_res(b_content, core, length)
+
+                output.write('\t{0}\t{1}'.format(b_res['Mean'], b_res['Stddev']))
+                output.write('\t{0}\t{1}'.format(rt_res['Mean'], rt_res['Stddev']))
                 length = length * 2
             output.write('\n')
 
