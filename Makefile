@@ -57,7 +57,7 @@ Targets    = phd
 # but should appear here with just the .pdf extension.
 ModeSwRoot=all up
 ModeSwFigs=$(patsubst %,imgs/mode-switch-%.pdf,$(ModeSwRoot))
-xtraFigRoot= edf ipbench
+xtraFigRoot= edf ipbench smp
 ExtraFigs= $(patsubst %,imgs/%.pdf,$(ExtraFigRoot)) $(ModeSwFigs)
 TexIncludes= $(wildcard data/generated/*.inc) $(wildcard *.tex) crit_includes micro_includes aes_includes
 # For ACM SIG camera ready submission. This will only work if Target
@@ -184,6 +184,8 @@ clean:
 
 realclean: clean
 	rm -f *~ *.pdf *.tgz $(Bib)
+	rm .*_process_micro_data
+	rm .*_process_aes_data
 
 tar:	realclean
 	( p=`pwd` && d=`basename "$$p"` && cd .. && \
@@ -383,7 +385,6 @@ $1_rest_raw_data:
 	wget -O ${PWD}/data/baseline-smp-$1.json ${BAMBOO}${BSMP}${DIR}$2/results.json
 endef
 
-
 $(eval $(call rest_raw_data,haswell,x64-haswell3-results.json))
 $(eval $(call rest_raw_data,sabre,Sabre-sabre-results.json))
 
@@ -506,7 +507,7 @@ crit_includes: haswell_crit_includes sabre_crit_includes
 # gnuplot dat files
 #
 
-define aes_dat
+define .aes_dat
 ${GEN_DIR}/$1-shared-aes-1000.dat: .$1_process_aes_data
 ${GEN_DIR}/$1-shared-aes-100.dat: .$1_process_aes_data
 ${GEN_DIR}/$1-shared-aes-10.dat: .$1_process_aes_data
@@ -518,7 +519,7 @@ $(eval $(call .aes_dat,sabre))
 # images
 
 
-imgs/aes-shared.eps: $(foreach plat,sabre haswell,$(foreach var,10 100 1000,${GEN_DIR}/$(plat)-$(var)-shared-aes.dat))
+imgs/aes-shared.eps: $(foreach plat,sabre haswell,$(foreach var,10 100 1000,${GEN_DIR}/$(plat)-shared-aes-$(var).dat))
 
 ModeSwEps= $(patsubst %.pdf,%.eps,$(ModeSwFigs))
 $(ModeSwEps): crit_includes
@@ -550,6 +551,7 @@ EdfFiles=$(patsubst %,data/generated/%.dat,$(EdfRoot))
 imgs/edf.eps: $(EdfFiles) data/linux-edf.dat
 imgs/redis.eps: data/generated/redis.dat
 imgs/ipbench.eps: data/generated/ipbench.dat
+imgs/ipbench.pdf: imgs/ipbench.eps 
 
 define smp_stuff
 ${GEN_DIR}/smp-$1.dat: data/process_smp.py data/baseline-smp-$1.json data/rt-smp-$1.json
@@ -564,3 +566,6 @@ $(eval $(call smp_stuff,sabre))
 imgs/smp.gnuplot: ${GEN_DIR}/smp-haswell.dat ${GEN_DIR}/smp-sabre.dat
 imgs/smp.eps: imgs/smp.gnuplot ${GEN_DIR}/smp-haswell.dat ${GEN_DIR}/smp-sabre.dat
 imgs/smp.pdf: imgs/smp.eps ${GEN_DIR}/smp-haswell.dat ${GEN_DIR}/smp-sabre.dat
+
+%.gnuplot: imgs/common.inc
+

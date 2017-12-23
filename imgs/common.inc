@@ -16,7 +16,6 @@ set style line 9  lw 2 lt 10 pt 15 lc rgb "red"
 set style line 10 lw 2 lt 10 pt 15 lc rgb "red"
 #set pointsize 1 
 set grid noxtics noytics
-set size 0.47,0.4
 set style increment user
 
 # Data parameters

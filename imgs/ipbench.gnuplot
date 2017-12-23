@@ -1,7 +1,6 @@
 # Common style definitions
 load "imgs/common.inc"
-set size 0.47,0.27
-
+set size 2,1
 set output "imgs/ipbench.eps"
 
 file = "data/generated/ipbench.dat"

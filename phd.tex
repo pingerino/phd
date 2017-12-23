@@ -17,7 +17,6 @@
 \usepackage{algorithm}
 %\usepackage{algpsuedocode}
 %\Onehalfspacing
-\usepackage{subcaption}
 \usepackage{booktabs}
 
 
@@ -47,9 +46,11 @@
 
 \usepackage{amsfonts}
 \usepackage[pdftex]{graphicx}
-\graphicspath{{./imgs/}}
+\graphicspath{{imgs/}}
 %\usepackage[nottoc,numbib]{tocbibind}
-
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{mwe}
 \usepackage{setspace}
 \usepackage{datetime}
 \newdateformat{monthyear}{\monthname[\THEMONTH] \THEYEAR}
@@ -99,7 +100,6 @@
 %\newif \ifhyperlinks    \hyperlinkstrue
 %\newif \ifDraft         \Draftfalse
 \newif \ifDraft        \Drafttrue
-
 \lstset{
     language=C,
     stepnumber=1,

@@ -382,23 +382,12 @@ run a program (\code{yes > /dev/null}) which consumes all available
 CPU bandwidth.  The UDP echo server, completely isolated from the Linux instance, but sharing the serial driver,
 runs at a low priority.
 
-\begin{figure}[ht]
+\begin{figure}[t]
     \centering
-    \includegraphics{redis-arch}
-    \caption{Architecture of the networking benchmarks. Dotted lines are
-    passive-server threads.}
-    \label{f:redis-arch}
-\end{figure}
-
-
-\begin{figure}[ht]
-    \centering
-    \includegraphics{ipbench-arch}
-    \caption{Architecture of the ipbench benchmark. Dotted lines
-    are passive-server threads.}
+    \includegraphics[height=6cm]{ipbench-arch}
+    \caption{System architecture of ipbench benchmark.}
     \label{f:ipbench-arch}
 \end{figure}
-
 
 Two client machines run ipbench daemons to send packets to the UDP-echo server on the target machine
 (Haswell platform). The control machine, one of the load generators, runs ipbench with a \gls{UDP} socket at 10\,Mbps over a 1\,Gb/s Ethernet connection with 100-byte packets. The Linux VM has a 10\,ms period and we vary the
@@ -408,20 +397,20 @@ Any time not consumed by Linux is available to UDP echo for processing
 10,000 packets per second, or 100 packets in the time left over from
 each of Linux's 10\,ms period.
 
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=0.9\columnwidth]{ipbench}
-  \caption{Average and maximum latency of UDP packets with a
-    CPU hog running a high priority with a 10\,ms budget.}
-  \label{f:ipbench}
-\end{figure}
-
 \autoref{f:ipbench} shows the average and maximum UDP latencies for
 ten runs at each budget setting. We can see that the maximum latencies
 follow exactly the budget of the Linux server (black line) up to 9\,ms. Only
 when Linux has a full budget (10\,ms), and thus able to monopolise the
 processor, does the UDP server miss its deadlines, resulting in a
 latency blowout.  This result shows that our sporadic server implementation is effective in bounding interference of a high-priority process.
+
+\begin{figure}[b]
+  \centering
+  \includegraphics{ipbench}
+  \caption{Average and maximum latency of UDP packets with a CPU hog running a high priority with a 10\,ms budget.}
+  \label{f:ipbench}
+\end{figure}
+
 
 \subsection{Network benchmark} 
 
@@ -431,6 +420,13 @@ again demonstrate temporal isolation by running the Yahoo! Cloud Serving Benchma
  We run it against a server using the Redis
  key-value store~\citep{redis:url} with NetBSD~\citep{NetBSD:url} drivers at user-level provided
  by a single-core Rump library OS~\citep{Kantee_Cormack_14} on x86.
+
+ \begin{figure}[t]
+    \centering
+    \includegraphics[height=6cm]{redis-arch}
+    \caption{System architecture redis benchmark.}
+    \label{f:redis-arch}
+\end{figure}
 
 The system consists of Redis/Rump running on three active \selfour threads: two for servicing interrupts
 (network, timer) and one for Rump, as shown in \autoref{f:redis-arch}.
@@ -472,9 +468,9 @@ achieved by the YCSB-A workload as a function of the available CPU
 bandwith (i.e \ the complement of the bandwidth granted to the hog
 thread). Each data point is the average of three benchmark runs.
 
-\begin{figure}[t]
+\begin{figure}[b]
   \centering
-  \includegraphics{redis}
+  \includegraphics[scale=1]{redis}
   \caption{Throughput of Redis YCSB workload A and idle time vs available bandwidth.}
   \label{f:redis}
 \end{figure}

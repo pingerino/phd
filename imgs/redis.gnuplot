@@ -1,6 +1,6 @@
 # Common style definitions
 load "imgs/common.inc"
-set size 0.47,0.22
+set size 0.75,0.75
 
 set output "imgs/redis.eps"
 
