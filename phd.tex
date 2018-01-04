@@ -10,7 +10,6 @@
 
 \usepackage[australian]{babel}
 \usepackage[english=british]{csquotes}
-\usepackage[T1]{fontenc}
 \usepackage[bf,sf]{titlesec}
 
 \usepackage{microtype}
@@ -84,7 +83,6 @@
 \usepackage{tikz}
 \usepackage{listings}
 \usepackage{xspace}
-\usepackage{courier}
 \usepackage{enumitem}
 \usepackage{multirow}
 \usepackage{verbatim}
@@ -114,8 +112,11 @@
 \usetikzlibrary{arrows,automata,shapes.multipart,positioning,plotmarks}
 
 % font
-\usepackage{inconsolata}
-\renewcommand{\rmdefault}{ppl}
+\usepackage[libertine,cmintegrals,cmbraces,vvarbb]{newtxmath}
+\usepackage[scale=0.95]{inconsolata}
+\usepackage[T1]{fontenc}
+%\usepackage{libertine}
+%\renewcommand{\rmdefault}{ppl}
 %\renewcommand{\ttdefault}{pcr}
 % commands
 \newcommand{\yes}{\checkmark}

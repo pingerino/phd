@@ -349,9 +349,19 @@ random amount between each subsequent IPC.
 We modify the benchmark such that the server is passive on the MCS kernel.
 Results are displayed in \Cref{f:evaluation-smp}.
 
-\begin{figure}[ht]
+\begin{figure}[ht] 
     \centering
-    \includegraphics[width=\textwidth]{smp}
+    \begin{subfigure}[t]{0.49\textwidth}
+        \centering
+        \includegraphics{smp_x64}
+        \caption{x64}\label{f:evaluation-smp-x64}       
+    \end{subfigure}
+    \quad
+    \begin{subfigure}[t]{0.49\textwidth}
+        \centering
+        \includegraphics{smp_sabre}
+        \caption{Sabre}\label{f:evaluation-smp-sabre}
+    \end{subfigure}
     \caption{Results of the SMP IPC throughput benchmark, baseline \selfour vs MCS.}
     \label{f:evaluation-smp}
 \end{figure}
