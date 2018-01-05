@@ -7,7 +7,6 @@ DX=0.1; DY=0.1; SX=0.5; SY=0.4
 M=1
 set bmargin M; set tmargin M; set lmargin M; set rmargin M
 set size SX*NX+DX*1.5,SY*NY+DY*1.8+0.1
-LW=4
 
 file = "data/generated/smp-haswell.dat"
 arm_file = "data/generated/smp-sabre.dat"

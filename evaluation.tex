@@ -336,39 +336,132 @@ recent addition to \selfour: scheduling used to be far more expensive.
 
 \subsection{SMP}
 
-We run an SMP throughput benchmark to show that the overheads of the MCS model
-are minimal on multiple cores compared to the baseline kernel. We modify the
+We run an SMP throughput benchmark to show that our MCS model
+avoids introducing scalability problems on multiple cores compared to the baseline kernel.
+We modify the
 existing SMP IPC throughput benchmark for \selfour to run on the MCS kernel. 
+At time of writing, only x64 and Sabre have \selfour multiprocessor support, 
+consequently these are the platforms used for the benchmark.
 
 The existing SMP benchmark measures IPC throughput of a client and server, both 
 pinned to the same processor, sending fastpath, 0 length IPC messages of via \call
 and \replyrecv. One pair of client and server is set up per core. Both threads are
-the same priority and the messages are 0 length. Each thread spins for a bounded
-random amount between each subsequent IPC. 
+the same priority and the messages are 0 length. Each thread spins for a random amount
+with an upper bound \textit{N} between each subsequent IPC. As \textit{N} increases so does
+IPC throughput, as less calls are made.
 
-We modify the benchmark such that the server is passive on the MCS kernel.
-Results are displayed in \Cref{f:evaluation-smp}.
+We modify the benchmark such that each server thread is passive on the MCS kernel.
+Results are displayed in \Cref{f:evaluation-smp} and show a minor impact on IPC throughput
+for high values of \textit{N}. Scalability is not impacted on Sabre, but is on x64,
+with the curve flattening slightly more aggressively on the MCS kernel
+due to the fastpath overhead. This is expected as the MCS model only introduces extra 
+per-core state, with no extra shared state between cores.
 
 \begin{figure}[ht] 
     \centering
     \includegraphics{smp}
-    \caption{Results of the SMP IPC throughput benchmark, baseline \selfour vs MCS.}
+    \caption{Results of the SMP IPC throughput benchmark, baseline \selfour vs MCS. 
+        Each series is named \textit{name-N}, where \textit{name} is \textit{base} and \textit{mcs} for 
+        the baseline and MCS kernel respectively, and \textit{N} is the upper
+        bound on the number of cycles between each IPC for that series.}
     \label{f:evaluation-smp}
 \end{figure}
 
+\subsection{Full system benchmark}
+\label{s:evaluation-redis-overhead}
+
+To demonstrate the impact of the overheads measured in this chapter in a real system,
+we measure the performance of the Redis key value store~\citep{redis:url} using 
+\gls{YCSB}~\citep{Cooper_STRS_10} on baseline and MCS \selfour, and compare this
+against Linux, the Rump unikernel~\citep{Kantee_Cormack_14} and 
+NetBSD~\citep{NetBSD:url} all on the x64 machine.
+
+For \selfour, we use a single-core Rump library OS~\citep{Kantee_Cormack_14} to provide 
+NetBSD~\citep{NetBSD:url} network drivers at user level. The system architecture is 
+shown in \label{f:redis-arch}. 
+The system consists of Redis/Rump running on three active \selfour threads: 
+two for servicing interrupts (network, timer) and one for Rump, as shown in
+\autoref{f:redis-arch}. Interrupt threads run at the highest priority,
+followed by Redis and a low-priority idle thread (not shown) for measuring CPU utilisation;
+this setup forces frequent invocations of the scheduler and interrupt path.
+
+We compare against bare-metal Rump,and
+NetBSD itself, which both use the same drivers. Additionally we compare to Linux 
+in single-user mode. 
+
+ \begin{figure}[ht]
+    \centering
+    \includegraphics{redis-arch}
+    \caption{System architecture of the Redis / \gls{YCSB} benchmark on \selfour, 
+        Linux, NetBSD and Rump unikernel.}
+    \label{f:redis-arch}
+\end{figure}
+
+
+\autoref{t:redis} shows the achieved throughput of Redis+Rump
+running  bare-metal, and Redis on the \selfour baseline and as well as the MCS
+branch, plus Linux and NetBSD for comparison.
+
+The utilisation figures show that the system is fully loaded, except
+in the Linux case, where there is a small amount of idle time. The
+cost per operation (utilisation over throughput) is best on Linux, a
+result of its highly optimised drivers and network stack. Our
+bare-metal and \selfour-based setups use Rump's NetBSD drivers, and
+actually achieve slightly better performance than NetBSD. This
+indicates that the MCS model comes with low overhead.
+
+\begin{table}[t]\centering
+      \begin{tabular}{|c|c|c|c|c|}
+        \hline
+        \textbf{System (IRQ)}  & \textbf{Throughput} & \textbf{Utilisation} &  \textbf{Latency} \\
+                               & (k ops/s)     &  (\%)            &   (ms)            \\
+        \hline
+      \input{data/ycsb-redis.inc}
+    \end{tabular}
+    \caption{Throughput (k\,ops/s) achieved by Redis using the YCSB
+      workload A with 2 clients.  Latency is the average Read and Update,
+      standard deviations in brackets.}
+    \label{t:redis}
+\end{table}
+
 \subsection{Summary}
 
-
-All in all, our overheads are reasonable given the speed of the baseline kernel and the extend of
-the provided functionality.
-
-% TODO summarise results of overheads discovered in microbenchmarks
+All in all, we have demonstrated via micro- and macro- benchmarks that our overheads are
+reasonable given the speed of the baseline kernel and the extend of the provided
+functionality. 
+\clearpage
 
 \section{Temporal Isolation}
 
+We now evaluate the temporal isolation properties achieved by the model. We use
+two system benchmarks to show that processes attain and do not exceed their
+CPU allocation provided by their scheduling context. We then show isolation in a shared
+server scenario, and evaluate and demonstrate different techniques to restore server state.
+
 % Show isolation between processes using different scheduling contexts
 \subsection{Process isolation} 
-We demonstrate our isolation properties
+
+First, we demonstrate our isolation properties with the Redis setup described in
+\Cref{s:evaluation-redis-overhead} with an additional, high-priority CPU-hog thread
+competing for \gls{CPU} time.  All threads have a
+5\,ms period. We use the budget of the hog to control the amount of time left over
+for the server configuration. \autoref{f:redis} shows the throughput
+achieved by the YCSB-A workload as a function of the available CPU
+bandwidth (i.e \ the complement of the bandwidth granted to the hog
+thread). Each data point is the average of three benchmark runs.
+
+\begin{figure}[b]
+  \centering
+  \includegraphics{redis}
+  \caption{Throughput of Redis YCSB workload A and idle time vs available bandwidth.}
+  \label{f:redis}
+\end{figure}
+
+The graph shows that the server is CPU limited (as indicated by very low idle time)
+and consequently throughput scales linearly with available CPU
+bandwidth.
+
+Second, we demonstrate our isolation properties
 in a single-core setup consisting of a Linux VM,
 running at high priority with a
 constrained budget and a UDP echo server running at a lower priority,
@@ -411,73 +504,6 @@ latency blowout.  This result shows that our sporadic server implementation is e
   \label{f:ipbench}
 \end{figure}
 
-
-\subsection{Network benchmark} 
-
-We evaluate the overhead of our implementation and
-again demonstrate temporal isolation by running the Yahoo! Cloud Serving Benchmark
-(YCSB)~\citep{Cooper_STRS_10}.
- We run it against a server using the Redis
- key-value store~\citep{redis:url} with NetBSD~\citep{NetBSD:url} drivers at user-level provided
- by a single-core Rump library OS~\citep{Kantee_Cormack_14} on x86.
-
- \begin{figure}[t]
-    \centering
-    \includegraphics[height=6cm]{redis-arch}
-    \caption{System architecture redis benchmark.}
-    \label{f:redis-arch}
-\end{figure}
-
-The system consists of Redis/Rump running on three active \selfour threads: two for servicing interrupts
-(network, timer) and one for Rump, as shown in \autoref{f:redis-arch}.
-Interrupt threads run at the highest priority, followed by Redis and
-a low-priority idle thread (not shown) for measuring CPU utilisation;
-this setup forces frequent invocations of the scheduler and interrupt
-path. \autoref{t:redis} shows the achieved throughput of Redis+Rump
-running  bare-metal (BMK), and Redis on the \selfour baseline and as well as the MCS
-branch, plus Linux and NetBSD for comparison.
-
-% TODO update
-The utilisation figures show that the system is fully loaded, except
-in the Linux case, where there is a small amount of idle time. The
-cost per operation (utilisation over throughput) is best on Linux, a
-result of its highly optimised drivers and network stack. Our
-bare-metal and \selfour-based setups use Rump's NetBSD drivers, and
-actually achieve slightly better performance than NetBSD. This
-indicates that our MCS support comes with low overhead.
-
-
-\begin{table}[t]\centering
-      \begin{tabular}{|c|c|c|c|c|}
-        \hline
-        \textbf{System (IRQ)}  & \textbf{Tput} & \textbf{Utilis.} &  \textbf{Latency} \\
-                               & (k ops/s)     &  (\%)            &   (ms)            \\
-        \hline
-      \input{data/ycsb-redis.inc}
-    \end{tabular}
-    \caption{Throughput (k\,ops/s) achieved by Redis using the YCSB
-      workload A ith 2 clients.  Latis average Read and Update,
-      standard deviations in brackets.}
-    \label{t:redis}
-\end{table}
-
-We next run Redis with a high-priority CPU-hog thread competing for CPU time. All threads have a
-5\,ms period. We use the budget of the hog to control the amount of time left over
-for the server configuration. \autoref{f:redis} shows the throughput
-achieved by the YCSB-A workload as a function of the available CPU
-bandwith (i.e \ the complement of the bandwidth granted to the hog
-thread). Each data point is the average of three benchmark runs.
-
-\begin{figure}[b]
-  \centering
-  \includegraphics[scale=1]{redis}
-  \caption{Throughput of Redis YCSB workload A and idle time vs available bandwidth.}
-  \label{f:redis}
-\end{figure}
-
-The graph shows that the server is CPU limited (as indicated by very low idle time)
-and consequently throughput scales linearly with available CPU
-bandwidth.
 
 % Show isolation in a shared server
 \subsection{Server isolation} 

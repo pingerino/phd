@@ -1,11 +1,9 @@
 # Common style definitions
 load "imgs/common.inc"
-set size 0.75,0.75
-
 set output "imgs/redis.eps"
 
 data = "data/generated/redis.dat"
-
+set size 1,0.75
 set key top left vertical maxrows 2
 #set key at 95, 15 bottom right
 set xlabel "Available CPU bandwidth (%)"
@@ -20,5 +18,5 @@ set ytics nomirror
 set y2tics
 
 
-plot    data using (100-$1):($2):($3) with errorlines title "Xput" ,\
-        data using (100-$1):($4):($5) with errorlines title "Idle" axes x1y2 
+plot    data using (100-$1):($2):($3) with errorlines title "Throughput" ,\
+        data using (100-$1):($4):($5) with errorlines title "Idle utilisation" axes x1y2 
