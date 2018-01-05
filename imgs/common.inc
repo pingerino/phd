@@ -1,8 +1,8 @@
 # Common definitions for plots
 
 # Styles
-set terminal postscript size 3.0in,2.25in eps enhanced color font "Helvetica" 11
-set border linewidth 1
+set terminal postscript size 12cm, 12cm eps enhanced color font "Helvetica" 22
+set border linewidth 2
 
 set style line 1  lw 2 lt 10 pt 3  lc rgb "red"
 set style line 2  lw 2 lt 12 pt 4  lc rgb "blue"

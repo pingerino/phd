@@ -57,7 +57,7 @@ Targets    = phd
 # but should appear here with just the .pdf extension.
 ModeSwRoot=all up
 ModeSwFigs=$(patsubst %,imgs/mode-switch-%.pdf,$(ModeSwRoot))
-ExtraFigRoot= edf ipbench smp_sabre smp_x64
+ExtraFigRoot= edf ipbench smp
 ExtraFigs= $(patsubst %,imgs/%.pdf,$(ExtraFigRoot)) $(ModeSwFigs)
 TexIncludes= $(wildcard data/generated/*.inc) $(wildcard *.tex) crit_includes micro_includes aes_includes
 # For ACM SIG camera ready submission. This will only work if Target
@@ -563,12 +563,9 @@ $(eval $(call smp_stuff,haswell))
 $(eval $(call smp_stuff,sabre))
 
 
-imgs/smp_x64.gnuplot: ${GEN_DIR}/smp-haswell.dat 
-imgs/smp_sabre.gnuplot: ${GEN_DIR}/smp-sabre.dat
-imgs/smp_x64.eps: imgs/smp_x64.gnuplot ${GEN_DIR}/smp-haswell.dat 
-imgs/smp_sabre.eps: imgs/smp_sabre.gnuplot ${GEN_DIR}/smp-sabre.dat
-imgs/smp_x64.pdf: imgs/smp_x64.eps ${GEN_DIR}/smp-haswell.dat 
-imgs/smp_sabre.pdf: imgs/smp_sabre.eps ${GEN_DIR}/smp-sabre.dat
+imgs/smp.gnuplot: imgs/common.inc ${GEN_DIR}/smp-haswell.dat ${GEN_DIR}/smp-sabre.dat
+imgs/smp.eps: imgs/common.inc ${GEN_DIR}/smp-haswell.dat ${GEN_DIR}/smp-sabre.dat
+imgs/smp.pdf: imgs/smp.eps ${GEN_DIR}/smp-haswell.dat ${GEN_DIR}/smp-sabre.dat
 
 %.gnuplot: imgs/common.inc
 
