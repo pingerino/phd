@@ -180,12 +180,13 @@ print: pdf
 clean:
 	rm -f *.aux *.toc *.bbl *.blg *.dvi *.log *.pstex* *.eps *.cb *.brf \
 		*.rel *.idx *.out *.ps *-diff.* *.mps .log *.diff tmp.*
-	rm -r data/generated
+	touch data/generated
+	rm -r data/generated/
+	rm .*_process_micro_data
+	rm .*_process_aes_data
 
 realclean: clean
 	rm -f *~ *.pdf *.tgz $(Bib)
-	rm .*_process_micro_data
-	rm .*_process_aes_data
 
 tar:	realclean
 	( p=`pwd` && d=`basename "$$p"` && cd .. && \
@@ -449,6 +450,9 @@ endef
 $(eval $(call process_crit_data,haswell))
 $(eval $(call process_crit_data,sabre))
 
+${GEN_DIR}:
+	mkdir ${GEN_DIR}
+
 #
 # latex includes
 #
@@ -469,7 +473,7 @@ endef
 # generate micro includes for each platform
 $(foreach var,${PLATS},$(eval $(call micro_includes,$(var))))
 
-micro_includes: $(PLATS:%=.%_micro_includes)
+micro_includes: ${GEN_DIR} $(PLATS:%=.%_micro_includes)
 
 # aes
 define aes_includes
@@ -480,7 +484,7 @@ endef
 $(eval $(call aes_includes,haswell))
 $(eval $(call aes_includes,sabre))
 
-aes_includes: sabre_aes_includes haswell_aes_includes
+aes_includes: ${GEN_DIR} sabre_aes_includes haswell_aes_includes
 
 # criticality
 define crit_includes
@@ -508,9 +512,9 @@ crit_includes: haswell_crit_includes sabre_crit_includes
 #
 
 define .aes_dat
-${GEN_DIR}/$1-shared-aes-1000.dat: .$1_process_aes_data
-${GEN_DIR}/$1-shared-aes-100.dat: .$1_process_aes_data
-${GEN_DIR}/$1-shared-aes-10.dat: .$1_process_aes_data
+${GEN_DIR}/$1-shared-aes-1000.dat: ${GEN_DIR} .$1_process_aes_data
+${GEN_DIR}/$1-shared-aes-100.dat: ${GEN_DIR} .$1_process_aes_data
+${GEN_DIR}/$1-shared-aes-10.dat: ${GEN_DIR} .$1_process_aes_data
 endef
 
 $(eval $(call .aes_dat,haswell))
@@ -526,21 +530,18 @@ $(ModeSwEps): crit_includes
 
 
 ipbench.gnuplot:	data/generated/ipbench.dat
-data/generated/ipbench.dat:	data/ipbench.csv data/ipbench_data.py
-	@mkdir -p ${PWD}/data/generated
+data/generated/ipbench.dat:	${GEN_DIR} data/ipbench.csv data/ipbench_data.py
 	@echo '====> generating ipbench data'
 	@python3 ${PWD}/data/ipbench_data.py -i ${PWD}/data/ipbench.csv -u${PWD}/data/ipbench_util.csv -o ${PWD}/data/generated/ipbench.dat > gen-ipbench.log || \
 		( cat gen-ipbench.log; false )
 
 ulsched: data/ul-sabre.json data/ul-haswell.json data/sched_results.py
-data/generated/sabre-edf-%.dat: data/ul-sabre.json data/sched_results.py
-	@mkdir -p ${PWD}/data/generated
+data/generated/sabre-edf-%.dat: ${GEN_DIR} data/ul-sabre.json data/sched_results.py
 	@echo '====> generating sabre ulsched data'
 	@python3 ${PWD}/data/sched_results.py -a sabre -i ${PWD}/data/ul-sabre.json -o ${PWD}/data/generated/ > gen-edf.log
 
-data/generated/haswell-edf-%.dat: data/ul-haswell.json data/sched_results.py
-data/generated/haswell-edf-%.dat: data/ul-haswell.json data/sched_results.py
-	@mkdir -p ${PWD}/data/generated
+data/generated/haswell-edf-%.dat: ${GEN_DIR} data/ul-haswell.json data/sched_results.py
+data/generated/haswell-edf-%.dat: ${GEN_DIR} data/ul-haswell.json data/sched_results.py
 	@echo '====> generating haswell ulsched data'
 	@python3 ${PWD}/data/sched_results.py -a haswell -i ${PWD}/data/ul-haswell.json -o ${PWD}/data/generated/ > gen-edf.log
 
@@ -554,7 +555,7 @@ imgs/ipbench.eps: data/generated/ipbench.dat
 imgs/ipbench.pdf: imgs/ipbench.eps 
 
 define smp_stuff
-${GEN_DIR}/smp-$1.dat: data/process_smp.py data/baseline-smp-$1.json data/rt-smp-$1.json
+${GEN_DIR}/smp-$1.dat: ${GEN_DIR} data/process_smp.py data/baseline-smp-$1.json data/rt-smp-$1.json
 	@echo '===> generating $1 smp data'
 	@python3 data/process_smp.py -o ${GEN_DIR} -p $1 -b ${PWD}/data/baseline-smp-$1.json -rt ${PWD}/data/rt-smp-$1.json
 endef
