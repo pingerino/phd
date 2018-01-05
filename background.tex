@@ -290,25 +290,27 @@ This implementation results in less blocking overall than \gls{HLP}, whilst avoi
 
 \subsection{Summary}
 
-\begin{table}
-        \centering
-    \begin{tabular}{|c| c c c c|} \hline
-        \multirow{5}{*}{\rotatebox[origin=c]{90}{ \textbf{Complexity}}}
-        \multirow{5}{*}{\rotatebox[origin=c]{90}{$\longrightarrow$}}
-        &     &     &     &      \\
-        & PCP &     &     &      \\
-        &     &     & PIP &      \\
-        &     & HLP &     &      \\
-        &     &     &     & NCP  \\\hline
-        &  \multicolumn{4}{c|}{$\longrightarrow$}\\
-                &  \multicolumn{4}{c|}{\textbf{Priority inversion bound}}\\\hline
-    \end{tabular}
-        \caption{Comparison of real-time locking protocols based on implementation complexity
-        and priority inversion bound.}
-        \label{tab:locking}
-\end{table}
+\begin{figure}[ht]
+  \centering
+  \setlength{\unitlength}{1mm}
+  \begin{picture}(50,25)(-5,-5)
+    % WHOA! My first use of the picture environment in 25 years ;-)
+    \thicklines
+    \put(-5,0){\vector(1,0){50}}
+    \put(7,-4){Priority inversion bound}
+    \put(0,-5){\vector(0,1){25}}
+    \put(-4.5,2){\rotatebox{90}{Complexity}}
+    \put(2,15){OPCP}
+    \put(12,3){IPCP}
+    \put(25,11){PIP}
+    \put(35,1.5){NCP}
+  \end{picture}
+  \caption{Comparison of real-time locking protocols based on
+    implementation complexity and priority inversion bound.}
+  \label{f:locking}
+\end{figure}
 
-\Cref{tab:locking} compares the different locking protocols, showing that \gls{PCP} provides the lowest bound on priority inversion; however is also the most complicated to implement.
+\Cref{f:locking} compares the different locking protocols, showing that \gls{PCP} provides the lowest bound on priority inversion; however is also the most complicated to implement.
 \gls{NCP} on the other hand, is the simplest to implement but exhibits the worst priority inversion behaviour, with \gls{PIP} and \gls{HLP} falling between the two.
 \gls{HLP} provides minimal implementation complexity but requires a policy on priority assignment to be in place in the system.
 Many other more sophisticated locking protocols exist, however we do not survey them here.
@@ -325,11 +327,11 @@ A \emph{microkernel} attempts to minimise the amount of code running in the kern
 Figure \ref{fig:os-microkernel} illustrates the difference between monolithic \glspl{OS} and microkernels.
 Modern microkernel implementation is guided by the minimality principle~\citep{Liedtke_95} which aims to provide minimal mechanisms to allow resource servers to function, leaving the rest of the policy up to the software running outside of the kernel.
 
-\begin{figure}[h!tb]
+\begin{figure}[tb]
 	\begin{center}
 		\leavevmode
-		\includegraphics[width=14cm]{os-microkernel.pdf}
-		\caption{The difference between a monolithic operating system and a microkernel.}
+		\includegraphics{os-microkernel.pdf}
+		\caption{Structure of a microkernel vs. monolithic operating system}
 		\label{fig:os-microkernel}
 	\end{center}
 \end{figure}
