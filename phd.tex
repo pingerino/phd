@@ -16,6 +16,7 @@
 \usepackage{algorithm}
 %\usepackage{algpsuedocode}
 %\Onehalfspacing
+\usepackage[table]{xcolor}
 \usepackage{booktabs}
 
 
@@ -48,6 +49,7 @@
 \graphicspath{{imgs/}}
 %\usepackage[nottoc,numbib]{tocbibind}
 \usepackage{caption}
+\captionsetup{font=small} % format=hang,
 \usepackage{subcaption}
 \usepackage{mwe}
 \usepackage{setspace}
@@ -61,7 +63,6 @@
 \usepackage{textcomp}
 \usepackage{gensymb}
 %\usepackage[page]{appendix}
-\usepackage{longtable}
 \usepackage{mathptmx}
 \hypersetup{
     pdfborder = {0 0 0.75 [1.5 3]},
@@ -78,7 +79,10 @@
 \usepackage{colortbl}
 \usepackage{pdfpages}
 \usepackage{tabularx}
-%\usepackage{booktabs}
+\setlength{\extrarowheight}{3pt} % increase table row height
+\newcommand{\tableheadline}[1]{\multicolumn{1}{l}{\spacedlowsmallcaps{#1}}}
+\newcommand{\myfloatalign}{\centering} % to be used with each float for alignment
+\usepackage{booktabs}
 \usepackage{listings}
 \usepackage{tikz}
 \usepackage{listings}
@@ -104,10 +108,17 @@
     tabsize=4,
     captionpos=b,
     numbers=left,
+    numberstyle=\scriptsize,
+    numbersep=8pt,
+    commentstyle=\color{green}\ttfamily,
+    stringstyle=\rmfamily,
     showstringspaces=false,
     basicstyle=\small\ttfamily,
     xleftmargin=6pt,
-    xrightmargin=6pt
+    xrightmargin=6pt,
+    keywordstyle=\color{blue},
+    breaklines=true,
+    belowcaptionskip=.75\baselineskip
 }
 \usetikzlibrary{arrows,automata,shapes.multipart,positioning,plotmarks}
 
@@ -210,9 +221,9 @@
 
 % evaluation commands
 \newcommand{\inputbenchmarkrows}[3]{
-    \multirow{2}{*}{#1}
+    \midrule
+    \multirow{2}{*}{\textsc{#1}}
     \input{data/generated/#2-#3-micro.inc}
-    \hline
 }
 
 \newcommand{\ipcmicro}[3]{\inputbenchmarkrows{#1}{#2}{#3-ipc}}
@@ -262,6 +273,7 @@ The implementation platform will be the \selfour microkernel, which is built for
 \cleardoublepage
 \newpage
 
+% set up our tables
 \mainmatter
 
 \sloppy

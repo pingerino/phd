@@ -89,7 +89,7 @@ def microbenchmark_row(out, name, rt, b, average=False):
     out.write(str(diff))
     out.write('&\t')
     out.write(str(round(int(diff / b_val * 100))))
-    out.write('\% \\\\ \\cline{2-6}\n')
+    out.write('\% \\\\\n')
 
 def build_microbenchmark_dat(rt, baseline, arch):
     with open(rt, 'r') as rt_json, open(baseline, 'r') as b_json:

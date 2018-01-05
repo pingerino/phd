@@ -45,7 +45,7 @@ unset key
 
 # x64 plot
 set xlabel "Cores"
-set ylabel "IPC Kops/s"
+set ylabel "IPC k ops/s"
 set title "x64"
 set size SX,SY
 set origin DX,DY+0.1      

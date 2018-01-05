@@ -17,27 +17,31 @@ operations.
 
 % describe benchmark setup, details of each hardware platform
 We run microbenchmarks on a variety of hardware to show the overheads of the model compared to
-baseline \selfour. \Cref{t:evaluation-hardware} summarises the hardware platforms. \textbf{Sabre} is
-the verified platform for \selfour, although at the time of writing verification for \textbf{x64} is
-ongoing. Currently, the only platforms that support more than one core are \textbf{Sabre},
-\textbf{ia32} and \textbf{x64}.
+baseline \selfour. \Cref{t:evaluation-hardware} summarises the hardware platforms. \textsc{Sabre} is
+the verified platform for \selfour, although at the time of writing verification for \textsc{x64} is
+ongoing. Currently, the only platforms that support more than one core are \textsc{Sabre},
+\textsc{ia32} and \textsc{x64}.
 
 Additionally, we use several load generators running Linux on an isolated network for several
 benchmarks which require a network.
 
-\begin{table}[ht]\centering
-\begin{tabular}{|c|l|l|l|l|l|l|}\hline
-    \textbf{Platform} & \textbf{Arch.} & \textbf{Microarch.} & \textbf{CPU} & \textbf{Clock} & \textbf{Mode} & \textbf{Cores} \\\hline
-    \textbf{KZM}  & ARMv6          & ARM1136JF-S          & i.MX31       & 1.00 GHz         & 32  &  1 \\\hline
-    \textbf{Sabre} & ARMv7          & Cortex-A9           & i.MX6        & 1.00 GHz         & 32  & 4 \\\hline
-    \textbf{Hikey32} & ARMv8          & Cortex-A53          & Kirin 620    & 1.20 GHz         & 32  & 8 \\\hline
-    \textbf{Hikey64} & ARMv8          & Cortex-A53          & Kirin 620    & 1.20 GHz         & 64  & 8 \\\hline
-    \textbf{TX1}  & ARMv8          & Cortex-A57          & Jetson TX1   & 1.91 GHz         & 64  & 4 \\\hline
-    \textbf{atom} & x86            & E3825               & Atom         & 1.33 GHz         & 32  & 2 \\\hline
-    \textbf{ia32} & x86            & i7-4770             & Haswell      & 3.10 GHz         & 32  & 4 \\\hline
-    \textbf{x64}  & x86            & i7-4770             & Haswell      & 3.10 GHz         & 64  & 4 \\\hline
+\begin{table}[ht]
+\rowcolors{2}{gray!25}{white}
+\begin{tabular}{*7l}\toprule
+    \emph{Platform} & \emph{Arch.} & \emph{Microarchictecture} & \emph{CPU} & \emph{Clock (GHz)} &
+    \emph{Mode} & \emph{Cores} \\\midrule
+    \textsc{KZM}  & ARMv6          & ARM1136JF-S          & i.MX31       & 1.00         & 32  &  1 \\
+    \textsc{Sabre} & ARMv7          & Cortex-A9           & i.MX6        & 1.00         & 32  & 4 \\
+    \textsc{Hikey32} & ARMv8          & Cortex-A53          & Kirin 620    & 1.20         & 32  & 8 \\
+    \textsc{Hikey64} & ARMv8          & Cortex-A53          & Kirin 620    & 1.20         & 64  & 8 \\
+    \textsc{TX1}  & ARMv8          & Cortex-A57          & Jetson TX1   & 1.91        & 64  & 4 \\
+    \textsc{atom} & x86            & E3825               & Atom         & 1.33         & 32  & 2 \\
+    \textsc{ia32} & x86            & i7-4770             & Haswell      & 3.10         & 32  & 4 \\
+    \textsc{x64}  & x86            & i7-4770             & Haswell      & 3.10         & 64  & 4
+\\\bottomrule\hline
 \end{tabular}
-\caption{Hardware platforms and specifications used in benchmarks. Hikey32/Hikey64 and ia32/x64 are the
+\caption{Hardware platforms and specifications used in benchmarks. \textsc{Hikey32/Hikey64}
+    and \textsc{ia32/x64} are the
 same platform in 32 and 64 bit mode respectively.}
 \label{t:evaluation-hardware}
 \end{table}
@@ -61,15 +65,18 @@ microbenchmarks of both of these operations in \Cref{t:evaluation-timer}, and no
 hardware used on the specific platform. 
 
 \begin{table}[ht]\centering
-\begin{tabular}{|c|l|l|l|l|}\hline
-    \textbf{Platform} & \textbf{Timer} & \texttt{Read time} & \texttt{Set timeout} & \textbf{Sum} \\\hline
-    KZM               & General purpose timer    & 83 (0)   & 203(0)  & 286   \\\hline
-    Sabre             & ARM MPCore global timer  & 23 (0)   & 36 (0)  & 59    \\\hline
-    Hikey32/64        & ARM generic timers       &  6 (0)   &  6 (0)  & 12    \\\hline
-    TX1               & ARM generic timers       &  8 (0)   &  1 (0)  & 9     \\\hline
-    atom              & TODO                     & TODO     & TODO    & TODO  \\\hline
-    ia32              & TSC deadline mode        & 12 (2.2) & 220 (1.0) & 232 \\\hline
-    x64               & TSC deadline mode        & 11 (2.3) & 217 (2.0) & 228 \\\hline 
+\rowcolors{2}{gray!25}{white}
+\begin{tabular}{*5l}\toprule
+    \emph{Platform} & \emph{Timer} & \emph{Read time} & \emph{Set timeout} & \emph{Sum}
+    \\\midrule
+    \textsc{KZM}               & General purpose timer    & 83 (0)   & 203(0)  & 286   \\
+    \textsc{Sabre}             & ARM MPCore global timer  & 23 (0)   & 36 (0)  & 59    \\
+    \textsc{Hikey32/64}        & ARM generic timers       &  6 (0)   &  6 (0)  & 12    \\
+    \textsc{TX1}               & ARM generic timers       &  8 (0)   &  1 (0)  & 9     \\
+    \textsc{atom}              & TODO                     & TODO     & TODO    & TODO  \\
+    \textsc{ia32}              & TSC deadline mode        & 12 (2.2) & 220 (1.0) & 232 \\
+    \textsc{x64}               & TSC deadline mode        & 11 (2.3) & 217 (2.0) & 228 \\
+    \bottomrule\hline
 \end{tabular}
 \caption{Latency of timer operations per platform in cycles. Standard deviations shown
 in brackets.}
@@ -82,8 +89,8 @@ counts, and subtract the cost of measuring the cycle counter itself. The results
 both operations separately, and then their sum, which is the total measured overhead introduced by timers on
 scheduling context switch.
 
-All platforms excluding KZM have a 64-bit timer available, making KZM the platform requiring
-timer overflow interrupts, which are not measured as KZM is a deprecated platform provided for comparison
+All platforms excluding \textsc{KZM} have a 64-bit timer available, making \textsc{KZM} the only platform requiring
+timer overflow interrupts, which are not measured as \textsc{KZM} is a deprecated platform provided for comparison
 with modern ARM versions.
 
 Sabre and KZM both use memory mapped timers, the 32-bit general purpose time for the former and
@@ -127,11 +134,11 @@ active threads.
 \subsubsection{Fastpath}
 
 \begin{table}[ht]\centering
-\begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
-\textbf{Platform}           & \multicolumn{1}{c|}{\textbf{Operation}}
-                                & \multicolumn{2}{c|}{\textbf{Base}}
-                                & \multicolumn{2}{c|}{\textbf{MCS}}
-                                & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
+\begin{tabular}{ll r@{~}l r@{~}l r@{~}r}\toprule
+\emph{Platform}           & \multicolumn{1}{c}{\emph{Operation}}
+                                & \multicolumn{2}{c}{\emph{Baseline}}
+                                & \multicolumn{2}{c}{\emph{MCS     }}
+                                & \multicolumn{2}{c}{\emph{Overhead}} \\
     \ipcmicro{KZM}{kzm}{fastpath}
     \ipcmicro{Sabre}{sabre}{fastpath}
     \ipcmicro{Hikey32}{hikey32}{fastpath}
@@ -139,6 +146,7 @@ active threads.
     \ipcmicro{TX1}{tx1}{fastpath}
     \ipcmicro{x64}{haswell}{fastpath}
     \ipcmicro{ia32}{ia32}{fastpath}
+    \bottomrule
 % TODO atom
 % TODO ia32
 \end{tabular}
@@ -177,11 +185,11 @@ for ARM as 23 cycles.
 the resume capability, the ordered IPC checks, and accessing the \gls{SCO} and resume object.
 
 \begin{table}[ht]\centering
-\begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
-\textbf{Platform}           & \multicolumn{1}{c|}{\textbf{Operation}}
-                                & \multicolumn{2}{c|}{\textbf{Base}}
-                                & \multicolumn{2}{c|}{\textbf{MCS}}
-                                & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
+\begin{tabular}{ll r@{~}l r@{~}l r@{~}r}\toprule
+\emph{Platform}           & \multicolumn{1}{c}{\emph{Operation}}
+                                & \multicolumn{2}{c}{\emph{Base}}
+                                & \multicolumn{2}{c}{\emph{MCS}}
+                                & \multicolumn{2}{c}{\emph{Overhead}}\\
     \ipcmicro{KZM}{kzm}{slowpath}
     \ipcmicro{Sabre}{sabre}{slowpath}
     \ipcmicro{Hikey32}{hikey32}{slowpath}
@@ -189,6 +197,7 @@ the resume capability, the ordered IPC checks, and accessing the \gls{SCO} and r
     \ipcmicro{TX1}{tx1}{slowpath}
     \ipcmicro{x64}{haswell}{slowpath}
     \ipcmicro{ia32}{ia32}{slowpath}
+    \bottomrule
 % TODO atom
 % TODO ia32
 \end{tabular}
@@ -209,11 +218,11 @@ with a hot cache as 36 cycles.
 % get branch mispredict etc
 
 \begin{table}[hb]\centering
-\begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
-\textbf{Platform}           & \multicolumn{1}{c|}{\textbf{Operation}}
-                                & \multicolumn{2}{c|}{\textbf{Base}}
-                                & \multicolumn{2}{c|}{\textbf{MCS}}
-                                & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
+\begin{tabular}{cl r@{~}l r@{~}l r@{~}r}\toprule
+\emph{Platform}           & \multicolumn{1}{c}{\emph{Operation}}
+                                & \multicolumn{2}{c}{\emph{Base}}
+                                & \multicolumn{2}{c}{\emph{MCS}}
+                                & \multicolumn{2}{c}{\emph{Overhead}} \\
     \ipcmicro{KZM}{kzm}{slowpath-active}
     \ipcmicro{Sabre}{sabre}{slowpath-active}
     \ipcmicro{Hikey32}{hikey32}{slowpath-active}
@@ -221,6 +230,7 @@ with a hot cache as 36 cycles.
     \ipcmicro{TX1}{tx1}{slowpath-active}
     \ipcmicro{x64}{haswell}{slowpath-active}
     \ipcmicro{ia32}{ia32}{slowpath-active}
+    \bottomrule
 % TODO atom
 % TODO ia32
 \end{tabular}
@@ -246,11 +256,11 @@ side. Similar to standard slowpath-IPC, the largest impact is on the reply path,
 and the extra lookup of the resume object add overhead.
 
 \begin{table}[ht]\centering
-\begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
-\textbf{Platform}           & \multicolumn{1}{c|}{\textbf{Operation}}
-                                & \multicolumn{2}{c|}{\textbf{Base}}
-                                & \multicolumn{2}{c|}{\textbf{MCS}}
-                                & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
+\begin{tabular}{cl r@{~}l  r@{~}l r@{~}r}\toprule
+\emph{Platform}           & \multicolumn{1}{c}{\emph{Operation}}
+                                & \multicolumn{2}{c}{\emph{Baseline}}
+                                & \multicolumn{2}{c}{\emph{MCS}}
+                                & \multicolumn{2}{c}{\emph{Overhead}} \\ 
     % no kzm, fault benchmark doesn't work
     \faultmicro{Sabre}{sabre}
     \faultmicro{Hikey32}{hikey32}
@@ -258,6 +268,7 @@ and the extra lookup of the resume object add overhead.
     \faultmicro{TX1}{tx1}
     \faultmicro{x64}{haswell}
     \faultmicro{ia32}{ia32}
+    \bottomrule
 \end{tabular}
 \caption{Microbenchmarks of \selfour fault \gls{IPC} between passive threads.}
 \label{t:slowpath-fault-micro}
@@ -275,11 +286,11 @@ is to a higher priority thread.
 
 
 \begin{table}[h]\centering
-\begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
-\textbf{Platform}           & \multicolumn{1}{c|}{\textbf{Operation}}
-                                & \multicolumn{2}{c|}{\textbf{Base}}
-                                & \multicolumn{2}{c|}{\textbf{MCS}}
-                                & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
+\begin{tabular}{cl r@{~}l r@{~}l r@{~}r}\toprule
+\emph{Platform}           & \multicolumn{1}{c}{\emph{Operation}}
+                                & \multicolumn{2}{c}{\emph{Base}}
+                                & \multicolumn{2}{c}{\emph{MCS}}
+                                & \multicolumn{2}{c}{\emph{Overhead}} \\
     \irqmicro{KZM}{kzm}
     \irqmicro{Sabre}{sabre}
     \irqmicro{Hikey32}{hikey32}
@@ -287,6 +298,7 @@ is to a higher priority thread.
     \irqmicro{TX1}{tx1}
     \irqmicro{x64}{haswell}
     \irqmicro{ia32}{ia32}
+    \bottomrule
 \end{tabular}
 \caption{Microbenchmarks of \selfour signal and IRQ latency on \selfour baseline vs. MCS kernels. Standard deviations
 shown in brackets.}
@@ -301,11 +313,11 @@ that when the scheduler is used and a thread switch does not occur, there is no 
 \subsection{Scheduling}
 
 \begin{table}[ht]\centering
-\begin{tabular}{|c|l| r@{~}l | r@{~}l |r@{~}r|}\hline
-\textbf{Platform}           & \multicolumn{1}{c|}{\textbf{Operation}}
-                                & \multicolumn{2}{c|}{\textbf{Base}}
-                                & \multicolumn{2}{c|}{\textbf{MCS}}
-                                & \multicolumn{2}{c|}{\textbf{Overhead}} \\ \hline
+\begin{tabular}{cl r@{~}l  r@{~}l r@{~}r}\toprule
+\emph{Platform}           & \multicolumn{1}{c}{\emph{Operation}}
+                                & \multicolumn{2}{c}{\emph{Base}}
+                                & \multicolumn{2}{c}{\emph{MCS}}
+                                & \multicolumn{2}{c}{\emph{Overhead}} \\
 
     
     \schedulemicro{KZM}{kzm}
@@ -315,6 +327,7 @@ that when the scheduler is used and a thread switch does not occur, there is no 
     \schedulemicro{TX1}{tx1}
     \schedulemicro{x64}{haswell}
     \schedulemicro{ia32}{ia32}
+    \bottomrule
 \end{tabular}
 \caption{Microbenchmarks of \selfour IPC scheduling costs.}
 \label{t:micro-schedule}
@@ -411,12 +424,13 @@ actually achieve slightly better performance than NetBSD. This
 indicates that the MCS model comes with low overhead.
 
 \begin{table}[t]\centering
-      \begin{tabular}{|c|c|c|c|c|}
-        \hline
-        \textbf{System (IRQ)}  & \textbf{Throughput} & \textbf{Utilisation} &  \textbf{Latency} \\
+    \rowcolors{3}{}{gray!25}
+      \begin{tabular}{lcccc}\toprule
+        \emph{System (IRQ)}  & \emph{Throughput} & \emph{Utilisation} &  \emph{Latency} \\
                                & (k ops/s)     &  (\%)            &   (ms)            \\
-        \hline
+        \midrule
       \input{data/ycsb-redis.inc}
+      \bottomrule
     \end{tabular}
     \caption{Throughput (k\,ops/s) achieved by Redis using the YCSB
       workload A with 2 clients.  Latency is the average Read and Update,
