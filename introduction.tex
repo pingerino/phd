@@ -46,18 +46,19 @@ The criticality of a system reflects the severity of failure, where higher criti
 Table \ref{tab:criticality_table} shows criticality levels considered when designing software for commercial aircraft in the United States.
 
 \begin{table}
-	\begin{center}
-		\begin{tabular}{ | l | p{10cm} |} \hline
-			\textbf{Level} & \textbf{Impact} \\ \hline
-			Catastrophic   & Failure may cause a crash \\ \hline
-			Hazardous      & Failure has a large negative impact on safety or performance \\ \hline
-			Major          & Failure is significant, but less than hazardous (passenger discomfort or increased crew workload) \\ \hline 
-			Minor          & Failure is noticeable (passenger inconvenience or changed route) \\ \hline
-			No Effect      & No impact on safety, aircraft operation or crew workload \\ \hline
+    \centering
+    \rowcolors{2}{gray!25}{}
+    \begin{tabular}{ l p{10cm}} \toprule
+			\emph{Level} & \emph{Impact} \\ \midrule
+			Catastrophic   & Failure may cause a crash \\
+			Hazardous      & Failure has a large negative impact on safety or performance \\ 
+			Major          & Failure is significant, but less than hazardous (passenger discomfort or increased crew workload) \\  
+			Minor          & Failure is noticeable (passenger inconvenience or changed route) \\
+			No Effect      & No impact on safety, aircraft operation or crew workload \\ 
+        \bottomrule
 		\end{tabular}
 		\caption{Criticality levels from DO-178B, a safety standard for commercial aircraft.}
 		\label{tab:criticality_table}
-	\end{center}   
 \end{table}    
 
 Systems of different criticality levels require higher engineering and certification standards.
@@ -75,7 +76,7 @@ Given the increased amount of computing in every part of our daily lives, the pr
 
 \paragraph{Function}
 
-Additionaly, isolated physical systems cannot interact by definition, which limits the function of those systems. 
+Additionally, isolated physical systems cannot interact by definition, which limits the function of those systems. 
 \glspl{UAV} and other autonomous vehicles provide an excellent motivations for systems where sub systems of different criticality share resources: meaning they must share hardware.
 For example, consider the system for a self driving car as with components as outlined in \Cref{tab:self-driving-car}.
 The safety systems are the most critical: if airbags or anti-lock breaks fail this could cause great injury or death to the passengers.
@@ -86,18 +87,19 @@ Consequently, mixed-criticality systems provide increased functionality over phy
 
 % TODO would be cool if this was a real system
 \begin{table} 
-\begin{center}
-\begin{tabular}{|c|c|c|}\hline
-    \textbf{System}     & \textbf{Purpose} & \textbf{Criticality} \\\hline
-     Airbags            & Safety &  Catastrophic \\\hline
-     Anti lock breaks   & Safety &  Catastrophic \\\hline
-     Obstacle detection & Safety &  Hazardous \\\hline
-     Navigation         & Route planning & Minor \\\hline  
-     Communications     & Optimal route planning & No effect \\\hline
+\rowcolors{2}{gray!25}{}
+\centering
+\begin{tabular}{ccc}\toprule
+    \emph{System}     & \emph{Purpose} & \emph{Criticality} \\\midrule
+     Airbags            & Safety &  Catastrophic \\
+     Anti lock breaks   & Safety &  Catastrophic \\
+     Obstacle detection & Safety &  Hazardous    \\
+     Navigation         & Route planning & Minor \\  
+     Communications     & Optimal route planning & No effect \\
+    \bottomrule
 \end{tabular}
-\caption{Example (made up) systems in a self driving car.}
+\caption{Fictional example systems in a self driving car.}
 \label{tab:self-driving-car}
-\end{center}
 \end{table}
 
 % TODO present UAV case study here, brief list of components with criticalities - expand and build upon throughout document

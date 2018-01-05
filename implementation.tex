@@ -420,11 +420,16 @@ We use IPC on synchronous endpoints to donate scheduling contexts, while asynchr
 
 \begin{table}
     \centering
-    \begin{tabular}{|>{\texttt\bgroup}l<{\egroup} | p{6cm} |} \hline
-        \textnormal{\textbf{Field}} & \textbf{Description} \\\hline
-         tcb\_t *tcb    & The calling thread that is blocked on this reply object. \\\hline
-         void *prev & 0 if this is the start of the call stack, otherwise points to the previous reply object in the call stack. \\\hline
-         void *next & Either a pointer to the scheduling context that was last donated using this reply object, if this reply object is the head of a call stack (the last caller before the server) or a pointer to the next reply object in the chain. 0 if no scheduling context was passed along the chain.\\\hline
+    \rowcolors{2}{gray!25}{}
+    \begin{tabular}{>{\texttt\bgroup}l<{\egroup}  p{10cm} } \toprule
+        \textnormal{\emph{Field}} & \emph{Description} \\\midrule
+         tcb\_t *tcb    & The calling thread that is blocked on this reply object. \\
+         void *prev & 0 if this is the start of the call stack, otherwise points to the previous
+        reply object in the call stack. \\
+         void *next & Either a pointer to the scheduling context that was last donated using this
+        reply object, if this reply object is the head of a call stack (the last caller before the
+        server) or a pointer to the next reply object in the chain. 0 if no scheduling context was
+        passed along the chain.\\\bottomrule
     \end{tabular}
     \caption{Fields in a reply object.}
     \label{tab:reply_object}
