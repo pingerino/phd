@@ -171,7 +171,7 @@ def build_microbenchmark_dat(rt, baseline, arch):
             microbenchmark_row(out, '\\texttt{yield}', rt_yield, b_yield)
 
 
-def aes_row(out, name, rt_aes_hot, rt_aes_cold, clk, formatstr):
+def aes_row(out, name, rt_aes_hot, rt_aes_cold, clk, formatstr, last=False):
     out.write(' & ')
     out.write(' \multirow{2}{*}{')
     out.write(name)
@@ -183,7 +183,7 @@ def aes_row(out, name, rt_aes_hot, rt_aes_cold, clk, formatstr):
     out.write(formatstr.format(rt_aes_hot['Mean']/clk))
     out.write(' & ')
     out.write(formatstr.format(rt_aes_hot['Stddev']/clk))
-    out.write("\\\\ \\cline{3-6}\n")
+    out.write('\\\\\n')
     out.write(' & & cold &')
     out.write(formatstr.format(rt_aes_cold['Min']/clk))
     out.write(' & ')
@@ -192,9 +192,10 @@ def aes_row(out, name, rt_aes_hot, rt_aes_cold, clk, formatstr):
     out.write(formatstr.format(rt_aes_cold['Mean']/clk))
     out.write(' & ')
     out.write(formatstr.format(rt_aes_cold['Stddev']/clk))
-    out.write("\\\\ \\cline{2-6}\n")
-
-
+    if not last:
+        out.write("\\\\ \\cline{3-7}\n")
+    else:
+        out.write("\\\\\n")
 
 def build_aes_dat(rt, arch, clk):
     with open(rt, 'r') as rt_json, open(os.path.join(os.getcwd(), DATA_DIR, arch + '-aes.inc'), 'w') as out:
@@ -206,10 +207,11 @@ def build_aes_dat(rt, arch, clk):
         else:
             formatstr = '{0:.2f}'
 
-        aes_row(out, "RB",  getbenchmark(rt_content, 'aes rollback')[0],  getbenchmark(rt_content, 'aes rollback cold')[0], clk, formatstr)
-        aes_row(out, "Emg.", getbenchmark(rt_content, 'aes emergency')[0], getbenchmark(rt_content, 'aes emergency cold')[0], clk, formatstr)
-        aes_row(out, "Ext.", getbenchmark(rt_content, 'aes extend')[0], getbenchmark(rt_content, 'aes extend cold')[0], clk, formatstr)
-        aes_row(out, "Kill", getbenchmark(rt_content, 'aes kill')[0], getbenchmark(rt_content, 'aes kill cold')[0], clk, formatstr)
+        aes_row(out, "Rollback",  getbenchmark(rt_content, 'aes rollback')[0],  getbenchmark(rt_content, 'aes rollback cold')[0], clk, formatstr)
+        aes_row(out, "Emergency", getbenchmark(rt_content, 'aes emergency')[0],
+                getbenchmark(rt_content, 'aes emergency cold')[0], clk, formatstr)
+        aes_row(out, "Extend", getbenchmark(rt_content, 'aes extend')[0], getbenchmark(rt_content, 'aes extend cold')[0], clk, formatstr)
+        aes_row(out, "Kill", getbenchmark(rt_content, 'aes kill')[0], getbenchmark(rt_content, 'aes kill cold')[0], clk, formatstr, last=True)
 
 
 def aes_shared_cols(budget, tput_json, clk):

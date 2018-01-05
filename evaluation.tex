@@ -532,12 +532,16 @@ have budget insufficient to complete the request (budgets of 1\,ms and
 5\,ms with a 10\,ms period).
 
 \begin{table}[t]\centering
-\begin{tabular}{|c|l|l|r|r|r|r|}\hline
-\textbf{Arch} & \textbf{Op.} & \textbf{Cache} & \textbf{Min} &
-                          \textbf{Max} & \textbf{Mean} &
-                          \multicolumn{1}{c|}{\boldmath \(\sigma\)} \\\hline
-\multirow{8}{*}{SBR} \input{data/generated/sabre-aes.inc} \hline
-\multirow{8}{*}{x64} \input{data/generated/haswell-aes.inc} \hline
+\begin{tabular}{cllrrrr}\toprule
+\emph{Platform} & \emph{Operation} & \emph{Cache} & \emph{Min} &
+                          \emph{Max} & \emph{Mean} &
+                          \multicolumn{1}{c}{\boldmath \(\sigma\)} \\\midrule
+                          \multirow{8}{*}{\textsc{Sabre}} 
+                          \input{data/generated/sabre-aes.inc} 
+                          \midrule
+                          \multirow{8}{*}{\textsc{x64}}
+                          \input{data/generated/haswell-aes.inc}
+                          \bottomrule
 \end{tabular}
 \caption{Cost of timeout handler operations in \(\mu\)s, as measured
   by timeout exception handler. \(\sigma\) is the standard deviation.}
