@@ -3,8 +3,8 @@ load "imgs/common.inc"
 set output "imgs/redis.eps"
 
 data = "data/generated/redis.dat"
-set size 1,0.75
-set key top left vertical maxrows 2
+set size 0.9,0.5
+set key top left vertical
 #set key at 95, 15 bottom right
 set xlabel "Available CPU bandwidth (%)"
 set ylabel "Xput (k ops/s)"
