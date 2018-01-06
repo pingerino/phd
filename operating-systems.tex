@@ -2,49 +2,60 @@
 
 \chapter{Operating Systems}
 
-In this chapter we propvide a survey of existing operating systems, with a focus on how each one provides mechanisms for temporal isolation, asymmetric protection, and resource sharing. 
+In this chapter we provide a survey of existing operating systems, with a focus on how each one
+provides mechanisms for temporal isolation, asymmetric protection, and resource sharing. 
 
-% TODO break up into sections: dicuss resource sharing, isolation approaches
+% TODO break up into sections: discuss resource sharing, isolation approaches
 % summarise with short comings: things you will solve
 
 \section{POSIX}
 
-The \gls{POSIX} standard specifies real-time operating systems interfaces~\citep{Harbour_1993} which influence a large amount of \glspl{OS}. 
-Scheduling policies specified by \gls{POSIX} are shown in \Cref{tab:posix-sched}. 
+The \gls{POSIX} standard specifies real-time operating systems interfaces~\citep{Harbour_1993} which
+influence a large amount of \glspl{OS}.  Scheduling policies specified by \gls{POSIX} are shown in
+\Cref{tab:posix-sched}. 
 
 \begin{table}
-\begin{center}
-\begin{tabular}{|c|p{.7\textwidth}|}\hline
-\textbf{Policy} & \textbf{Description} \\\hline
-\schedfifo & Real-time tasks can run at a minumum of 32 fixed-priorities until they are preempted or yield. \\\hline
-\schedrr   & As per \schedfifo but with an added timeslice. If the timeslice for a thread expires, it is added to the tail of the scheduling queue for its priority.\\\hline
-\schedsporadic & Specifies sporadic servers as described in \Cref{p:sporadic} and can be used for temporal isolation. For practical requirements, the POSIX specification of \schedsporadic specifies a maximum number of replenishments which is implementation defined. \\\hline
+\centering
+\rowcolors{2}{gray!25}{white}
+\begin{tabular}{lp{.7\textwidth}}\toprule
+\emph{Policy} & \emph{Description} \\\midrule
+\schedfifo & Real-time tasks can run at a minimum of 32 fixed-priorities until they are preempted or yield. \\
+\schedrr   & As per \schedfifo but with an added timeslice. If the timeslice for a thread expires, it is added to the tail of the scheduling queue for its priority.\\
+\schedsporadic & Specifies sporadic servers as described in \Cref{p:sporadic} and can be used for
+    temporal isolation. For practical requirements, the POSIX specification of \schedsporadic
+    specifies a maximum number of replenishments which is implementation defined. \\\bottomrule
 \end{tabular}
 \caption{\gls{POSIX} real-time scheduling policies}
 \label{tab:posix-sched}
-\end{center}
 \end{table}
 
-\citet{Faggioli_2008} provides an implementation of \schedsporadic, which \citet{Stanovic_BWH_2010} use to show that the POSIX definition of the sporadic server is incorrect and can allow tasks to exceed their utilisation bound.
-The authors provide a modified algorithm for merging and abandoning replenishments which fixes these problems, of which corrections to the pseudo code were published in \citet{Danish_LW_2011}.
-In further work \citet{Stanovic_BW_2011} show that while sporadic servers provide better reponse times than polling servers under average load, under high load the overhead of preemptions due to fine-grained replenishments causes worse response times when compared to polling servers.
-Consequently they evaluate an approach where servers alternate between sporadic and polling servers depending on load, where the transition involves reducing the maximum number of replenishments to 1 and merging available refills.
+\citet{Faggioli_2008} provides an implementation of \schedsporadic, which \citet{Stanovic_BWH_2010}
+use to show that the POSIX definition of the sporadic server is incorrect and can allow tasks to
+exceed their utilisation bound.  The authors provide a modified algorithm for merging and abandoning
+replenishments which fixes these problems, of which corrections to the pseudo code were published in
+\citet{Danish_LW_2011}.  In further work \citet{Stanovic_BW_2011} show that while sporadic servers
+provide better response times than polling servers under average load, under high load the overhead
+of preemptions due to fine-grained replenishments causes worse response times when compared to
+polling servers.  Consequently they evaluate an approach where servers alternate between sporadic
+and polling servers depending on load, where the transition involves reducing the maximum number of
+replenishments to 1 and merging available refills.
 
-
-Resource sharing in the \gls{POSIX} \gls{OS} interface is permitted through mutexes, which can be used to build higher synchronisation protocols.
-\Cref{tab:posix-mutex} shows the specified protocols. 
+Resource sharing in the \gls{POSIX} \gls{OS} interface is permitted through mutexes, which can be
+used to build higher synchronisation protocols.  \Cref{tab:posix-mutex} shows the specified
+protocols. 
 
 \begin{table}
-\begin{center}
-\begin{tabular}{|c|p{.7\textwidth}|}\hline
-\textbf{Policy} & \textbf{Description} \\\hline
-\noprioinherit & Standard mutexes that do not protect against priority inversion. \\\hline
-\prioinherit  & Mutexes with \gls{PIP} to prevent priority inversion, recall \Cref{sec:pip}. \\\hline
-\prioprotect & Mutexes with \gls{HLP} to prevent priority inverstion, recall \Cref{sec:hlp}. \\\hline
+\centering
+\rowcolors{2}{gray!25}{white}
+\begin{tabular}{lp{.7\textwidth}}\toprule
+\emph{Policy} & \emph{Description} \\\midrule
+\noprioinherit & Standard mutexes that do not protect against priority inversion. \\
+\prioinherit  & Mutexes with \gls{PIP} to prevent priority inversion, recall \Cref{sec:pip}. \\
+\prioprotect & Mutexes with \gls{HLP} to prevent priority inversion, recall \Cref{sec:hlp}. \\
+\bottomrule
 \end{tabular}
 \caption{\gls{POSIX} real-time mutex policies for resource sharing.}
 \label{tab:posix-mutex}
-\end{center}
 \end{table}
 
 Although \gls{POSIX} provides \schedsporadic which can be used for temporal isolation (however flawed), the intention of the policy is to contain aperiodic tasks. 
@@ -184,7 +195,7 @@ Page colouring is used to reserve parts of the caches for real-time tasks, signi
 \paragraph{NOVA}~\citep{Steinburg_Kauer_10} is a capability-based microkernel aimed at virtulisation. 
 NOVA provides fixed-priority round-robin scheduling, with priority inheritance across IPC~\citep{Steinburg_BK_2010}.
 Priorities in NOVA reflect importance: it is not a real-time kernel, and periodic scheduling is not available.  
-NOVA provides bandwidth inheritance through the microkernel mechanism of donation is used, so NOVA does not provide concrete reservations, but when a timeslice expires other tasks waiting for the resource \emph{help} the blocked task, where the blocked task excecutes on the pending tasks timeslice.
+NOVA provides \gls{BWI} through the microkernel mechanism of donation is used, so NOVA does not provide concrete reservations, but when a timeslice expires other tasks waiting for the resource \emph{help} the blocked task, where the blocked task excecutes on the pending tasks timeslice.
 If the task holding the resource does not release it, all pending tasks will block forever.
 
 
@@ -254,23 +265,31 @@ Temporal isolation is provided by sporadic servers, however I/O and normal proce
 %TODO{note gap between rt theory and systems}
 %TODO{note the false correlation of priority, rt model, trust, criticality etc}
 
-\begin{tabular}{|l|c|c|c|c|}\hline
-\textbf{OS} & \textbf{Scheduler}  & \textbf{Isolation} & \textbf{Asymmetric Protection} & \textbf{Resource Sharing}\\\hline
-Linux       & \gls{FP} + \gls{EDF} & \gls{CBS}          & No  & \gls{PIP}, \gls{HLP}\\\hline
-POSIX       & \gls{FP}             & \gls{SS}           & No  & \gls{PIP}, \gls{HLP} \\\hline
-Linux/RK    & TODO                 & TODO               & No  & TODO \\\hline
-RTEMS       & \gls{FP} + \gls{EDF} & \gls{CBS}          & No  & \gls{PIP}, \gls{HLP}\\\hline
-QNX         & \gls{FP}             & \gls{SS}           & No  & TODO \\\hline
-VxWorks     & \gls{FP}             & TODO               & No  & TODO  \\\hline
-Real-Time Mach & \gls{FP}          & \gls{DS}           & No  & \gls{PIP} \\\hline
-EROS        & \gls{FP}             & \gls{DS}           & No  & \gls{PIP} \\\hline
-Minix 3     & TODO                 & TODO               & No  & TODO \\\hline
-Tiptoe      & TODO                 & TODO               & No  & TODO   \\\hline
-Barrelfish  & \gls{EDF}            & \gls{RBED}         & No  & Timeslice donation   \\\hline
-DROPS       & \gls{FP}             & TODO               & No  & TODO \\\hline
-NOVA        & \gls{FP}             & No                 & No  & \gls{BWI} \\\hline
-Quest-V     & \gls{FP}             & \gls{SS}           & No  & No \\\hline
-seL4        & \gls{FP}             & No                 & No  & No \\\hline
+\begin{table}
+\centering
+\rowcolors{3}{}{gray!25}
+\begin{tabular}{lllll}\toprule
+  \emph{OS} & \emph{Scheduler}  & \emph{Isolation} & \emph{Asymmetric} & \emph{Resource}\\
+            &                   &                  & \emph{protection} & \emph{Sharing}\\\midrule
+Linux       & \gls{FP} + \gls{EDF} & \gls{CBS}          & \no  & \gls{PIP}, \gls{HLP}\\
+POSIX       & \gls{FP}             & \gls{SS}           & \no  & \gls{PIP}, \gls{HLP} \\
+Linux/RK    & TODO                 & TODO               & \no  & TODO \\
+RTEMS       & \gls{FP} + \gls{EDF} & \gls{CBS}          & \no  & \gls{PIP}, \gls{HLP}\\
+QNX         & \gls{FP}             & \gls{SS}           & \no  & TODO \\
+VxWorks     & \gls{FP}             & TODO               & \no  & TODO  \\
+Real-Time Mach & \gls{FP}          & \gls{DS}           & \no  & \gls{PIP} \\
+EROS        & \gls{FP}             & \gls{DS}           & \no  & \gls{PIP} \\
+Minix 3     & TODO                 & TODO               & \no  & TODO \\
+Tiptoe      & TODO                 & TODO               & \no  & TODO   \\
+Barrelfish  & \gls{EDF}            & \gls{RBED}         & \no  & Timeslice donation   \\
+DROPS       & \gls{FP}             & TODO               & \no  & TODO \\
+NOVA        & \gls{FP}             & \no                 & \no  & \gls{BWI} \\
+Quest-V     & \gls{FP}             & \gls{SS}           & \no  & \no \\
+seL4        & \gls{FP}             & \no                 & \no  & \no \\
+Composite   & user level           & TODO               & TODO & TODO \\
+\bottomrule
 \end{tabular}
-
+\label{t:os-summary}
+\caption{Summary of \gls{MCS} support available in existing operating systems.}
+\end{table}
 

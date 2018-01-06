@@ -93,19 +93,20 @@ All platforms excluding \textsc{KZM} have a 64-bit timer available, making \text
 timer overflow interrupts, which are not measured as \textsc{KZM} is a deprecated platform provided for comparison
 with modern ARM versions.
 
-Sabre and KZM both use memory mapped timers, the 32-bit general purpose time for the former and
-64-bit ARM global timer for the latter. Sabre has four cores and the timer registers are banked,
-making access fast for each core. Timer access on Sabre is significantly faster than the KZM. 
+\textsc{Sabre} and \textsc{KZM} both use memory mapped timers, the 32-bit general purpose time for the former and
+64-bit ARM global timer for the latter. \textsc{Sabre} has four cores and the timer registers are banked,
+making access fast for each core. Timer access on \textsc{Sabre} is significantly faster than the
+\textsc{KZM}. 
 
 For all other ARM platforms, the ARM generic timers are available, which are accessed via the
 coprocessor. The vast majority of new ARM platforms support the generic timers. 
 
-On x64 we use the \gls{TSC} with \gls{TSC}-deadline mode~\citep{Intel_64_IA-32:asdmspg_325384}, an architectural \gls{MSR} available since
+On \textsc{x64} we use the \gls{TSC} with \gls{TSC}-deadline mode~\citep{Intel_64_IA-32:asdmspg_325384}, an architectural \gls{MSR} available since
 Intel SandyBridge by which a local-APIC timer interrupt is triggered when the \gls{TSC} matches the
 programmed value. 
 
 While \Cref{t:evaluation-timer} shows the instruction latency of each timer operation, in practice, especially
-for x64, these operations are subject to pipeline parallelism and out-of-order execution, which
+for \textsc{x64}, these operations are subject to pipeline parallelism and out-of-order execution, which
 reduces the overhead.
 
 Results on both architectures show that the overhead of a tickless kernel, which requires the timers
@@ -168,6 +169,7 @@ monitor unit.
 \subsubsection{Slowpath}
 \label{eval:slowpath}
 
+% TODO rewrite with all platforms
 Slowpath results show the greater cost of the model, as shown in \cref{t:slowpath-ipc-micro}, 
 which shows the cost of a slowpath \gls{IPC} between two passive threads. 
 
@@ -175,7 +177,7 @@ The benchmark hits the slowpath as the priorities are arranged such that the tas
 operation is a lower priority, which means not only do we invoke the slowpath but also the
 scheduler. However, since the server is passive, we do not change scheduling context, meaning the
 only overhead on \call is unnecessarily reading the time on kernel entry, as well as the mechanisms
-for scheduling context donation. This is quite small, very small on x64 (1\%) as the kernel simply
+for scheduling context donation. This is quite small, very small on \textsc{x64} (1\%) as the kernel simply
 does a non-serialised read of the \gls{TSC}. On ARM the overhead is greater (8\%), as we use the
 ARM Cortex-A9 MPCore global timer (the only 64-bit timer available on the platform), which is memory
 mapped and shared between all of the cores. We evaluate the cost of reading the timer with a hot cache 
@@ -697,17 +699,17 @@ This shows that our mechanisms operate as intended.
 \begin{table}[h]\centering
     \begin{tabular}{|l|c|c|c|c|}\hline
         \multicolumn{5}{|l|}{\textit{susan}, image recognition, \(L\): 2 \(T\): 180}\\\hline
-        \textbf{\(L_S\)} & \textit{C} & \textit{U} & \textit{j} & \textit{m} \\\hline
+        \emph{\(L_S\)} & \textit{C} & \textit{U} & \textit{j} & \textit{m} \\\hline
                      0 & 25 & 0.14 & 111 & 0 \\\hline
                      1 & 51 & 0.15 & 111 & 0 \\\hline
                      2 & 127 & 0.54 & 111 & 0 \\\hline
         \multicolumn{5}{|l|}{\textit{jpeg}, encode/decode, \(L\): 1 \(T\): 100}\\\hline
-        \textbf{\(L_S\)} & \textit{C} & \textit{U} & \textit{j} & \textit{m} \\\hline
+        \emph{\(L_S\)} & \textit{C} & \textit{U} & \textit{j} & \textit{m} \\\hline
                      0 & 15 & 0.15 & 200 & 0 \\\hline
                 1 & 41 & 0.41 & 200 & 0 \\\hline
                      2 & 41 & 0.41 & 148 & 88 \\\hline
         \multicolumn{5}{|l|}{\textit{mad}, mp3 playing, \(L\): 0 \(T\): 112}\\\hline
-        \textbf{\(L_S\)} & \textit{C} & \textit{U} & \textit{j} & \textit{m} \\\hline
+     \emph{\(L_S\)} & \textit{C} & \textit{U} & \textit{j} & \textit{m} \\\hline
                      0 & 28 & 0.25 & 179 & 0 \\\hline
                      1 & 28 & 0.25 & 178 & 46\\\hline
                      2 & 28 & 0.25 & 7 & 7 \\\hline
