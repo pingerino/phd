@@ -2,11 +2,13 @@
 load "imgs/common.inc"
 
 set output "imgs/aes-shared.eps"
+# NX,NY are the number of graphs horizontally and vertically
 NX=3;NY=2
-DX=0.1;DY=0.1;SX=0.6;SY=0.6
-M=1
-set bmargin M; set tmargin M; set lmargin M; set rmargin M
-set size SX*NX+DX*1.5,SY*NY+DY*1.8
+# DX,DY are the offset into the page that the graphs start at
+# SX,SY are the dimensios of the graphs themselves
+DX=0.15;DY=0.1;SX=0.3;SY=0.3
+set bmargin 1; set tmargin 1; set lmargin 1; set rmargin 1
+set size SX*NX+DX*1.5+0.05,SY*NY+DY*1.8+0.1
 
 # data files
 arm_file_10 = "data/generated/sabre-shared-aes-10.dat"
@@ -26,7 +28,7 @@ set y2range [0:100]
 set size SX,SY
 
 # dummy plot outside area to get full control over keys
-set key at screen 0.5, screen 0.45 horizontal center maxrows 1 maxcols 4
+set key at screen 0.6, screen 0.8 center maxrows 1
 set origin 0,NY*2
 plot x86_file_10 using ($1/1000):($2):($3) with errorlines title "A", \
      x86_file_10 using ($1/1000):($5):($6) with errorlines title "B" axes x2y1, \
@@ -52,6 +54,7 @@ plot x86_file_10 using ($1/1000):($2):($3) with errorlines title "A", \
 
 # x64 100ms
 set xlabel "A budget (ms)"
+set xtics 0,25
 # turn off y axis label
 set ylabel
 # turn off the y tick labels
@@ -64,6 +67,7 @@ plot x86_file_100 using ($1/1000):($2):($3) with errorlines title "A", \
 
 # "x64 1000ms"
 set xlabel
+set xtics 0,250
 set format y2 '%3g'
 set y2label "CPU %"
 set origin DX+SX*2,DY
@@ -77,6 +81,7 @@ set yrange [0:15]
 set title "10ms period"
 # turn off x tick labels
 set format x ''
+set xtics 0,1
 set ylabel "Sabre Xput (MiB/s)"
 set ytics 0,5 
 # Turn off y2 tick labels
@@ -84,7 +89,7 @@ set format y2 ''
 # Turn off y2 axis label
 set y2label
 # Turn on y tick labels
-set format y '%3g'
+set format y '%3.1f'
 
 set origin DX,DY+SY
 plot arm_file_10 using ($1/1000):($2):($3) with errorlines title "A", \
@@ -94,6 +99,7 @@ plot arm_file_10 using ($1/1000):($2):($3) with errorlines title "A", \
 
 set title "100ms period"
 set ylabel
+set xtics 0,25
 set format y ''
 set origin DX+SX,DY+SY
 plot arm_file_100 using ($1/1000):($2):($3) with errorlines title "A", \
@@ -103,6 +109,7 @@ plot arm_file_100 using ($1/1000):($2):($3) with errorlines title "A", \
 
 set title "1000ms period"
 set format y2 '%3g'
+set xtics 0,250
 set y2label "CPU %"
 set origin DX+SX*2,DY+SY
 plot arm_file_1000 using ($1/1000):($2):($3) with errorlines title "A", \
