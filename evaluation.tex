@@ -212,7 +212,7 @@ the resume capability, the ordered IPC checks, and accessing the \gls{SCO} and r
 Finally we show the cost of slowpath IPC between two active threads, where both caller and
 callee have a scheduling context. In addition to the
 overheads of \cref{eval:slowpath}, we must bill and change the scheduling context and reprogram the
-timer. On x64, reprogramming the timer uses \gls{TSC}-deadline mode, which is programmed via the
+timer. On \textsc{x64}, reprogramming the timer uses \gls{TSC}-deadline mode, which is programmed via the
 model specific registers and is also very fast. On ARM, we evaluate the cost of reading the timer
 with a hot cache as 36 cycles. 
 %TODO what the hell is the rest of the overhead
@@ -355,7 +355,7 @@ We run an SMP throughput benchmark to show that our MCS model
 avoids introducing scalability problems on multiple cores compared to the baseline kernel.
 We modify the
 existing SMP IPC throughput benchmark for \selfour to run on the MCS kernel. 
-At time of writing, only x64 and Sabre have \selfour multiprocessor support, 
+At time of writing, only \textsc{x64} and \textsc{sabre} have \selfour multiprocessor support, 
 consequently these are the platforms used for the benchmark.
 
 The existing SMP benchmark measures IPC throughput of a client and server, both 
@@ -367,7 +367,7 @@ IPC throughput, as less calls are made.
 
 We modify the benchmark such that each server thread is passive on the MCS kernel.
 Results are displayed in \Cref{f:evaluation-smp} and show a minor impact on IPC throughput
-for high values of \textit{N}. Scalability is not impacted on Sabre, but is on x64,
+for high values of \textit{N}. Scalability is not impacted on \textsc{sabre}, but is on \textsc{x64},
 with the curve flattening slightly more aggressively on the MCS kernel
 due to the fastpath overhead. This is expected as the MCS model only introduces extra 
 per-core state, with no extra shared state between cores.
@@ -389,7 +389,7 @@ To demonstrate the impact of the overheads measured in this chapter in a real sy
 we measure the performance of the Redis key value store~\citep{redis:url} using 
 \gls{YCSB}~\citep{Cooper_STRS_10} on baseline and MCS \selfour, and compare this
 against Linux, the Rump unikernel~\citep{Kantee_Cormack_14} and 
-NetBSD~\citep{NetBSD:url} all on the x64 machine.
+NetBSD~\citep{NetBSD:url} all on the \textsc{x64} machine.
 
 For \selfour, we use a single-core Rump library OS~\citep{Kantee_Cormack_14} to provide 
 NetBSD~\citep{NetBSD:url} network drivers at user level. The system architecture is 
@@ -499,7 +499,7 @@ runs at a low priority.
 \end{figure}
 
 Two client machines run ipbench daemons to send packets to the UDP-echo server on the target machine
-(Haswell platform). The control machine, one of the load generators, runs ipbench with a \gls{UDP} socket at 10\,Mbps over a 1\,Gb/s Ethernet connection with 100-byte packets. The Linux VM has a 10\,ms period and we vary the
+(\textsc{x64}). The control machine, one of the load generators, runs ipbench with a \gls{UDP} socket at 10\,Mbps over a 1\,Gb/s Ethernet connection with 100-byte packets. The Linux VM has a 10\,ms period and we vary the
 budget between 1\,ms and 9\,ms.
 %We represent the zero-budget case by an unconstrained Linux that is not running any user code.
 Any time not consumed by Linux is available to UDP echo for processing
@@ -554,7 +554,7 @@ have budget insufficient to complete the request (budgets of 1\,ms and
   \centering
   \includegraphics{aes-shared}
   \caption{Throughput for clients A and B of a passive AES server processing 10 requests of 4\,MiB of data with
-      limited budgets on the x64 (top row) and SBR (bottom row) platforms. The two clients' budgets
+      limited budgets on the \textsc{x64} (top row) and \textsc{sabre} (bottom row) platforms. The two clients' budgets
       add up to the period, which is varied between graphs (10, 100, 1000\,ms). Clients sleep when
       they process each 4\,MiB, until the next period, except when their budgets are full. Each data point is the average of 10 runs, error bars show the standard deviation.}
   \label{f:aes}
@@ -620,7 +620,7 @@ microbenchmark measuring the cost of a mode switch, and another showing deadline
   \includegraphics[width=\linewidth]{mode-switch-all}
   \caption{Cost of switching the priority of $n$ threads, as well as changing from \crit{low} to
   \crit{high} criticality level while increasing the number of \crit{high} and \crit{low} threads,
-  on Sabre and Haswell. Each data point is the average of 100 runs, with very small standard
+  on \textsc{sabre} and \textsc{x64}. Each data point is the average of 100 runs, with very small standard
   deviations.}
   \label{f:mode-switch}
 \end{figure}
@@ -645,7 +645,7 @@ must not depend on less-critical threads, and should not make
 assumptions how many threads less-critical software creates.
 
 In absolute terms, the results show that a mode switch is fairly fast,
-remaining under 2\,$\mu$s on x64 and about 12\,\(\mu\)s on SBR for switching 8 threads
+remaining under 2\,$\mu$s on \textsc{x64} and about 12\,\(\mu\)s on \textsc{sabre} for switching 8 threads
 with a cold cache. Most systems will not have more than a few high
 criticality threads, and deadlines for critical control loops in
 cyber-physical systems tend to be in the tens of milliseconds, meaning
@@ -768,13 +768,13 @@ implementing different policies on top of the base scheduler is quite feasible.
     \centering
     \includegraphics[width=0.9\linewidth]{edf}
     \caption{Execution time of \selfour user-mode EDF scheduler compared to
-             kernel scheduler in x64 LITMUS$^{RT}$.}
+             kernel scheduler in \textsc{x64} LITMUS$^{RT}$.}
     \label{f:edf}
 \end{figure}
 
 
 Our evaluation demonstrates our model has minimal overheads, achieves isolation,  provides a notion
 of criticality orthogonal to priority, and allows for efficient user-level scheduling.
-In total, we add 2,245 lines of SLOC~\citep{Wheeler_01} to the preprocessed kernel code for the sabre
+In total, we add 2,245 lines of SLOC~\citep{Wheeler_01} to the preprocessed kernel code for the \textsc{sabre}
 (the verified platform), representing a 16\% increase.
 
