@@ -610,7 +610,7 @@ we have the expected near perfect proportionality between throughput and
 budget (with slight wiggles due to the rollbacks), showing isolation between clients. In the cases where there is headspace (centre of the right
 graphs), both clients achieve their desired throughput.
 
-\subsection{Criticality}
+\subsection{Asymmetric Protection}
 
 We evaluate our kernel mechanism for changing criticaliwith two benchmarks: A
 microbenchmark measuring the cost of a mode switch, and another showing deadline misses of threads sets over several mode changes.
@@ -628,23 +628,13 @@ microbenchmark measuring the cost of a mode switch, and another showing deadline
 To evaluate the cost of changing the system criticality level, we
 configure the kernel with 128 priorities and 2 criticality levels
 (0--1). We then  run 3 experiments as follows:
-\iffalse                        % OLD
-\begin{itemize}
-\item \textbf{UL:} measures the time to change the priority of $n$ threads from user-level;
-\item \textbf{HI:} measures the time for raising the system criticality level from 0 to 1 with one \crit{low} thread and $n$
-    \crit{high} threads, i.e.\ threads whose priority must be boosted upon criticality switch,
-\item \textbf{LO:} measures the time for raising the system criticality level from 0 to 1 with one \crit{high} thread and
- } threads, whose priority does not need to be boosted.
-\end{itemize}
-\else                           % PREFERRED
 \begin{description}
-\item[UL:] measures the time to change the priority of $n$ threads from user-level;
-\item[HI:] measures the time for raising the system criticality level from 0 to 1 with one \crit{low} thread and $n$
+    \item[\textsc{UL}:] measures the time to change the priority of $n$ threads from user-level;
+    \item[\textsc{HI}:] measures the time for raising the system criticality level from 0 to 1 with one \crit{low} thread and $n$
     \crit{high} threads, i.e.\ the priority of $n$ threads must be boosted;
-\item[LO:] measures the time for raising the system criticality level from 0 to 1 with one \crit{high} thread and
+\item[\textsc{LO}:] measures the time for raising the system criticality level from 0 to 1 with one \crit{high} thread and
     $n$ \crit{low} threads, i.e.\ only one thread must be boosted.
 \end{description}
-\fi
 
 \Cref{f:mode-switch} shows the results, where each data point is the result of 100 measurements.
 We show results with a primed cache (hot) and flushed cache (cold).
@@ -695,24 +685,23 @@ their deadlines, but
 meets all deadlines.
 This shows that our mechanisms operate as intended.
 
-
-\begin{table}[h]\centering
-    \begin{tabular}{|l|c|c|c|c|}\hline
-        \multicolumn{5}{|l|}{\textit{susan}, image recognition, \(L\): 2 \(T\): 180}\\\hline
-        \emph{\(L_S\)} & \textit{C} & \textit{U} & \textit{j} & \textit{m} \\\hline
-                     0 & 25 & 0.14 & 111 & 0 \\\hline
-                     1 & 51 & 0.15 & 111 & 0 \\\hline
-                     2 & 127 & 0.54 & 111 & 0 \\\hline
-        \multicolumn{5}{|l|}{\textit{jpeg}, encode/decode, \(L\): 1 \(T\): 100}\\\hline
-        \emph{\(L_S\)} & \textit{C} & \textit{U} & \textit{j} & \textit{m} \\\hline
-                     0 & 15 & 0.15 & 200 & 0 \\\hline
-                1 & 41 & 0.41 & 200 & 0 \\\hline
-                     2 & 41 & 0.41 & 148 & 88 \\\hline
-        \multicolumn{5}{|l|}{\textit{mad}, mp3 playing, \(L\): 0 \(T\): 112}\\\hline
-     \emph{\(L_S\)} & \textit{C} & \textit{U} & \textit{j} & \textit{m} \\\hline
-                     0 & 28 & 0.25 & 179 & 0 \\\hline
-                     1 & 28 & 0.25 & 178 & 46\\\hline
-                     2 & 28 & 0.25 & 7 & 7 \\\hline
+\begin{table}[h]
+    \centering
+    \begin{tabular}{lccccccc}\toprule
+        \emph{Application} & \emph{T} & \emph{L} & \emph{\(L_S\)} & \emph{C} & \emph{U} & \emph{j} & \emph{m} \\\midrule
+        \textsc{susan}            & 190 &2 & 0 & 25 & 0.14 & 111 & 0 \\
+        \rowcolor{gray!25}
+        \small{Image recognition} &     &2 & 1 & 51 & 0.15 & 111 & 0 \\
+                                  &     &2 & 2 & 127 & 0.54 & 111 & 0 \\\midrule
+        \textsc{jpeg}             & 100 &1 & 0 & 15 & 0.15 & 200 & 0 \\
+        \rowcolor{gray!25}\
+        \small{JPEG encode/decode.}       &     &1 & 1 & 41 & 0.41 & 200 & 0 \\
+                                  &     &1 & 2 & 41 & 0.41 & 148 & 88 \\\midrule
+        \textsc{mad}              & 112 &0 & 0 & 28 & 0.25 & 179 & 0 \\
+        \rowcolor{gray!25}\
+        \small{MP3 player}        &     &0 & 1 & 28 & 0.25 & 178 & 46\\
+                                  &     &0 & 2 & 28 & 0.25 & 7 & 7 \\
+        \bottomrule
     \end{tabular}
     \caption{Results of mode switch benchmark for each
         stage, where the  criticality \(L_S\) is raised each stage. \(T\) =
