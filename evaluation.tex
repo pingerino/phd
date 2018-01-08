@@ -449,24 +449,30 @@ functionality.
 
 \section{Temporal Isolation}
 
-We now evaluate the temporal isolation properties achieved by the model. We use
+We now evaluate the temporal isolation properties achieved by the model described in TODO. We use
 two system benchmarks to show that processes attain and do not exceed their
-CPU allocation provided by their scheduling context. We then show isolation in a shared
-server scenario, and evaluate and demonstrate different techniques to restore server state.
+CPU allocation provided by their scheduling context. We then evaluate and demonstrate different
+techniques to restore server state after a timeout exception and finally show temporal isolation between
+clients in a shared server scenario.
 
 % Show isolation between processes using different scheduling contexts
 \subsection{Process isolation} 
 
+We evaluate process isolation, where processes do not share resources, indirectly via network
+throughput and network latency in two separate benchmarks. 
+
+\subsubsection{Network throughput}
+
 First, we demonstrate our isolation properties with the Redis setup described in
-\Cref{s:evaluation-redis-overhead} with an additional, high-priority CPU-hog thread
-competing for \gls{CPU} time.  All threads have a
+\Cref{s:evaluation-redis-overhead} with an additional, high-priority active CPU-hog thread
+competing for \gls{CPU} time.  All scheduling contexts in the system are configured with a
 5\,ms period. We use the budget of the hog to control the amount of time left over
 for the server configuration. \autoref{f:redis} shows the throughput
 achieved by the YCSB-A workload as a function of the available CPU
 bandwidth (i.e \ the complement of the bandwidth granted to the hog
 thread). Each data point is the average of three benchmark runs.
 
-\begin{figure}[b]
+\begin{figure}[h]
   \centering
   \includegraphics{redis}
   \caption{Throughput of Redis YCSB workload A and idle time vs available bandwidth.}
@@ -477,61 +483,197 @@ The graph shows that the server is CPU limited (as indicated by very low idle ti
 and consequently throughput scales linearly with available CPU
 bandwidth.
 
-Second, we demonstrate our isolation properties
-in a single-core setup consisting of a Linux VM,
-running at high priority with a
-constrained budget and a UDP echo server running at a lower priority,
-representing a lower-rate \textsc{high} thread, illustrated in \autoref{f:ipbench-arch}. We
+\subsubsection{Network latency}
+
+Second, we evaluate process isolation via network latency in a system shown in \cref{f:ipbench-arch}. 
+The system consists of a single-core of a Linux \gls{VM} which runs at a high priority with a
+constrained budget and a \gls{UDP} echo server running at a lower priority,
+representing a lower-rate \textsc{high} thread. We
 measure the average  and maximum UDP latency reported by the
 ipbench~\citep{Wienand_Macpherson_04} latency test.
 
-Specifically, the Linux VM interacts with timer (PIT) and serial device drivers implemented as
-passive servers outside the VM; all three components are at a high priority. In the Linux server we
-run a program (\code{yes > /dev/null}) which consumes all available
-CPU bandwidth.  The UDP echo server, completely isolated from the Linux instance, but sharing the serial driver,
-runs at a low priority.
-
-\begin{figure}[t]
+\begin{figure}[h]
     \centering
-    \includegraphics[height=6cm]{ipbench-arch}
+    \includegraphics{ipbench-arch}
     \caption{System architecture of ipbench benchmark.}
     \label{f:ipbench-arch}
 \end{figure}
 
+
+Specifically, the Linux VM interacts with timer (PIT) and serial device drivers implemented as
+passive servers outside the \gls{VM}; all three components are at a high priority. In the Linux server we
+run a program (\code{yes > /dev/null}) which consumes all available
+CPU bandwidth.  The UDP echo server, completely isolated from the Linux instance during the
+benchmark, but sharing the
+serial driver, runs at a low priority with its own HPET timer
+driver.
+
 Two client machines run ipbench daemons to send packets to the UDP-echo server on the target machine
 (\textsc{x64}). The control machine, one of the load generators, runs ipbench with a \gls{UDP} socket at 10\,Mbps over a 1\,Gb/s Ethernet connection with 100-byte packets. The Linux VM has a 10\,ms period and we vary the
 budget between 1\,ms and 9\,ms.
-%We represent the zero-budget case by an unconstrained Linux that is not running any user code.
+We represent the zero-budget case by an unconstrained Linux that is not running any user code.
 Any time not consumed by Linux is available to UDP echo for processing
 10,000 packets per second, or 100 packets in the time left over from
 each of Linux's 10\,ms period.
 
-\autoref{f:ipbench} shows the average and maximum UDP latencies for
+\autoref{f:ipbench} shows the average and maximum \gls{UDP} latencies for
 ten runs at each budget setting. We can see that the maximum latencies
 follow exactly the budget of the Linux server (black line) up to 9\,ms. Only
 when Linux has a full budget (10\,ms), and thus able to monopolise the
 processor, does the UDP server miss its deadlines, resulting in a
 latency blowout.  This result shows that our sporadic server implementation is effective in bounding interference of a high-priority process.
 
-\begin{figure}[b]
+\begin{figure}[h]
   \centering
   \includegraphics{ipbench}
   \caption{Average and maximum latency of UDP packets with a CPU hog running a high priority with a 10\,ms budget.}
   \label{f:ipbench}
 \end{figure}
 
-
 % Show isolation in a shared server
 \subsection{Server isolation} 
 
-As an example of a shared server running out of budget, we implement
-the scenario of a passive server (see \autoref{f:passive}) with two
-clients, A and B. The server is providing an encryption service using AES-256
-with a block size of 16~bytes. The server alternates between two
-buffers, of which one always contains consistent state, the other is
-dirty during processing. Both clients request 4\,MiB of data to be encrypted, and
-have budget insufficient to complete the request (budgets of 1\,ms and
-5\,ms with a 10\,ms period).
+To demonstrate temporal isolation in a shared server, we use a case study of an encryption service
+using \gls{AES} to encrypt client data. We measure both the overhead of different recovery techniques, and the
+throughput achieved when two clients constantly run out of budget in the server.
+
+\Cref{f:aes-arch} shows the architecture of the case study. Both clients $A$ and $B$ are single
+ threaded and exist in separate address spaces to the server. The server has two threads, a passive
+ thread for serving request on the clients scheduling context and an active thread which handles
+ timeout exceptions for the server. The server and timeout exception handler share the same virtual
+ memory and capability spaces.
+
+\begin{figure}
+\centering
+\includegraphics{aes-arch}
+\caption{Architecture of the \gls{AES} case study. Client $A$ and $B$ make \gls{IPC} requests over
+endpoint $E_{1}$ of passive $AES$ which has an active timeout fault handling thread waiting for
+fault \gls{IPC} messages on endpoint $E_{2}$.}
+\label{f:aes-arch}
+\end{figure}
+
+The server itself runs the AES-256 algorithm with a block size of 16~bytes. The server alternates between two
+buffers using an atomic swap, of which one always contains consistent state, the other is
+dirty during processing. When a timeout fault occurs only the dirty buffer is lost due to
+inconsistency. 
+
+Both clients request 4\,MiB of data to be encrypted, and have a budget insufficient to
+complete the request. When the server is running on the clients scheduling context and the budget
+expires, a timeout exception, which is a fault IPC message from the kernel, is delivered to the timeout
+handler. 
+
+\subsection{Timeout handling techniques}
+
+When the server runs out of budget, its timeout exception handler gets invoked to handle the
+scenario. The appropriate response depends ultimately on the requirements of the system.
+Consequently, we implement and evaluate four different timeout fault handling techniques: rollback, error,
+emergency and extend. 
+
+While each technique is evaluated separately, combinations of such techniques could be used for
+different clients depending on their requirements. For example, trusted clients may get special
+treatment. 
+
+\subsubsection{Rollback}
+
+Rollback restores the server to the last known consistent state recorded. In the case of non-thread
+safe servers, this may require rolling back an entire request. However, algorithms like \gls{AES}
+which can easily be batched can make progress. The process for rollback involves is as follows:
+
+\begin{enumerate}\label{e:rollback}
+    \item Fault is received by timeout handler.
+    \item Handler replies to the client by sending a message to the client reply
+        object, with an indication of how much progress has been made. In the case of \gls{AES} this
+        is how much data is left to encrypt. By invoking the reply object, the client's
+        scheduling context is returned from the server to the client.
+    \item Server is restored to a known state by the timeout handler (restoring registers, stack
+        frames and any global state. 
+    \item Handler binds a scheduling context to the server for it to execute on.
+    \item Handler blocks waiting for a message from the server.
+    \item Now the server runs from its checkpoint. In the case study, the server is checkpoint just
+        before it initiates the passive initialisation protocol (TODO ref to passive init figure), so this system call is
+        repeated. The server signals the timeout handler and blocks on $E_{1}$, ready for client
+        requests.
+    \item Handler wakes and converts the server back to passive.
+    \item Handler blocks on $E_{2}$, ready for further timeout faults.
+\end{enumerate}
+
+The rollback technique requires the server and timeout handler to both have access to the reply
+object that the server is using, and the servers \gls{TCB}, meaning the timeout handler must be
+trusted by the server. In our example the server and timeout handler run at the same priority, in
+all cases both must run at higher priorities than the clients. 
+
+Once the faulting client has its budget replenished it can then continue its request from the
+content of the reply message sent by the timeout handler. Clients are guaranteed progress as long as
+their budget is sufficient to complete a single batch of progress.
+
+\subsubsection{Error}
+
+In cases of non-preemptible servers, potentially due to a lack of thread safety, the server can be
+rolled back to an initial state and an error can be sent to the client. This technique has no
+progress guarantee, as the full request must be completed on the clients budget. It does provide a
+short, bounded recovery technique.
+
+The process for returning an error is the same as that for \Cref{e:rollback}, however the server
+state does not need to be altered by the timeout handler as the server always receives new requests.
+
+\subsubsection{Emergency}
+
+Another technique gives the server a one-off emergency budget to finish the client request, after
+which the exception handler resets the server to being passive. This could be used in low
+criticality \gls{SRT}
+scenarios where isolation is desired but transient overruns are expected.
+An example emergency protocol follows:
+
+\begin{enumerate}\label{e:rollback}
+    \item Fault is received by timeout handler.
+    \item Unbind client scheduling context from server.
+    \item Bind server with emergency budget.
+    \item Reply to the timeout fault, which restarts the server.
+    \item Enqueue the timeout handler itself, with an empty sized request, in the servers
+          endpoint queue, by invoking $E_{1}$
+    \item Server finishes request with extra budget and replies to the client.
+    \item Timeout handler is highest priority, so it overtakes other clients and wakes up after the 
+          server processes its empty request. The handler then converts the server back to passive.
+    \item Handler blocks on $E_{2}$, ready for further timeout faults.
+\end{enumerate}
+
+This case requires the timeout handler to have access to client scheduling contexts in order to
+unbind them from the server. 
+
+\subsubsection{Extend}
+
+The final technique is to simply increase the clients budget on each timeout. 
+
+opposite of transient
+This could be used in
+cases of transient error or where the server request time is not completely known so a small buffer
+is provided.
+
+        \item[Extend (Ext.)] simply increases the client's budget on each timeout, which could be
+        deployed in soft real time systems or for specific threads with unknown budgets up to a
+        limit. 
+
+
+\subsection{Results}
+
+We measures the pure handling overhead in each case, from when the timeout handler wakes up to when it blocks again. 
+ Given the small amount of rollback state, this measures the baseline
+    overhead. For schedulability analysis, the actual cost of the rollback would
+have to be added, in addition to the duration of the timeout fault IPC. 
+ 
+We run each benchmark with hot caches (primed by some warm-up
+iterations)  as well as cold (flushed) caches and measure the 
+latency of timeout handling, from the time the handler wakes up
+until it replies to the server.
+
+\autoref{t:rollback} shows the results. The maximum
+cold-cache cost, which is relevant for schedulability analysis,
+differs by a factor of 3--4 between the different recovery scenarios,
+indicating that all are about equally feasible.
+Approaches that restart the server and send \glspl{IPC} messages on its behalf (rollback, reply) are the most expensive
+as they must restore the server state from a
+checkpoint and follow the passive server initialisation protocol
+(recall \autoref{s:passive}). 
 
 \begin{table}[t]\centering
 \begin{tabular}{cllrrrr}\toprule
@@ -550,6 +692,10 @@ have budget insufficient to complete the request (budgets of 1\,ms and
 \label{t:rollback}
 \end{table}
 
+
+\subsection{Rollback isolation}
+
+
 \begin{figure*}[t]
   \centering
   \includegraphics{aes-shared}
@@ -560,39 +706,7 @@ have budget insufficient to complete the request (budgets of 1\,ms and
   \label{f:aes}
 \end{figure*}
 
-When the server runs out of budget, its timeout exception handler gets
-invoked. We implement 4 different strategies for handling timeout exceptions,
-and measure the latency of timeout handling, from the time the handler wakes up
-until it replies to the server.
 
-\emph{Rollback (RB)} rolls the server back to the last consistent state
-recorded and replies to the client on behalf of the server with the amount of data
-encrypted so far. The faulting client can then continue its request once its budget is replenished.
-We measure rollback time, from the time the exception handler is
-invoked, until the server is ready for the next request. Given the
-small amount of rollback state, this measures the baseline
-    overhead. For schedulability analysis, the actual cost of the rollback would
-have to be added.
-
-\emph{Emergency (Emg.)} gives the server a one-off emergency budget to finish
-the client request, after which the exception handler
-resets the server to being passive. The benchmark measures the
-pure handling overhead, the actual request completion time must again be added.
-
-\emph{Extend (Ext.)} simply increases the client's budget on each timeout while \emph{Kill} destroys the client.
-
-We run the benchmarks with hot caches (primed by some warmup
-iterations)  as well as cold (flushed) caches.
-
-\autoref{t:rollback} shows the results. The maximum
-cold-cache cost, which is relevant for schedulability analysis,
-differs by a factor of 3--4 between the different recovery scenarios,
-indicating that all are about equally feasible.
-Approaches that restart the server (RB, Kill) are the most expensive
-as they must restore the server state from a
-checkpoint and follow the passive server initialisation protocol
-(recall \autoref{s:passive}). This requires
-5 system calls in each case for killing or replying to the client and RPC-ing to the server.
 
 We next demonstrate temporal isolation in the server by using the RB
 technique and measuring the time taken to encrypt 10 requests of 4\,MiB of
@@ -610,7 +724,15 @@ we have the expected near perfect proportionality between throughput and
 budget (with slight wiggles due to the rollbacks), showing isolation between clients. In the cases where there is headspace (centre of the right
 graphs), both clients achieve their desired throughput.
 
-\subsection{Asymmetric Protection}
+\subsection{Summary}
+
+%TODO rewrite to align with goals at start of chapter
+Through two system benchmarks and one shared-server benchmark, we have shown that our approach
+guarantees processor isolation and that threads cannot exceed their budget allocation via their
+scheduling context. Additionally we have shown that isolation can be achieved in a shared server via
+a temporal fault handler and demonstrated several alternatives for handling such faults.
+
+\section{Asymmetric Protection}
 
 We evaluate our kernel mechanism for changing criticaliwith two benchmarks: A
 microbenchmark measuring the cost of a mode switch, and another showing deadline misses of threads sets over several mode changes.
@@ -766,7 +888,7 @@ implementing different policies on top of the base scheduler is quite feasible.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.9\linewidth]{edf}
+    \includegraphics{edf}
     \caption{Execution time of \selfour user-mode EDF scheduler compared to
              kernel scheduler in \textsc{x64} LITMUS$^{RT}$.}
     \label{f:edf}

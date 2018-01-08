@@ -211,7 +211,7 @@ def build_aes_dat(rt, arch, clk):
         aes_row(out, "Emergency", getbenchmark(rt_content, 'aes emergency')[0],
                 getbenchmark(rt_content, 'aes emergency cold')[0], clk, formatstr)
         aes_row(out, "Extend", getbenchmark(rt_content, 'aes extend')[0], getbenchmark(rt_content, 'aes extend cold')[0], clk, formatstr)
-        aes_row(out, "Kill", getbenchmark(rt_content, 'aes kill')[0], getbenchmark(rt_content, 'aes kill cold')[0], clk, formatstr, last=True)
+        aes_row(out, "Error", getbenchmark(rt_content, 'aes kill')[0], getbenchmark(rt_content, 'aes kill cold')[0], clk, formatstr, last=True)
 
 
 def aes_shared_cols(budget, tput_json, clk):
