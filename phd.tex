@@ -88,6 +88,18 @@
 \usepackage{tikz}
 \usepackage{listings}
 \usepackage{xspace}
+
+\newcommand*{\eg}{e.g.\@\xspace}
+\newcommand*{\ie}{i.e.\@\xspace}
+
+\makeatletter
+\newcommand*{\etc}{%
+    \@ifnextchar{.}%
+                {etc}%
+                {etc.\@\xspace}%
+}
+\makeatother
+
 % lists 
 \usepackage{enumitem}
 \setlist[enumerate]{itemsep=0mm}

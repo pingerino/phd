@@ -1,31 +1,190 @@
 
 
-\chapter{seL4 Basics}
+\chapter{\selfour Basics}
 
 
 So far we have provided a general background on real-time scheduling and resource sharing.
-Finally we will present the temporal behaviour of our implementation platform, seL4.
+Finally we will present an overview of the concepts relevant to the temporal behaviour of our implementation platform, \selfour.
 
-seL4 is a microkernel that is particularly suited to safety-critical, real-time systems with one major caveat: the lack of real-time scheduling support. 
-Three main features of seL4 support this claim: it has been formally verified for correctness~\citep{Klein_EHACDEEKNSTW_09} and other properties~\citep{Sewell_WGMAK_11}; All memory management, including kernel memory, is all at user-level~\citep{Elkaduwe_Derrin_06}; Finally it is the only \gls{OS} to date with full \gls{WCET} analysis~\citep{Blackham_SCRH_11}.
-The scheduler in seL4 has been left intentionally underspecified~\citep{Petters_EH_12} for later work and as a result has a very informal notion of time.
+\selfour is a microkernel that is particularly suited to safety-critical, real-time systems with one major caveat: the lack of real-time scheduling support. 
+Three main features of \selfour support this claim: it has been formally verified for correctness~\citep{Klein_EHACDEEKNSTW_09} and other properties~\citep{Sewell_WGMAK_11}; All memory management, including kernel memory, is all at user-level~\citep{Elkaduwe_Derrin_06}; Finally it is the only \gls{OS} to date with full \gls{WCET} analysis~\citep{Blackham_SCRH_11}.
+The scheduler in \selfour has been left intentionally underspecified~\citep{Petters_EH_12} for later work and as a result has a very informal notion of time.
 The current implementation is a placeholder, and follows the traditional L4 scheduling model~\citep{Ruocco_06} --- a fixed-priority, round-robin scheduler with 256 priorities.
 
 Systems can currently choose between a restrictive implementation of temporal isolation or a system that presents timing behaviour that is impossible to analyse beyond trivial examples\footnote{Whether analysis is possible in a trivial example beyond one thread is questionable.}.
-In this section we will present the current state of relevant seL4 features in order to highlight deficiencies and motivate our changes.
-We will outline the scheduler, the API curiosity that is \yield, and how \gls{IPC} interacts with scheduling, followed by an analysis of how the current mechanisms can be used in real-time systems.
+In this section we will present the current state of relevant \selfour features in order to highlight deficiencies and motivate our changes.
+We will outline the existing scheduler, the API curiosity that is \yield, and how \gls{IPC} interacts with scheduling, followed by an analysis of how the current mechanisms can be used in real-time systems.
 
-\section{Capabilities}
-%TODO{define capability}
-%TODO{how are they good for mixed criticality}
-%TODO{reference EROS, KeyKos}
 
-\section{Kernel memory management}
-%TODO{Talk about kernel memory management in seL4, why it is important to keep for mixed criticality systems, and how it complicated designs.}
+\section{\selfour concepts}
+
+First we introduce the basics of \selfour: kernel memory management, capabilities, \gls{IPC} and
+signalling. \Cref{f:legend-1} shows the legend for diagrams in this section. 
+
+\begin{figure}
+    \centering
+    \includegraphics{legend-1}
+    \caption{Legend for diagrams in this section}
+    \label{f:legend-1}
+\end{figure}
+
+\subsection{Capabilities}
+
+As a capability-based \gls{OS}, access to any functionality in \selfour is via capabilities (recall
+\Cref{s:capabilities}. Capabilities to all system resources are passed to the initial task --- the first
+user level thread started in the system --- which can then allocate resources as appropriate.
+Capabilities exist in a \emph{capability space} that can be configured per thread or shared between
+threads. Capabilities spaces are analogous to address spaces for virtual memory, although
+capabilities can be moved and copied between different spaces. 
+
+All capabilities can be copied, potentially changing their access rights, except \emph{control}
+capabilities, which can only be moved and not copied. Control capabilities provide the rights to do
+specific operations, \eg the \emph{interrupt control} capability is used to obtain a capability
+to a specific interrupt number.
+
+Any individual capability can be deleted, or revoked. The former simply removes a specific
+capability from a capability space, the latter removes all child capabilities.
+
+% control caps, normal caps
+% operations
+
+\subsection{Kernel memory management}
+
+All kernel memory in \selfour is managed at user-level and accessed via capabilities (recall
+\Cref{s:capabilities}, which is key to \selfour's isolation and security, but also essential for
+understanding the complexity of kernel design.
+
+Capabilities to objects can be copied, which creates another capability to the same object,
+potentially with different access rights, but not
+a copy of the object itself. 
+Similarly capabilities to objects can also be deleted, but only when the last capability to an
+object is deleted will the object itself be deleted. Object capabilities contain a pointer to the
+actual kernel object. 
+
+All memory in \selfour starts as \emph{untyped} memory, capabilities to which is granted to the
+initial task in the system as part of the boot process. The initial task can then create all
+types of memory, including further untyped, with an operation known as \emph{retyping}. As a result,
+any object with a pointer to another object must have a back pointer to update should that object be
+deleted, in order to avoid stray pointers in the kernel. 
+
+% table of object types 
+\begin{table}
+    \centering
+    \rowcolors{2}{gray!25}{}
+    \begin{tabular}{l p{0.6\textwidth}}\toprule
+    \emph{Object}    & \emph{Description}\\\midrule
+    CNode            & A fixed size table of capabilities, analogous to a page table in a virtual
+                      memory system. \\
+    \Gls{TCB}        & A thread of execution in \selfour.\\
+    Endpoint  & Objects which facilitate \gls{IPC} between threads. \\
+    Notification object & Objects which provide a signalling mechanism.\\
+    VSpace     & A top level page table structure \\
+    Interrupt & Allow access to specific hardware interrupts.\\
+    Untyped    & Memory that can be retyped into other types of memory, including untyped.\\
+    \bottomrule
+    \end{tabular}
+    \caption{Major object types in \selfour, excluding platform specific objects. For further detail
+    consult the \selfour manual~\citep{seL417}}.
+     \label{t:kernel_objects}
+\end{table}
+
+\Cref{t:kernel_objects} gives an overview of basic object types in \selfour. 
+While the majority of objects in \selfour have a platform-dependant size fixed at compile time, some
+are variably sized, \eg untyped and CNodes, which can be any power of two size, as custom
+
+
+\subsection{IPC}
+
+\gls{IPC} is the microkernel mechanism for synchronous transmission of data and capabilities. In the \selfour model,
+\gls{IPC} takes place via endpoints, which represent a general communication port. Any thread with a
+capability to an endpoint can send and receive messages on that endpoint, subject to the access
+rights. Most messages sent fit into registers, however messages exceeding this platform dependent
+size are placed in the Messages sent via \gls{IPC} are stored in the \gls{IPC} buffer, a kernel-writeable frame per
+thread. 
+
+IPC can be one-way, where the sender blocks until the message is sent then may continue
+(\texttt{send()} , or two-way,
+where the sender blocks until a reply message is sent (\texttt{call()}. One-way IPC may also be
+non-blocking, where the message is only sent of a receiver is already present.
+Multiple senders and receivers can use the same endpoint, and which act as \gls{FIFO}
+queues. 
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics{ipc1}
+        \caption{Phase 1}
+        \label{f:ipc1}
+    \end{subfigure}%
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics{ipc2}
+        \caption{Phase 2}
+        \label{f:ipc2}
+    \end{subfigure}
+    \label{f:ipc}
+    \caption{IPC phases: (a) shows the initial IPC rendezvous, (b) shows the
+    reply phase. See \Cref{f:legend-1} for the legend.}
+\end{figure}
+
+Two-way IPC has two phases, as \cref{f:ipc} illustrates: rendezvous and reply.
+
+\Cref{f:ipc1} demonstrates the rendezvous phase, where regardless of the order of operations, 
+when one thread blocks (\cref{recv}) on the endpoint and another thread sends on that endpoint
+then message is sent. This occurs for both one-way and two-way \gls{IPC}.
+
+The reply phase, illustrated in \Cref{f:ipc2}, only occurs if the sender used \texttt{call} to send
+the \gls{IPC}. In this case, a one-off \emph{reply} capability is generated, which the caller ($A$)
+blocks on, and the receiver ($S$) sends a reply message to, waking the caller. 
+
+Given \gls{IPC} performance is critical to overall system performance in a microkernel, \selfour
+contains two \gls{IPC} fastpaths which is used when the following, common-case conditions are satisfied:
+
+\begin{enumerate}
+    \item the sender is using \texttt{call()} or the receiver is using \texttt{replyrecv()},
+    \item there are no threads of higher priority than the thread being woken in the scheduler,
+    \item the thread to be switch to has a valid address space and has not faulted,
+    \item and the message fits in registers.
+\end{enumerate}
+
+% fastpath
+% multiple servers
+
+% how it works
+
+\subsection{Signalling}
+
+% notifications, interrupts, aep-binding
+
+\subsection{System calls}
+
+
+Capability invocations are modelled as an IPC message to the kernel. 
+
+\begin{table} 
+    \centering
+    \rowcolors{2}{gray!25}{}
+    \begin{tabular}{lp{0.6\textwidth}}\toprule
+        \emph{System call} & \emph{Description} \\\midrule
+        \texttt{send}      & One-way blocking \gls{IPC} or non-blocking signal.\\
+        \texttt{nbsend}    & One-way non-blocking \gls{IPC} or non-blocking signal.\\
+        \texttt{recv}      & Block waiting for a message or signal. \\
+        \texttt{call}      & Send an IPC and wait for a reply. \\
+        \texttt{reply}     & Send a reply message to a call.\\
+        \texttt{replyrecv} & \texttt{reply} and \texttt{recv} combined in one system call.\\
+        \texttt{yield}     & Surrender current timeslice. \\
+        \bottomrule
+    \end{tabular}
+    \caption{\selfour system call summary.}
+    \label{t:system-calls}
+\end{table}
+
+
 
 \section{Scheduler}
 
-The scheduler in seL4 is priority-based round-robin with 256 priorities (0 --- 255), implemented as an array of lists: one list of ready threads for each priority level. 
+The scheduler in \selfour is priority-based round-robin with 256 priorities (0 --- 255), implemented as an array of lists: one list of ready threads for each priority level. 
 At a scheduling decision, the kernel chooses the head of the highest-priority, non-empty list, and removes it from the relevant scheduler queue, which is referred to as \emph{benno Scheduling}.
 The kernel previously used \emph{lazy scheduling}, leaving the current thread in its run queue, however this was replaced in favour of Benno scheduling to reduce the WCET of the kernel. 
 This is different to a previous kernel implementation which left the currently running thread in its run queue, however this increased the kernels \gls{WCET} and was removed.
@@ -37,14 +196,14 @@ Threads have a timeslice field which represents the number of ticks they are eli
 This value is decremented every time a timer tick is handled, and when the timeslice is exhausted the thread is appended to the relevant scheduler queue, with a replenished timeslice.
 The reload value of the timeslice is also defined at compile time (CONFIG\_TIME\_SLICE).
 
-In an unrealistically simple system, where threads run at the same priority and do not communicate, it is possible to analyse temporal behavior on seL4: threads will run for the timeslice value in round-robin order.
+In an unrealistically simple system, where threads run at the same priority and do not communicate, it is possible to analyse temporal behavior on \selfour: threads will run for the timeslice value in round-robin order.
 However, the allocation of ticks to threads is not actually that simple due to yield behaviour, preemption and \gls{IPC}. 
 
-\subsection{seL4\_Yield}
+\subsection{\selfour\_Yield}
 
 The presence of the \yield system call complicates timing analysis.
 In the traditional L4 interface, yield was the mechanism for timeslice donation. 
-In seL4 this is not the case, as \texttt{seL4\_Yield} simply appends the currently running thread to the appropriate scheduling queue and selects the new head as runnable \textit{without altering the timeslice value}.
+In \selfour this is not the case, as \texttt{\selfour\_Yield} simply appends the currently running thread to the appropriate scheduling queue and selects the new head as runnable \textit{without altering the timeslice value}.
 As a result, if only 1 tick is left in the yielding thread, when the thread is next scheduled it will run for 1 tick, rather than \texttt{CONFIG\_TIME\_SLICE}, and consequently yield simply donates the remainder of the current tick and alters scheduling ordering.
 
 Although the behaviour of yield is confusing and results in interesting scheduling behaviour, it does not actually violate temporal isolation, as threads can conspire to give each other more time, but they cannot take time away from other threads.
@@ -55,7 +214,7 @@ In practice, yield is useful for implementing in-memory spin locks, or to ensuri
 \subsection{Priorities}
 
 Like any priority-based kernel without temporal isolation mechanisms, time is only guaranteed to the highest priority threads.
-Priorities in seL4 act as informal capabilities: threads cannot create threads at priorities higher than their current priority, but can create threads at the same or lower priorities.
+Priorities in \selfour act as informal capabilities: threads cannot create threads at priorities higher than their current priority, but can create threads at the same or lower priorities.
 If threads at a higher priority levels never block, lower priority threads in the system will not run.
 As a result, a single thread running at the highest priority has access to 100\% of processing time.
 However, even this becomes unclear once there is more than one thread at a priority: if two threads are running, they can both access 50\% of processing time.
@@ -114,7 +273,7 @@ This example is illustrated in \cref{fig:non-determinism}.
 
 \subsection{Domain scheduler}
 
-A recent addition to the seL4 kernel adds the ability to guarantee complete temporal isolation and deterministic scheduling between sets of threads, using the concept of scheduling \emph{domains}.
+A recent addition to the \selfour kernel adds the ability to guarantee complete temporal isolation and deterministic scheduling between sets of threads, using the concept of scheduling \emph{domains}.
 Threads are assigned to domains, each of which has a separate array of lists of threads over the priority range.
 Each domain runs for a fixed amount of ticks, and domains are scheduled sequentially and deterministically.
 Cross-domain \gls{IPC} and yielding is not permitted, and even if there are no runnable threads while a domain is scheduled, the idle thread will run until a domain switch occurs.
@@ -128,10 +287,10 @@ Dynamic real-time applications with shared resources and high system utilisation
 
 \section{Summary}
 
-We have covered seL4 mechanisms that affect timing behaviour in the kernel: the scheduler, priorities, yield and IPC. 
+We have covered \selfour mechanisms that affect timing behaviour in the kernel: the scheduler, priorities, yield and IPC. 
 In this section we will look at how real-time scheduling could be implemented with those mechanisms.
 
-There are several options for implementing a real-time scheduler in the current version of seL4: leveraging the domain scheduler, using the priority scheduler or implementing a scheduling component to run at user-level. 
+There are several options for implementing a real-time scheduler in the current version of \selfour: leveraging the domain scheduler, using the priority scheduler or implementing a scheduling component to run at user-level. 
 As the previous section established, the domain scheduler offers low utilisation for strictly closed systems without resource sharing, so is clearly insufficient.
 
 The priority scheduler could be leveraged to implement a rate-monotonic scheduler.
@@ -141,13 +300,16 @@ Additionally, periodic threads driven by timer interrupts rather than events wou
 
 \begin{table}
 	\centering
-	\begin{tabular}{| l | p{2cm} | p{2cm} | p{2cm} | p{2cm} |} \hline
-		                  & Temporal isolation & Utilisation & Low kernel overheads & Dynamic\\\hline
-Domain scheduler          & \yes               & \no         & \yes        & \no    \\\hline
-Priority scheduler        & \no                & \yes        & \yes        & \yes   \\\hline
-Trusted timer component   & \yes               & \yes        & \no         & \yes   \\\hline
+	\begin{tabular}{lp{2cm}p{2cm}p{2cm}p{2cm}} \toprule
+        & \emph{Temporal isolation} & \emph{Utilisation} & \emph{Low kernel overheads} &
+        \emph{Dynamic}\\
+        \midrule
+Domain scheduler          & \yes               & \no         & \yes        & \no    \\
+Priority scheduler        & \no                & \yes        & \yes        & \yes   \\
+Trusted timer component   & \yes               & \yes        & \no         & \yes   \\
+        \bottomrule
 	\end{tabular}
-	 \caption{Comparison of existing seL4 scheduling options -- nothing ticks all of the boxes.}
+	 \caption{Comparison of existing \selfour scheduling options -- nothing ticks all of the boxes.}
 	 \label{tab:nothing-ticks-all-boxes}
 \end{table}
 
@@ -157,7 +319,7 @@ This component would be the highest priority thread in the system, and could pau
 However, since the timer component would need to maintain accounting information and track the currently running thread, it would need to be invoked for every single scheduling operation.
 This is prohibitively expensive, as it results in doubled context switching time and increased number of system calls for thread management.
 
-\Cref{tab:nothing-ticks-all-boxes} shows a comparison of all of the available scheduling options in the current version of seL4 -- no option provides all of the qualities we require.
+\Cref{tab:nothing-ticks-all-boxes} shows a comparison of all of the available scheduling options in the current version of \selfour -- no option provides all of the qualities we require.
 Clearly, the kernel needs something more. 
-In the next section we will outline our design for a more principled approach to time for seL4 -- using the principles of resource kernels and with the aim of support diverse task sets, including those for mixed-criticality systems.
+In the next section we will outline our design for a more principled approach to time for \selfour -- using the principles of resource kernels and with the aim of support diverse task sets, including those for mixed-criticality systems.
 

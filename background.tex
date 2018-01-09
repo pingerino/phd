@@ -81,20 +81,21 @@ The sporadic task model can be used to model both \emph{periodic} and \emph{aper
 In \autoref{table:notation} we present the parameters for the sporadic task model, and the notation that will be used throughout the rest of this document.
 
 \begin{table}
-\begin{center}
-    \begin{tabular}{|c|p{.7\textwidth}|}\hline
-    \textbf{Notation} & \textbf{Meaning} \\\hline
-    $T$               & The minimum period of a task, the minimum time between job releases. \\\hline
-    $C$               & The execution requirement of a task ($C \leq T$). \\\hline
-    $T_{i}$           & A specific task $i$ \\\hline
-    $U_{i}$           & The maximum utilisation of task $i$, which is $\frac{C}{T}$ \\\hline
-    $T_{ij}$          & The $j$th job of task $i$ \\\hline
-    $t_{ij}$          & The release time of a the $j$th job of task $i$ \\\hline
-    $d_{ij}$          & The deadline for the $j$th job of task $i$. For realtime tasks, the job must be completed by this time for the job to be considered correct. \\\hline
+\rowcolors{2}{gray!25}{white}
+\centering
+    \begin{tabular}{cp{.7\textwidth}}\toprule
+    \emph{Notation} & \emph{Meaning} \\\midrule
+    $T$               & The minimum period of a task, the minimum time between job releases. \\
+    $C$               & The execution requirement of a task ($C \leq T$). \\
+    $T_{i}$           & A specific task $i$ \\
+    $U_{i}$           & The maximum utilisation of task $i$, which is $\frac{C}{T}$ \\
+    $T_{ij}$          & The $j$th job of task $i$ \\
+    $t_{ij}$          & The release time of a the $j$th job of task $i$ \\
+    $d_{ij}$          & The deadline for the $j$th job of task $i$. For realtime tasks, the job must be completed by this time for the job to be considered correct. \\
+    \bottomrule
     \end {tabular}
     \caption{Parameters and notation for the sporadic task model as used in this document.}
     \label{tab:notation}
-\end{center}
 \end{table}
 
 In any real-time model, jobs must complete before their deadline, which can be constrained or implicit.
@@ -134,18 +135,17 @@ In the case of a uniprocessor using the sporadic task model, this amounts to
 however if the inequality does not hold, the system is considered \emph{overloaded}.
 
 \begin{table}
-	\begin{center}
-		\begin{tabular}{ | c | c  c  c |} \hline
-			         & $e_{i}$ & $p_{i}$ & $u_{i} $ \\ \hline
+    \centering
+    \begin{tabular}{cccc} \toprule
+        & \emph{$e_{i}$} & $p_{i}$ & $u_{i} $ \\ \midrule
 			$ T_{1}$ & 1 & 4 & 0.25 \\
 			$ T_{2}$ & 1 & 5 & 0.20 \\
 			$ T_{3}$ & 3 & 9 & 0.33 \\
-			$ T_{4}$ & 3 & 18 & 0.17  \\ \hline
-	$ u_{sum}(\tau)$ & &  & 0.95 \\ \hline
-		\end{tabular}
-		\caption{A sample task set, adapted from ~\citep{Brandenburg:phd}}
-		\label{tab:example_task_set}
-	\end{center}
+			$ T_{4}$ & 3 & 18 & 0.17  \\\midrule 
+	$ u_{sum}(\tau)$ & &  & 0.95 \\ \bottomrule
+	\end{tabular}
+	\caption{A sample task set, adapted from ~\citep{Brandenburg:phd}}
+	\label{tab:example_task_set}
 \end{table}
 
 Ideally, task sets are scheduled such that the total utilisation is equal to the number of processors.
