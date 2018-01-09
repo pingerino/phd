@@ -92,8 +92,14 @@ deleted, in order to avoid stray pointers in the kernel.
 While the majority of objects in \selfour have a platform-dependant size fixed at compile time, some
 are variably sized, \eg untyped and CNodes, which can be any power of two size, as custom
 
+\subsection{Thread control blocks}
+
+\Glspl{TCB} represent a unit of execution in \selfour and deviate from other object in that they
+consist of the core \gls{TCB}, and a CNode which contains a capability to that threads CNode, vspace
+and \gls{IPC} buffer.
 
 \subsection{IPC}
+\label{s:ipc}
 
 \gls{IPC} is the microkernel mechanism for synchronous transmission of data and capabilities. In the \selfour model,
 \gls{IPC} takes place via endpoints, which represent a general communication port. Any thread with a
@@ -135,9 +141,13 @@ when one thread blocks (\cref{recv}) on the endpoint and another thread sends on
 then message is sent. This occurs for both one-way and two-way \gls{IPC}.
 
 The reply phase, illustrated in \Cref{f:ipc2}, only occurs if the sender used \texttt{call} to send
-the \gls{IPC}. In this case, a one-off \emph{reply} capability is generated, which the caller ($A$)
-blocks on, and the receiver ($S$) sends a reply message to, waking the caller. 
+the \gls{IPC}. In this case, a one-off \emph{resume} capability is generated, which the caller ($A$)
+blocks on, and the receiver ($S$) sends a reply message to, waking the caller. Receivers can save
+the \emph{resume} capability to send a reply to later, but otherwise the resume capability is
+installed in the \gls{TCB} CNode. The \emph{reply} system call directly invokes the resume
+capability in this slot. 
 
+% fastpath
 Given \gls{IPC} performance is critical to overall system performance in a microkernel, \selfour
 contains two \gls{IPC} fastpaths which is used when the following, common-case conditions are satisfied:
 
@@ -148,19 +158,54 @@ contains two \gls{IPC} fastpaths which is used when the following, common-case c
     \item and the message fits in registers.
 \end{enumerate}
 
-% fastpath
-% multiple servers
-
-% how it works
+Endpoint capabilities can be minted with unique, unforgeable badges which are delivered to the
+receiver with the rest of the IPC message. This provides a mechanism for identifying senders.
 
 \subsection{Signalling}
 
+Notification objects facilitate signalling in \selfour, either from other threads via \texttt{send()} or from
+interrupts. The signals are non-blocking, as the badge of the notification capability is simply
+bitwise ORed with a data word stored in the notification object itself. When a receiver blocks on a
+notification object (\texttt{recv()}), if the badge has already been set it the receiver will
+receive it immediately, otherwise the receiver will block immediately. Receivers can also poll a
+notification object with \texttt{nbrecv()}.
+
 % notifications, interrupts, aep-binding
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics{signal1}
+        \caption{Notification}
+        \label{f:signal1}
+    \end{subfigure}%
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics{signal2}
+        \caption{Bound notification}
+        \label{f:signal2}
+    \end{subfigure}
+    \label{f:signal}
+    \caption{Signals via a notification object. See \Cref{f:legend-1} for the legend.}
+\end{figure}
+
+
+\Cref{f:signal1} shows signal handling, where a thread A receives a signal and an interrupt at the
+same time. In this case, the interrupt handler has a badged capability to the notification object,
+$N$, as does the signaller. Both badges will be combined with a bitwise OR and delivered to the
+receiver.
+
+Signals can also be received by threads waiting on \gls{IPC}, as shown in \Cref{f:signal2}. A
+\gls{TCB} object is bound to a notification object, establishing a link between them. Badges can be
+used to determine whether a message was received from the endpoint or a signal on the notification object.
 
 \subsection{System calls}
 
-
-Capability invocations are modelled as an IPC message to the kernel. 
+Over the last few sections we have indirectly presented several system calls for \gls{IPC} and
+signalling. \Cref{t:system-calls} shows all the system calls available in \selfour. Communication
+with the kernel itself is modelled as \gls{IPC} by using \texttt{call()} on kernel object
+capabilities. Each capability has a set of \emph{invocations} which allow for methods on that object
+to be used \eg binding a \gls{TCB} and notification object.
 
 \begin{table} 
     \centering
@@ -170,8 +215,9 @@ Capability invocations are modelled as an IPC message to the kernel.
         \texttt{send}      & One-way blocking \gls{IPC} or non-blocking signal.\\
         \texttt{nbsend}    & One-way non-blocking \gls{IPC} or non-blocking signal.\\
         \texttt{recv}      & Block waiting for a message or signal. \\
-        \texttt{call}      & Send an IPC and wait for a reply. \\
-        \texttt{reply}     & Send a reply message to a call.\\
+        \texttt{nbrecv}    & Poll for a message or signal. \\
+        \texttt{call}      & Send an IPC and wait for a reply, or invoke the kernel. \\
+        \texttt{reply}     & Send a message to the resume capability in the TCB CNode.\\
         \texttt{replyrecv} & \texttt{reply} and \texttt{recv} combined in one system call.\\
         \texttt{yield}     & Surrender current timeslice. \\
         \bottomrule
@@ -181,15 +227,15 @@ Capability invocations are modelled as an IPC message to the kernel.
 \end{table}
 
 
-
 \section{Scheduler}
 
 The scheduler in \selfour is priority-based round-robin with 256 priorities (0 --- 255), implemented as an array of lists: one list of ready threads for each priority level. 
-At a scheduling decision, the kernel chooses the head of the highest-priority, non-empty list, and removes it from the relevant scheduler queue, which is referred to as \emph{benno Scheduling}.
+At a scheduling decision, the kernel chooses the head of the highest-priority, non-empty list, and
+removes it from the relevant scheduler queue, which is referred to as \emph{Benno Scheduling}.
 The kernel previously used \emph{lazy scheduling}, leaving the current thread in its run queue, however this was replaced in favour of Benno scheduling to reduce the WCET of the kernel. 
 This is different to a previous kernel implementation which left the currently running thread in its run queue, however this increased the kernels \gls{WCET} and was removed.
 
-Scheduling decision complexity is $O$(number of priorities), as the algorithm searches for a non-empty list from the highest priority down, however can easily be optimised to $O(1)$, as a 2-level bit field can track the highest runnable priority\footnote{This feature exists in a branch but is not yet verified}. 
+Scheduling decision complexity is $O(1)$ as a two-level bit field tracks the highest priority with a runnable thread.
 
 Kernel time is accounted for in ticks, with a static tick length defined at compile time (CONFIG\_TIMER\_TICK\_MS).
 Threads have a timeslice field which represents the number of ticks they are eligible to run. 
@@ -198,18 +244,6 @@ The reload value of the timeslice is also defined at compile time (CONFIG\_TIME\
 
 In an unrealistically simple system, where threads run at the same priority and do not communicate, it is possible to analyse temporal behavior on \selfour: threads will run for the timeslice value in round-robin order.
 However, the allocation of ticks to threads is not actually that simple due to yield behaviour, preemption and \gls{IPC}. 
-
-\subsection{\selfour\_Yield}
-
-The presence of the \yield system call complicates timing analysis.
-In the traditional L4 interface, yield was the mechanism for timeslice donation. 
-In \selfour this is not the case, as \texttt{\selfour\_Yield} simply appends the currently running thread to the appropriate scheduling queue and selects the new head as runnable \textit{without altering the timeslice value}.
-As a result, if only 1 tick is left in the yielding thread, when the thread is next scheduled it will run for 1 tick, rather than \texttt{CONFIG\_TIME\_SLICE}, and consequently yield simply donates the remainder of the current tick and alters scheduling ordering.
-
-Although the behaviour of yield is confusing and results in interesting scheduling behaviour, it does not actually violate temporal isolation, as threads can conspire to give each other more time, but they cannot take time away from other threads.
-This behaviour is considered a specification bug, not a feature. 
-
-In practice, yield is useful for implementing in-memory spin locks, or to ensuring intended scheduling ordering during benchmarks.
 
 \subsection{Priorities}
 
@@ -221,17 +255,22 @@ However, even this becomes unclear once there is more than one thread at a prior
 If one of two threads blocks, the other gets 100\% of processing time and vice versa.
 There is no way to enforce a certain processor allocation and how CPU time a thread receives is up to priorities and the behavior of other threads in the system, which is impossible to guarantee.
 
-\subsection{IPC Interaction}
+\subsection{Accounting}
 
-\gls{IPC} complicates the timing behaviour of the kernel further.
-When a \gls{IPC} is sent to a higher priority thread, that thread is switched to immediately.
-For a lower priority thread, the scheduler is invoked and the thread will only be scheduled if no other high priority threads are runnable.
+Due to the tick-based nature of the \selfour scheduler, when ticks are accounted complicates the
+scheduling as the precision is reduced to the tick granularity. Small tick intervals lead to an
+accurate scheduler but increase the base interrupt load, while larger intervals result in imprecise
+scheduling.  For example, signals and other preemptions bill the partially consumed tick to the
+preempting thread, which will suffer a shorter timeslice. 
 
-In the case where the \gls{IPC} is to a thread at the same priority, the round-robin scheduler queue at that priority is bypassed and the thread is switched to immediately.
+Similarly, the \texttt{yield} system call will not alter the timeslice of the current thread, and
+only donates a portion of the current tick to the next thread in the round-robin scheduler. 
+
+\gls{IPC}, as introduced in \Cref{s:ipc}, complicates the timing behaviour of the kernel further.
+When a message is sent to a target thread, and that thread is a higher priority than any other
+thread in the scheduler that thread is switched to immediately, by passing the round-robin scheduler.
 Note that other threads in the scheduling queue are not starved, as when one of the rendezvous partners exhausts its timeslice the scheduler will choose the next round-robin thread.
-However, \textit{when} this happens is not deterministic.
-
-We can demonstrate the non-deterministic scheduling ordering as a result of IPC with an example.
+However, \textit{when} this can be hard to determine due to the timing of ticks. 
 Consider the case where threads $A$ and $B$, both at the same priority, and are exchanging IPC messages constantly.
 Another thread $C$ is running at the same priority, and all threads have full timeslice fields.
 $C$ will be scheduled when one threads timeslice is exhausted, i.e when either $A$ or $B$ has been preempted \texttt{CONFIG\_TIME\_SLICE} times.
@@ -265,33 +304,42 @@ This example is illustrated in \cref{fig:non-determinism}.
         \draw[thick] (6,2) -- ++(0,5pt) node[above] {C};
 
         \node[below,align=left,anchor=north,inner xsep=0pt] at (5,2) 
-            {Best case - C scheduled after 22 ticks};  
+            {Best case - C scheduled after 2 ticks};  
     \end{tikzpicture}
-    \caption{Non-deterministic scheduling in the case of IPC and variable execution times. A and B are IPC partners, C is a third thread. A, B and C run at the same priority. \texttt{CONFIG\_TIME\_SLICE} is 2. Bold indicates the thread that is preempted by the timer tick. In the best case, B takes both timer ticks and C is scheduled after 2 ticks. In the worst case, A takes 2 ticks and B takes 1, such that C is scheduled after 3 ticks.}
+    \caption{Scheduling in the case of IPC and variable execution times. A and B are IPC partners, C is a third thread. A, B and C run at the same priority. \texttt{CONFIG\_TIME\_SLICE} is 2. Bold indicates the thread that is preempted by the timer tick. In the best case, B takes both timer ticks and C is scheduled after 2 ticks. In the worst case, A takes 2 ticks and B takes 1, such that C is scheduled after 3 ticks.}
     \label{fig:non-determinism}
 \end{figure}
+
+Ultimately, the current tick-based scheduler is insufficient for accurately billing threads for time
+consumed.
 
 \subsection{Domain scheduler}
 
 A recent addition to the \selfour kernel adds the ability to guarantee complete temporal isolation and deterministic scheduling between sets of threads, using the concept of scheduling \emph{domains}.
 Threads are assigned to domains, each of which has a separate array of lists of threads over the priority range.
 Each domain runs for a fixed amount of ticks, and domains are scheduled sequentially and deterministically.
-Cross-domain \gls{IPC} and yielding is not permitted, and even if there are no runnable threads while a domain is scheduled, the idle thread will run until a domain switch occurs.
+Cross-domain \gls{IPC} is delayed until a domain switch, and \texttt{yield} between domains is not
+possible. When there there are no threads to run while a domain is scheduled, a domain-specific idle thread will run until a switch occurs.
 
-The domain scheduler can be leveraged to achieve temporal isolation however since domains cannot be preempted, it would only be useful for cyclic, non-preemptive scheduling with scheduling order and parameters computed offline and no resource sharing.
+The domain scheduler can be leveraged to achieve temporal isolation however since domains cannot be
+preempted, it is only useful for cyclic, non-preemptive scheduling with scheduling order and
+parameters computed-offline.
 In such a scenario each real-time task could be mapped to its own domain, and each task would run for its specified time before the domain scheduler switched to the next thread.
 Any unused time in a domain would be wasted, and spent in the idle thread.
 
-However, in such a scheduler is only suitable for closed systems where resource sharing is not required, and results in low system utilisation.
-Dynamic real-time applications with shared resources and high system utilisation are not compatible with the domain scheduler, as they require preemption.
+However, in such a scheduler is only suitable for closed systems and results in low system utilisation.
+Dynamic real-time applications with shared resources and high system utilisation are not compatible
+with the domain scheduler, as they require preemption.
 
-\section{Summary}
+\section{RT support}
 
-We have covered \selfour mechanisms that affect timing behaviour in the kernel: the scheduler, priorities, yield and IPC. 
+We introduced basic \selfour concepts and terminology, and investigated mechanisms that effect
+timing behaviour in the kernel: the scheduler, priorities, yield and IPC. 
 In this section we will look at how real-time scheduling could be implemented with those mechanisms.
 
 There are several options for implementing a real-time scheduler in the current version of \selfour: leveraging the domain scheduler, using the priority scheduler or implementing a scheduling component to run at user-level. 
-As the previous section established, the domain scheduler offers low utilisation for strictly closed systems without resource sharing, so is clearly insufficient.
+As the previous section established, the domain scheduler offers low utilisation for strictly closed
+systems with strict temporal partitioning and no preemption, so is clearly insufficient.
 
 The priority scheduler could be leveraged to implement a rate-monotonic scheduler.
 However, this requires complete trust in every thread in the system, as there is no mechanism for temporal isolation: if one thread executes for too long, other threads will miss their deadlines.
@@ -321,5 +369,6 @@ This is prohibitively expensive, as it results in doubled context switching time
 
 \Cref{tab:nothing-ticks-all-boxes} shows a comparison of all of the available scheduling options in the current version of \selfour -- no option provides all of the qualities we require.
 Clearly, the kernel needs something more. 
-In the next section we will outline our design for a more principled approach to time for \selfour -- using the principles of resource kernels and with the aim of support diverse task sets, including those for mixed-criticality systems.
+In the next section we will our model for a more principled approach to time by extending the
+baseline \selfour model presented in this chapter. We incorporate using the principles of resource kernels and with the aim of support diverse task sets, including those for mixed-criticality systems.
 
