@@ -256,7 +256,7 @@ If one of two threads blocks, the other gets 100\% of processing time and vice v
 There is no way to enforce a certain processor allocation and how CPU time a thread receives is up to priorities and the behavior of other threads in the system, which is impossible to guarantee.
 
 \subsection{Accounting}
-
+% I think this should move to the design section?
 Due to the tick-based nature of the \selfour scheduler, when ticks are accounted complicates the
 scheduling as the precision is reduced to the tick granularity. Small tick intervals lead to an
 accurate scheduler but increase the base interrupt load, while larger intervals result in imprecise

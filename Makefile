@@ -272,7 +272,7 @@ Undefined = '((Reference|Citation).*undefined)|(Label.*multiply defined)'
 Error = '^! '
 
 # combine citation commands from all targets into tmp.aux, generate references.bib from this
-$(Bib): $(addsuffix .tex, $(Targets))
+$(Bib): *.tex $(addsuffix .tex, $(Targets))
 	@echo "====> Parsing targets for references"
 	@cat > .log </dev/null
 	${Q}for i in $(Targets); do \
@@ -281,7 +281,8 @@ $(Bib): $(addsuffix .tex, $(Targets))
 	done
 	@echo "====> Removing duplicate bib entries";
 	${Q}cat all_refs.aux | sort -u > tmp.aux;
-	${Q}if [ -s references.aux ]; then \
+	${Q}touch references.aux; 
+	${Q}if [ -r references.aux ]; then \
 		diff references.aux tmp.aux > references.diff 2> /dev/null; \
 	else rm -f references.diff; \
 	fi; true

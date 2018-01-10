@@ -33,11 +33,11 @@ Task weights determine the share of time for which each job has access to a reso
 While proportional share algorithms are applied to many different scheduling problems, they apply well to real-time scheduling on one or more processors.
 
 Unlike other approaches to real-time scheduling, proportional share schedulers have the explicit property of guaranteeing a rate of progress for all tasks in the system.
-Some criticise this approach for over-constraining the system and introducing overhead-related capacity loss due to a heightened number of context switches~\citep{Abeni_Buttazzo_2004}.
+Some criticise this approach for over-constraining the system and introducing overhead-related capacity loss due to a heightened number of context switches~\citep{Abeni_Buttazzo_04}.
 
-\citet{Baruah_CPV_1996} introduced the property \emph{proportionate fairness} or \emph{Pfair} as a strong fairness property for proportionate share scheduling algorithms.
+\citet{Baruah_CPV_96} introduced the property \emph{proportionate fairness} or \emph{Pfair} as a strong fairness property for proportionate share scheduling algorithms.
 For a schedule to be Pfair, then at every time $t$ a task $T$ with weight $T_{w}$ must have been scheduled either $\lceil T_{w} . t \rceil$ or $\lfloor T_{w}.t \rfloor $ times.
-\emph{Early-Release fair} or ERfair~\citep{Anderson_Srinivasan_2004} is an extension of the Pfair property that allows tasks to execute before their Pfair window, which can allow for better response times.
+\emph{Early-Release fair} or ERfair~\citep{Anderson_Srinivasan_04} is an extension of the Pfair property that allows tasks to execute before their Pfair window, which can allow for better response times.
 
 Pfair scheduling algorithms break jobs into sub-jobs that match the length of a quantum.
 Real-time and non-real time tasks are treated similarly.
@@ -50,7 +50,7 @@ This problem can be exacerbated by critical sections, which may last longer than
 Additionally, it may not be possible to have a priori knowledge of critical section size, especially in a soft real-time systems where it is not worth conducting \gls{WCET} analysis or execution time is dependant on exterior factors, such as network behaviour.
 
 One early uniprocessor Pfair scheduling algorithm is earliest eligible deadline first, presented in \citet{Stoica_AKBGP_96}.
-PD$^{2}$~\citep{Srinivasan_Anderson_2006} is a more recent Pfair/ERfair scheduling algorithm that is theoretically optimal for multiprocessors under \gls{HRT} constraints, although only under the assumption that process preemption and migration are free.
+PD$^{2}$~\citep{Srinivasan_Anderson_06} is a more recent Pfair/ERfair scheduling algorithm that is theoretically optimal for multiprocessors under \gls{HRT} constraints, although only under the assumption that process preemption and migration are free.
 
 Recall that temporal isolation means that tasks should not be able to interfere with the temporal behaviour of other tasks in the system.
 Proportionate fair systems provide temporal isolation as part of their fairness property, unless the system is overloaded, at which point the rate of all tasks will degrade.
@@ -61,39 +61,39 @@ Temporal isolation in \gls{EDF} scheduling has been explored throughly in the re
 We outline the most dominant approaches in this section.
 
 \paragraph{Robust earliest deadline scheduling}
-One very early approach to mixed-criticality scheduling attempts to extend \gls{EDF} to allow overload conditions to be handled with respect to a value. Robust earliest deadline scheduling~\citep{Buttazzo_Stankovic_1993} assigns a value to each task set.
+One very early approach to mixed-criticality scheduling attempts to extend \gls{EDF} to allow overload conditions to be handled with respect to a value. Robust earliest deadline scheduling~\citep{Buttazzo_Stankovic_93} assigns a value to each task set.
 The algorithm will drop jobs from low-value tasks under overload, although they can be scheduled again later once the system returns to non-overload conditions.
 The algorithm is optimal, however this is only the case if scheduler overhead is excluded.
 Since the algorithm is has O($n$) complexity in the number of tasks, the authors recommend using a dedicated scheduling processor such that overhead will not effect the timing behaviour -- but this is not suitable for embedded systems, where the goal is to minimise the number of processors, not increase them.
 
-\paragraph{\gls{CBS}} \citet{Abeni_Buttazzo_2004} introduce a technique for scheduling \gls{HRT} and \gls{SRT} tasks and providing temporal isolation.
+\paragraph{\gls{CBS}} \citet{Abeni_Buttazzo_04} introduce a technique for scheduling \gls{HRT} and \gls{SRT} tasks and providing temporal isolation.
 \gls{HRT} tasks are scheduled using an \gls{EDF} scheduler, but \gls{SRT} tasks are treated differently as \gls{EDF} does not handle overload.
 Instead, a \gls{CBS} is assigned to each \gls{SRT} task.
 Each \gls{CBS} has a bandwidth assigned to it, and breaks down \gls{SRT} jobs into sub-jobs such that the utilisation rate of the task does not exceed the assigned bandwidth.
 Any sub-job that will cause the bandwidth to be exceeded is postponed, but still executed.
 
-\gls{CBS} stands out from previous server based approaches~\citep{Spuri_Buttazzo_1996, Ghazalie_B_1995, Spuri_Buttazzo_1994, Deng_Liu_1997} as it does not require a \gls{WCET} or a minimum bound on job inter-arrival time, making it much more suitable for \gls{SRT} tasks.
+\gls{CBS} stands out from previous server based approaches~\citep{Spuri_Buttazzo_96, Ghazalie_B_95, Spuri_Buttazzo_94, Deng_Liu_97} as it does not require a \gls{WCET} or a minimum bound on job inter-arrival time, making it much more suitable for \gls{SRT} tasks.
 Implementation wise, \gls{CBS} has fewer hardware overheads than Pfair schedulers.
 
 Many extensions exist to \gls{CBS} to improve functionality.
-\citet{Kato_IR_2011} extend \gls{CBS} to implement \emph{slack donation}, where any unused bandwidth is given to other jobs.
-In ~\citep{Craciunas_KPRS_2012}, \gls{CBS} is extended such that bandwidths are variable at run-time.
+\citet{Kato_IR_11} extend \gls{CBS} to implement \emph{slack donation}, where any unused bandwidth is given to other jobs.
+In ~\citep{Craciunas_KPRS_12}, \gls{CBS} is extended such that bandwidths are variable at run-time.
 \citet{Lamastra_LA_01} introduce bandwidth inheritance across CBS servers applied to different resources, providing temporal isolation for additional resources other than processing time.
 
 \paragraph{\gls{RBED}} schedulers explicitly separate the resource allocation and dispatching (choosing which thread to run) in order to provide flexibility in timeliness requirements supported by the scheduler.
   \Gls{RBED} ~\citep{Brandt_BLB_03} is an algorithm that implements such a scheduler.
 
-In \gls{RBED}, tasks are considered as either \gls{HRT}, \gls{SRT}, \gls{NRT} or rate-based.
+In \gls{RBED}, tasks are considered as either \gls{HRT}, \gls{SRT}, best effort or rate-based.
 Tasks are modelled using an extension of the periodic task model, allowing any job of a task to have a different period.
 If rate-based or \gls{HRT} tasks cannot be scheduled at their desired rate they are rejected.
 \gls{SRT} tasks are given their rate if possible with the option to provide a quality of service specification.
-Processor time reservations can be used to make sure \gls{NRT} tasks are allowed some execution time.
+Processor time reservations can be used to make sure best effort tasks are allowed some execution time.
 Otherwise they are allocated slack time unused by SRT and HRT tasks.
-Either way, \gls{NRT} tasks are scheduled by assigning them a rate that reflects how they would be scheduled in a standard, fair, quantum-based scheduler.
+Either way, best effort tasks are scheduled by assigning them a rate that reflects how they would be scheduled in a standard, fair, quantum-based scheduler.
 Based on the rates used, \gls{RBED} breaks tasks down and feeds them to an \gls{EDF} scheduler to manage processing time.
 Rates are enforced using a one-shot timer to stop tasks that exceed their {\gls{WCET}}.
 As tasks enter and leave the system, the rates of \gls{SRT} tasks will change.
-Slack time that occurs as a result of tasks completing before their deadlines is only donated to \gls{NRT} tasks, although the authors note that extensions should be able to donate slack to \gls{SRT} tasks as well.
+Slack time that occurs as a result of tasks completing before their deadlines is only donated to best effort tasks, although the authors note that extensions should be able to donate slack to \gls{SRT} tasks as well.
 
 \Gls{RBED} is similar to the concept of CBS, however it deals with separate types of real-time tasks more explicitly.
 
@@ -106,7 +106,7 @@ Many solutions for scheduling aperiodic tasks
 
 \paragraph{Polling servers}\label{p:polling-servers}~\citep{Lehoczky_LS_87} wake every period, checks if there are any pending tasks and runs them for maximum their budget time. If there is no task to run, the polling server will go back to sleep. That is, at time $t_{i}$, if there are no tasks ready to execute, the server will sleep until $t_{i+1}$. This has the limitation task latency is a function of the period $T$.
 
-\paragraph{Deferrable Servers} Unlike polling servers, \emph{deferrable servers}\citep{Lehoczky_LS_87, Strosnider_LS_1995} preserve any unused budget across periods, although the budget can never be exceeded.
+\paragraph{Deferrable Servers} Unlike polling servers, \emph{deferrable servers}\citep{Lehoczky_LS_87, Strosnider_LS_95} preserve any unused budget across periods, although the budget can never be exceeded.
 This removes the latency problems with polling servers, but unfortunately breaks rate-monotonic schedulability analysis, as this policay can result in servers executing back-to-back and using more than thier scheduling bandwidth for any specific occurence of the period.
 This occurs as deferrable servers replenish the budget to full at the start of each period, and the budget can be used at any point during a tasks execution.
 The problem occurs when a task wakes at $t_{i} - C$, consumes its whole budget, however then has its budget replenished at $t_{i+1}$.
@@ -142,7 +142,7 @@ As introduced in \cref{sec:resource-kernels}, when combining locking protocols a
 
 Prioritisation, or what priority a task uses while accessing a resource, can be decided by any of the existing protocols: \gls{PCP}, \gls{HLP} or \gls{PIP}. 
 Charging the reservation, and which reservation to charge, is more interesting. 
-\citet{deNiz_LSR_2001} describe the possible mappings between reservations and resources consuming those reservations, and comes down to the following choices:
+\citet{deNiz_LSR_01} describe the possible mappings between reservations and resources consuming those reservations, and comes down to the following choices:
 
 \begin{description}
 \item[Bandwidth inheritance] Tasks using the resource run on their own reservation.
@@ -167,7 +167,7 @@ Rather than temporal isolation, mixed-criticality systems require \emph{asymmetr
 This can be realised as a system mode-switch or form of graceful degredation.
 
 There are many varied definitions of mixed criticality in the literature.
-Some consider merely the combination of \gls{HRT}, \gls{SRT} and \gls{NRT} tasks, with criticality observed in that order.
+Some consider merely the combination of \gls{HRT}, \gls{SRT} and best effort tasks, with criticality observed in that order.
 Others allow for \gls{QoS} specifications, which can reflect criticality.
 Systems where criticality can be specified explicitly (regardless of SRT/HRT specification) also exist.
 
@@ -175,7 +175,7 @@ A key observation about mixed-criticality systems is neither the strictness of t
 While in general critical tasks are \gls{HRT}, it is possible to have critical tasks that are \gls{SRT}, for instance, object tracking algorithms whose \gls{WCET} depends on factors external to the software system.
 
 None of the scheduling algorithms so far directly support mixed-criticality systems.
-\gls{RBED} is the closest, although it assumes a direct relationship between criticality and real-time model, with the assumption that \gls{HRT} tasks are more critical than \gls{SRT} tasks which are more critical than \gls{NRT} tasks.
+\gls{RBED} is the closest, although it assumes a direct relationship between criticality and real-time model, with the assumption that \gls{HRT} tasks are more critical than \gls{SRT} tasks which are more critical than best effort tasks.
 
 Scheduling algorithms for mixed-criticality systems are a hot-topic in the real-time community.
 In this section we briefly present a few such algorithms.
@@ -183,7 +183,7 @@ In this section we briefly present a few such algorithms.
 
 \subsection{Zero Slack Scheduling}
 
-\Citet{deNiz_LR_2009} propose a scheduling approach that can handle multiple levels of criticality, called \gls{ZS} scheduling.
+\Citet{deNiz_LR_09} propose a scheduling approach that can handle multiple levels of criticality, called \gls{ZS} scheduling.
 
 \gls{ZS} scheduling is based on the fact that tasks rarely use their \gls{WCET}.
 This means that resource reservation techniques like \gls{CBS} without slack donation result in low effective utilisation.
@@ -196,10 +196,10 @@ The \gls{ZS}\gls{RM} scheduler is proven to be able to schedule anything that st
 \gls{ZS} scheduling can be combined with temporal isolation via bandwidth servers.
 
 % TODO possible rewrite
-\gls{ZS} scheduling has been adapted to use a \gls{QoS} based resource allocation model~\citep{deNiz_WSRR_2012}, in the context of \glspl{UAV}.
+\gls{ZS} scheduling has been adapted to use a \gls{QoS} based resource allocation model~\citep{deNiz_WSRR_12}, in the context of \glspl{UAV}.
 Many models of real-time systems assume that \glspl{WCET} for real-time tasks are stable and can be calculated.
 However, \glspl{UAV} have complicated visual object tracking algorithms where \gls{WCET} is difficult to calculate, and execution time varies with the number of objects to track.
-In practice, \Citet{deNiz_WSRR_2012} found that \gls{ZS}\gls{RM} scheduling resulted in \emph{utility inversion} --- where lower utility tasks prevent the execution of higher utility tasks.
+In practice, \Citet{deNiz_WSRR_12} found that \gls{ZS}\gls{RM} scheduling resulted in \emph{utility inversion} --- where lower utility tasks prevent the execution of higher utility tasks.
 Although assuring no criticality inversion occurred with a criticality based approach, under overload, some tasks offer more utility than others with increased execution time.
 As a result, the authors replace criticality in the algorithm with a utility function.
 Two execution time estimates are used for real-time tasks --- \gls{NCET} and \gls{OCET}, each having their own utility.
@@ -221,7 +221,7 @@ As a result of this, a family of mixed-criticality schedulers exists that handle
 The scheduling algorithm will always schedule high-criticality tasks.
 If high-criticality tasks finish before the lower \gls{WCET} estimate, lower criticality tasks are also scheduled.
 Otherwise, tasks of lower criticality may not be scheduled at all.
-An \gls{EDF} based algorithm is presented in \citet{Baruah_BDMVS_2011}, which is generalised to an unlimited amount of criticality levels.
+An \gls{EDF} based algorithm is presented in \citet{Baruah_BDMVS_11}, which is generalised to an unlimited amount of criticality levels.
 An \gls{FP} based approach is implemented in \citet{Pathan:phd}, where run-time monitoring is used to switch between criticalities.
 Some tasks may be dropped in order to better utilise processors without violating certification requirements.
 

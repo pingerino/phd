@@ -23,91 +23,125 @@ This thesis draws on all of these fields in order to support real-time and mixed
 \section{Real-time theory}
 \label{sec:real-time-theory}
 
-Real-time systems have timing constraints, where the the correctness of the system is dependent not only on the results of computations, but on the time at which those results arrive~\citep{Stankovic_1988}.
-Essentially all software is real-time: if the software never gets access to processing time, it will never complete and delivery any results.
-However, for a system to be considered real-time it must be sensitive to timing behaviour.
-For basic software, time is fungible: it does not matter when the software is run, as long as it does get run.
-Computations in real-time systems are said to have deadlines: if a result is not delivered by a deadline, the system is considered incorrect.
+Real-time systems have timing constraints, where the correctness of the system is dependent not only
+on the results of computations, but on the time at which those results
+arrive~\citep{Stankovic_88}.  Essentially all software is real-time: if the software never gets
+access to processing time, no results will ever be obtained.  However, for a system
+to be considered real-time it must be sensitive to timing behaviour -- how much processing time is
+allocated, and when it is allocated. For basic software, time is
+fungible: it does not matter when the software is run, as long as it does get run.
+
+There are many ways to model real-time systems, which we touch on in the coming chapters. 
 
 \subsection{Types of real-time task}
 
-A \emph{task} in real-time theory is a single instruction stream.
-How that task is realised by an operating system -- as a process or a thread, depends on whether memory protection is required or not.
-Real-time tasks fall into several categories, depending on how strictly deadlines are enforced.
+The term \emph{task} in real-time theory is used to refer to a single instruction stream.  How tasks
+are realised by an operating system --- as a processes or threads --- is specific to the
+implementation.  Computations by tasks in real-time systems have deadlines which determine the
+correctness of the system. How those deadlines effect correctness depends on the category of the
+system, which can is generally referred to as \gls{HRT}, \gls{SRT}, or \emph{best effort}.
 
-\paragraph{Hard Real-Time}
-In a \gls{HRT} system deadlines are absolute.
-If a deadline is missed, the system is considered incorrect.
-Many \gls{HRT} systems are safety-critical systems, where deadline misses lead to catastrophic results.
-Examples of \gls{HRT} systems include airbag systems in cars and control systems for autonomous vehicles.
-In the former, missing a deadline could cause an airbag to be deployed too late.
-In the latter, the autonomous vehicle could crash.
-To guarantee that a \gls{HRT} system can meet deadlines, the code must be subject to {\gls{WCET}} analysis. State of the art {\gls{WCET}} analysis is generally pessimistic by several orders of magnitude, which means that allocated time will not generally be used completely, although it must be available.
+\emph{Hard Real-Time} tasks have absolute deadlines; if a deadline is missed,
+the task is considered incorrect. \gls{HRT} tasks are most common in safety-critical systems, where
+deadline misses lead to catastrophic results.  Examples include airbag systems
+in cars and control systems for autonomous vehicles.  In the former, missing a deadline could cause
+an airbag to be deployed too late.  In the latter, the autonomous vehicle could crash.  To guarantee
+that a \gls{HRT} task can meet deadlines, the code must be subject to {\gls{WCET}} analysis. State
+of the art {\gls{WCET}} analysis is generally pessimistic by several orders of magnitude, which
+means that allocated time will not generally be used completely, although it must be available.
 Further detail about {\gls{WCET}} analysis can be found in \citet{Lv_GZDYZ_09}.
 
-\paragraph{Soft Real-Time}
-As opposed to \gls{HRT} systems, \gls{SRT} systems can still be considered correct in the presence of some defined level of deadline misses. Although {\gls{WCET}} can be known for {\gls{SRT}} systems, less precise but more optimistic time estimates are generally used for practicality.
-Examples of \gls{SRT} systems include multimedia and video game platforms, where deadline misses may result in some non-critical effect such as performance degradation.
+\emph{Soft Real-Time} tasks, as opposed to \gls{HRT}, can be
+considered correct in the presence of some defined level of deadline misses. Although {\gls{WCET}}
+can be known for {\gls{SRT}} tasks, less precise but more optimistic time estimates are generally
+used for practicality.  Examples of \gls{SRT} tasks can be found in multimedia and video game platforms,
+where deadline misses may result in some non-critical effect such as performance degradation.
+\gls{SRT} tasks can also be found in safety-critical systems where the result degrades if enough time is not
+allocated by the deadline, but the result remains useful \eg image recognition and object detection
+in autonomous vehicles. In such tasks, a minimum allocation of time to the task mights be \gls{HRT},
+while further allocations are \gls{SRT}.
 
 Various models exist to quantify permissible deadline misses in \gls{SRT} systems.
 One measure is to consider the upper bound on how late a deadline miss may occur, referred to as \emph{tardiness}~\citep{Devi:phd}.
 Another is to express an upper bound on the percentage of deadline misses, which is easier to measure but less meaningful, as this allows for unbounded execution time.
-Some \gls{SRT} systems allow deadlines to be skipped completely~\citep{Koren_Shasha_1995} while others allow deadlines to be postponed. Systems that allow deadlines to be skipped are often referred to as firm real-time.
+Some \gls{SRT} systems allow deadlines to be skipped completely~\citep{Koren_Shasha_95} while others allow deadlines to be postponed. Systems that allow deadlines to be skipped are often referred to as firm real-time.
 
-\paragraph{Non Real-Time}
-\Gls{NRT} or \emph{best-effort} tasks are tasks without temporal requirements that generally execute in the background of a real-time system. Examples include logging services and standard applications, but may be far more complicated.
+\emph{Best effort} tasks do not have temporal requirements that generally execute in the
+background of a real-time system. Examples include logging services and standard applications, but
+may be far more complicated. Of course, any task must be scheduled at some point for system success,
+so there must be some timing guarantee. 
 
 \subsection{Real-time models}
 
-Tasks in real-time systems are modelled as an infinite series of jobs.
-When a job is ready to run it is said to be \emph{released}, and multiple jobs from one task cannot run simultaneously.
-When a job blocks waiting for the next job release, it is said to be \emph{completed}.
-Listing \ref{list:sporadic} shows an example of how C code for such a task could look.
+A real-time system is a collection of tasks, traditionally of the same model. If a system is
+referred to as \gls{SRT}, then all tasks in that system are \gls{SRT}. For analysis, each task in a
+real-time system is modelled as an infinite series of \emph{jobs}. Each job represents a computation
+with a deadline. 
+One practical model in common use is the \emph{sporadic task model}~\citep{Sprunt_SL_89a}, which can
+model both \emph{periodic} and \emph{aperiodic} tasks and maps well onto typical control systems. 
 
 \begin{lstlisting}[frame=single,language=c,caption=Example of a basic sporadic real-time task.,label=list:sporadic,float=htpb]
 for (;;) {
-	// job is released
+	// job arrives
 	doJob();
 	// job completes before deadline
     // sleep until next job is ready
-    sleep()
+    sleep();
 }
 \end{lstlisting}
 
 
-\noindent
-Tasks can be periodic, or aperiodic: periodic tasks are always ready to be executed at the start of the execution period, and always complete before their deadline, and aperiodic tasks the opposite.
-The sporadic task model can be used to model both \emph{periodic} and \emph{aperiodic} tasks: periodic tasks are assumed to arrive at exactly their period, whilst for aperiodic tasks the period represents an upper bound on interarrival times between jobs.
-In \autoref{table:notation} we present the parameters for the sporadic task model, and the notation that will be used throughout the rest of this document.
+The sporadic task model considers a real-time system as a set of tasks, $A_{1},A_{2},...,A_{n}$.
+Each $A_{i}$ refers to a specific task in the task set, usually each for a different functionality.
+The infinite series of jobs is per task, and represented by $A_{i1},A_{i2},...,A{in}$. Each task has
+an execution time, $C_{i}$, and period, $T_{i}$, which represents the minimum inter-arrival time
+between jobs. When a $T_{i}$ has passed and a job can run again, it is said to be \emph{released}.
+When a job is ready to run, it is said to have \emph{arrived}. When a job finishes and blocks until
+the next arrival, it is said to be \emph{completed}. 
+
+For periodic tasks, which are commonly found in control systems, jobs release and arrive at the same
+time; they are always ready to run once their period has passed. For aperiodic, \ie interrupt driven
+tasks, the arrival time can be at or beyond the release time. 
+
+Jobs must completed before their period has passed ($C_{i} \leq T_{i}$), as the model does not
+support jobs that run simultaneously. Tasks with interleaving jobs must be modelled as separate
+tasks which do not overlap.  \Cref{list:sporadic} shows pseudocode for a sporadic task and
+\Cref{t:notation} summarises the notation which is used throughout this thesis.
+
+Sporadic tasks have deadlines relative to the arrival time, which may be \emph{constrained} or
+\emph{implicit}.  An \emph{implicit} deadline means the job must finish before the period elapses.
+\emph{Constrained} deadlines are relative to the release time, but before the period elapses.  Other
+task models allow for \emph{arbitrary} deadlines, which can be after the period elapses, however
+arbitrary deadlines are not compatible with the sporadic task model as they allow multiple jobs from
+one task to be active at one time.  However, tasks with arbitrary deadlines can be modelled by the
+sporadic task model by splitting tasks into multiple, different tasks with larger periods and
+constrained deadlines.
+
 
 \begin{table}
 \rowcolors{2}{gray!25}{white}
 \centering
     \begin{tabular}{cp{.7\textwidth}}\toprule
     \emph{Notation} & \emph{Meaning} \\\midrule
-    $T$               & The minimum period of a task, the minimum time between job releases. \\
-    $C$               & The execution requirement of a task ($C \leq T$). \\
-    $T_{i}$           & A specific task $i$ \\
+    $A$               & A task set. \\
+    $A_{i}$           & A specific task in a task set \\
+    $A_{ij}$          & A specific job of a specific task set. \\
+    $T_{i}$           & The minimum period of a task, the minimum time between job releases. \\
+    $C_{i}$           & The execution requirement of a task ($C_{i} \leq T_{i}$). \\
     $U_{i}$           & The maximum utilisation of task $i$, which is $\frac{C}{T}$ \\
-    $T_{ij}$          & The $j$th job of task $i$ \\
-    $t_{ij}$          & The release time of a the $j$th job of task $i$ \\
-    $d_{ij}$          & The deadline for the $j$th job of task $i$. For realtime tasks, the job must be completed by this time for the job to be considered correct. \\
+    $D_{i}$           & The relative deadline of task $i$ \\
+    $t_{ij}$          & The release time of the $j$th job of task $i$ \\
+    $d_{ij}$          & The deadline for the $j$th job of task $i$. \\
     \bottomrule
     \end {tabular}
     \caption{Parameters and notation for the sporadic task model as used in this document.}
-    \label{tab:notation}
+    \label{t:notation}
 \end{table}
-
-In any real-time model, jobs must complete before their deadline, which can be constrained or implicit.
-An \emph{implicit} deadline means the job must finish before the period elapses.
-\emph{Constrained} deadlines are relative to the release time, but before the period elapses.
-Other task models allow for \emph{arbitrary} deadlines, which can be after the period elapses, however arbitrary deadlines are not compatible with the sporadic task model as they allow multiple jobs from one task to be active at one time.
-However, tasks with arbitrary deadlines can be modelled by the sporadic task model by splitting tasks into multiple, different tasks with larger periods and constrained deadlines.
 
 \section{Scheduling}
 \label{sec:rt-scheduling}
 
-Scheduling is the act of assigning resources to activities or tasks~\citep{Baruah_CPV_1996}.
+Scheduling is the act of assigning resources to activities or tasks~\citep{Baruah_CPV_96}}.
 It is generally discussed in the context of processing time, but is required for other resources such as communication channels.
 A correct scheduling algorithm  can guarantee that all deadlines are met within their requirements whilst also maintaining maximum utilisation of the scheduled resource(s).
 
@@ -173,7 +207,7 @@ Two well established techniques are rate monotonic and deadline monotonic, both 
 \Gls{RM} priority assignment~\citep{Liu_Layland_73} allocates higher priorities to tasks with higher rates.
 
 Schedulability analysis for \gls{RM} priority assignment requires that deadlines are equal to periods.
-\Gls{DM} priority assignment~\citep{Leung_Whitehead_1982} allocates higher priorities to tasks with shorter deadlines and relaxes this requirement.
+\Gls{DM} priority assignment~\citep{Leung_Whitehead_82}} allocates higher priorities to tasks with shorter deadlines and relaxes this requirement.
 In both cases, ties are broken arbitrarily.
 The \gls{FP} scheduling technique itself is not optimal, as it results in algorithmic capacity loss and may leave up to 30\% of the processor idle.
 
@@ -208,7 +242,7 @@ Priorities are assigned by examining the deadlines of each ready job --- jobs wi
 \gls{FP} is mandated by the P\gls{OS}IX standard, possibly due to these misconceptions.
 It was often argued that even though \gls{FP} suffers from algorithmic capacity loss, this is mediated by the fact that \gls{EDF} has higher overhead-related capacity loss.
 
-All of these points were debunked by \citet{Buttazzo_2005}.
+All of these points were debunked by \citet{Buttazzo_05}}.
 Although \gls{EDF} is difficult and inefficient to implement on top of existing, priority-based \gls{OS}es, \gls{FP} and \gls{EDF} can be considered equally complex to implement from scratch.
 \gls{FP} scheduling has higher overhead-related capacity loss due to an increase in the amount of preemption.
 This compounds the algorithmic capacity loss, rendering \gls{EDF} a clear winner in from-scratch implementations.
@@ -366,14 +400,14 @@ Open systems are generally \emph{dynamic} -- where resource allocations are conf
 \subsection{Real-Time Operating Systems}
 
 An \gls{RTOS} is an \gls{OS} that provides temporal guarantees, and can be microkernel-based or monolithic.
- Whilst some real-time systems run without operating systems at all, this approach is generally limited to small, closed systems and is both inflexible and difficult to maintain~\citep{Lui_AACBBBCLM_2004}.
+ Whilst some real-time systems run without operating systems at all, this approach is generally limited to small, closed systems and is both inflexible and difficult to maintain~\citep{Lui_AACBBBCLM_04}}.
 
  In a general purpose \gls{OS}, time is shared between applications with the aim of providing \emph{fairness}, where applications share the processor equally.
  This fairness is not divided into equal share, but weighted, such that some applications are awarded more time than others in order to tune overall system performance.
 The OS itself is not directly aware of the timing needs of applications.
 
  In an \gls{RTOS}, fairness is replaced by the need to meet deadlines according to \gls{HRT} or \gls{SRT} specifications.
- This means that time is promoted to be a first class resource~\citep{Stankovic_1988}.
+ This means that time is promoted to be a first class resource~\citep{Stankovic_88}}.
 
 Time being an integral part of the system effects every other part of the \gls{OS}.
 For example, in an \gls{RTOS}, one application having exclusive access to a resource cannot be allowed to cause a deadline miss.
@@ -392,7 +426,7 @@ Resource kernels provide timely, guaranteed access to system resources, by using
 In a resource kernel, a reservation represents a portion of a shared resource, like processor, or disk bandwidth.
 Unlike traditional real-time operation systems, resource kernels do not trust all applications to stay within their specified resource bounds: resource kernels enforce them, preventing misbehaving applications from interfering with other applications and thus providing temporal isolation.
 
-\citet{Rajkumar_JMO_2001} outline four main goals that are integral to resource kernels:
+\citet{Rajkumar_JMO_01}} outline four main goals that are integral to resource kernels:
 \begin{description}
 	\item[G1: Timeliness of resource usage] Applications must be able to specify resource requirements that the kernel will guarantee.
 	Requirements should be dynamic: applications must be able to change them at run-time, however the kernel should ensure that the set of all requirements can be admitted.
@@ -401,7 +435,7 @@ Unlike traditional real-time operation systems, resource kernels do not trust al
 \item[G4: Access to multiple resource types] The kernel must provide access to multiple resource types, including processing cycles, disk bandwidth, network bandwidth and virtual memory.
 \end{description}
 
-In another paper, \citet{deNiz_LSR_2001} outline the four main mechanisms that a resource kernel must provide, in order to implement the above concepts.
+In another paper, \citet{deNiz_LSR_01}} outline the four main mechanisms that a resource kernel must provide, in order to implement the above concepts.
 
 \begin{description}
 	\item[Admission] check that all resource requests can be scheduled (\textbf{G1}).
@@ -411,7 +445,7 @@ In another paper, \citet{deNiz_LSR_2001} outline the four main mechanisms that a
 \end{description}
 
 In order to share resources in a resource kernel, avoiding priority inversion becomes a more complicated problem.
-\citet{deNiz_LSR_2001} outline three key policies that must be considered when handling resource sharing in reservation-based systems:
+\citet{deNiz_LSR_01}} outline three key policies that must be considered when handling resource sharing in reservation-based systems:
 
 \begin{description}
     \item[Prioritisation] What (relative) priority is used by the task accessing the shared resource (and under what conditions)?

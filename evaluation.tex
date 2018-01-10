@@ -564,14 +564,19 @@ handler.
 
 \subsection{Timeout handling techniques}
 
-When the server runs out of budget, its timeout exception handler gets invoked to handle the
-scenario. The appropriate response depends ultimately on the requirements of the system.
+If client scheduling context is depleted while the server is servicing the request, a timeout fault is raised and
+sent to the timeout handler.
+The appropriate protocol for handling such faults depends ultimately on the requirements of the system.
 Consequently, we implement and evaluate four different timeout fault handling techniques: rollback, error,
 emergency and extend. 
 
 While each technique is evaluated separately, combinations of such techniques could be used for
 different clients depending on their requirements. For example, trusted clients may get special
-treatment. 
+treatment. Note that in all cases of blocking IPC, clients must trust the server as discussed in
+TODO. Additionally, although out experiment places the timeout fault handler in the server's address
+space, this is not necessary: for approaches that require access to scheduling contexts and
+scheduling control capabilities, the timeout handler may be placed in a scheduling servers address
+space, separate from the server itself.
 
 \subsubsection{Rollback}
 
@@ -602,19 +607,25 @@ object that the server is using, and the servers \gls{TCB}, meaning the timeout 
 trusted by the server. In our example the server and timeout handler run at the same priority, in
 all cases both must run at higher priorities than the clients. 
 
-Once the faulting client has its budget replenished it can then continue its request from the
+Once the budget of the faulting client is replenished it can then continue the request based on the
 content of the reply message sent by the timeout handler. Clients are guaranteed progress as long as
 their budget is sufficient to complete a single batch of progress.
 
-\subsubsection{Error}
+If rollback is not suitable, the server can be similarly reset to the initial state and an error
+returned to the client. However this does not guarantee progress for clients with insufficient
+budgets.
 
-In cases of non-preemptible servers, potentially due to a lack of thread safety, the server can be
-rolled back to an initial state and an error can be sent to the client. This technique has no
-progress guarantee, as the full request must be completed on the clients budget. It does provide a
-short, bounded recovery technique.
+\subsubsection{Kill}
 
-The process for returning an error is the same as that for \Cref{e:rollback}, however the server
-state does not need to be altered by the timeout handler as the server always receives new requests.
+In cases of non-preemptible servers, potentially due to a lack of thread safety, one option is to
+kill client threads. Such a scenario would stop untrusted misbehaving clients from constantly
+monopolising server time.  We implement an example were the timeout handler has access to client \gls{TCB}
+capabilities and simply calls suspend, however the server could also switch to a new reply object
+and leave the client blocked forever, without access to any of the clients capabilities. 
+
+The process for suspending the client is the same as that for \Cref{e:rollback} but for two aspects;
+the server state does not need to be altered by the timeout handler as the server always 
+restores to the same place, and instead of replying to the client it is suspended.
 
 \subsubsection{Emergency}
 
@@ -624,7 +635,7 @@ criticality \gls{SRT}
 scenarios where isolation is desired but transient overruns are expected.
 An example emergency protocol follows:
 
-\begin{enumerate}\label{e:rollback}
+\begin{enumerate}\label{e:emergency}
     \item Fault is received by timeout handler.
     \item Unbind client scheduling context from server.
     \item Bind server with emergency budget.
@@ -642,21 +653,19 @@ unbind them from the server.
 
 \subsubsection{Extend}
 
-The final technique is to simply increase the clients budget on each timeout. 
+The final technique is to simply increase the clients budget on each timeout, which requires the
+timeout fault handler to have access to the clients scheduling contexts.
+This could be deployed in \gls{SRT} systems or for specific threads with unknown budgets up to a limit. 
 
-opposite of transient
-This could be used in
-cases of transient error or where the server request time is not completely known so a small buffer
-is provided.
-
-        simply increases the client's budget on each timeout, which could be
-        deployed in soft real time systems or for specific threads with unknown budgets up to a
-        limit. 
-
+\begin{enumerate}\label{e:extend}
+    \item Fault is received by timeout handler.
+    \item Extend client budget by configuring scheduling context.
+    \item Reply to fault message, which resumes the server.
+\end{enumerate}
 
 \subsection{Results}
 
-We measures the pure handling overhead in each case, from when the timeout handler wakes up to when it blocks again. 
+We measure the pure handling overhead in each case, from when the timeout handler wakes up to when it blocks again. 
  Given the small amount of rollback state, this measures the baseline
     overhead. For schedulability analysis, the actual cost of the rollback would
 have to be added, in addition to the duration of the timeout fault IPC. 
@@ -692,9 +701,18 @@ checkpoint and follow the passive server initialisation protocol
 \label{t:rollback}
 \end{table}
 
-
 \subsection{Rollback isolation}
 
+We next demonstrate temporal isolation in the server by using the rollback
+technique and measuring the time taken to encrypt 10 requests of 4\,MiB of
+data. \autoref{f:aes} shows the result with both clients having the same
+period, which we vary between 10\,ms and 1000\,ms.
+In each graph  we vary the clients' budget between 0 and the
+period. The extreme ends are special, as one of the clients has a full
+budget and keeps invoking the server without ever getting rolled back,
+thus monopolising the processor. In all other cases, each client
+processes at most 4\,MiB of data per period, and either succeeds (if
+the budget is sufficient) or is rolled back after processing less than 4\,MiB.
 
 \begin{figure*}[t]
   \centering
@@ -707,19 +725,7 @@ checkpoint and follow the passive server initialisation protocol
 \end{figure*}
 
 
-
-We next demonstrate temporal isolation in the server by using the RB
-technique and measuring the time taken to encrypt 10 requests of 4\,MiB of
-data. \autoref{f:aes} shows the result with both clients having the same
-period, which we vary between 10\,eft graphs) and 1\,s
-(right). In each graph  we vary the clients' budget between 0 and the
-period. The extreme ends are special, as one of the clients has a full
-budget and keeps invoking the server without ever getting rolled back,
-thus monopolising the processor. In all other cases, each client
-processes at most 4\,MiB of data per period, and either succeeds (if
-the budget is sufficient) or is rolled back after processing less than 4\,MiB.
-
-The results that in the CPU-limited cases (left graphs)
+The results show that in the CPU-limited cases (left graphs)
 we have the expected near perfect proportionality between throughput and
 budget (with slight wiggles due to the rollbacks), showing isolation between clients. In the cases where there is headspace (centre of the right
 graphs), both clients achieve their desired throughput.
@@ -730,11 +736,13 @@ graphs), both clients achieve their desired throughput.
 Through two system benchmarks and one shared-server benchmark, we have shown that our approach
 guarantees processor isolation and that threads cannot exceed their budget allocation via their
 scheduling context. Additionally we have shown that isolation can be achieved in a shared server via
-a temporal fault handler and demonstrated several alternatives for handling such faults.
+a timeout fault handler and demonstrated several alternatives for handling such faults,
+demonstrating the feasibility of the model. 
 
 \section{Asymmetric Protection}
 
-We evaluate our kernel mechanism for changing criticaliwith two benchmarks: A
+We evaluate our kernel mechanism for changing criticality
+with two benchmarks: A
 microbenchmark measuring the cost of a mode switch, and another showing deadline misses of threads sets over several mode changes.
 
 \begin{figure}[t]
@@ -781,7 +789,7 @@ The higher cost from user-level operation results from  multiple switches betwee
 % TODO mode switch benchmark
 For our second mode-switch benchmark, we ported 3 processor intensive benchmarks from the
 MiBench~\citep{Guthaus_REAMB_01} to act as workloads. Each benchmark runs in its own Rump process
-with an in-memory fem, and shares a timer and serial server.
+with an in-memory file system, and shares a timer and serial server.
 
 We altered the benchmarks to run periodically in multiple stages. To obtain
 execution times long enough, some of the benchmarks iterate a fixed number of times per
@@ -835,7 +843,7 @@ utilisation for each stage respectively.}
 \end{table}
 
 
-\subsection{Practicality}
+\section{Practicality}
 
 \subsubsection{User-level scheduling}\label{s:edf-impl}
 
@@ -894,7 +902,9 @@ implementing different policies on top of the base scheduler is quite feasible.
     \label{f:edf}
 \end{figure}
 
+\section{Summary}
 
+% TODO summarise eval
 Our evaluation demonstrates our model has minimal overheads, achieves isolation,  provides a notion
 of criticality orthogonal to priority, and allows for efficient user-level scheduling.
 In total, we add 2,245 lines of SLOC~\citep{Wheeler_01} to the preprocessed kernel code for the \textsc{sabre}

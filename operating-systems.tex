@@ -71,13 +71,13 @@ Additionally, Linux is often used as a platform for conducting real-time systems
 % TODO cite completely fair scheduler
 Linux has fixed-priority preemtive scheduler which is split into scheduling classes. 
 Real-time threads can be scheduled with \gls{POSIX} \schedfifo and \schedsporadic.
-\gls{NRT} threads are scheduled with \gls{CFS}, and real-time threads are scheduled either \gls{FIFO} or round-robin, and are prioritised over the \gls{NRT} tasks. 
-Fixed priority threads in Linux are completly trusted: apart from a bound on total execution time for real-time threads which guarantees that \gls{NRT} threads are scheduled (referred to as real-time throttling~\citep{Corbet_2008}), individual temporal isolation is not possible.
+best effort threads are scheduled with \gls{CFS}, and real-time threads are scheduled either \gls{FIFO} or round-robin, and are prioritised over the best effort tasks. 
+Fixed priority threads in Linux are completly trusted: apart from a bound on total execution time for real-time threads which guarantees that best effort threads are scheduled (referred to as real-time throttling~\citep{Corbet_2008}), individual temporal isolation is not possible.
 
 Linux version 3.14 saw the introduction of an \gls{EDF} scheduling class to Linux~\citep{Corbet_2009}, which is between the fair and the fixed priority scheduling classes.
 The \gls{EDF} implementation allows threads to be temporally isolated using \gls{CBS}.
 
-Scheduling in Linux promotes the false correlation we see in many systems: real-time tasks are automatically trusted (unless scheduled with \gls{EDF}) and assumed to be more important, or more critical, than \gls{NRT} tasks.
+Scheduling in Linux promotes the false correlation we see in many systems: real-time tasks are automatically trusted (unless scheduled with \gls{EDF}) and assumed to be more important, or more critical, than best effort tasks.
 In reality, criticality and real-time strictness are orthogonal.
 Linux does not provide any mechansims for assymettric protection.
 
@@ -96,7 +96,7 @@ This means that real-time tasks do not have to suffer from long interrupt latenc
 Linux/RK~\citep{Oikawa_Rajkumar_1998} is a resource kernel implementation Linux that is often used to implement new scheduling algorithms.
 \gls{ZS} scheduling~\citep{deNiz_LR_2009} was implemented and tested using Linux/RK.
 
-Whilst Linux implementations are suitable for implementing algorithms, being used as test-beds and even being deployed for non-critical \gls{SRT} applications, ultimately Linux is not a suitable \gls{RTOS} for running safety-critical \gls{HRT} applications. The large amount of source code results in a colossal trusted computing base,where it is impossible to guarantee correctness through formal verification or timeliness through {\gls{WCET}} analysis.  Major reasons for adapting Linux to real-time are the existing applications and wide array of device and platform support. For mixed-criticality systems these advantages can be leveraged by virtualising Linux to run \gls{SRT} and \gls{NRT} applications.
+Whilst Linux implementations are suitable for implementing algorithms, being used as test-beds and even being deployed for non-critical \gls{SRT} applications, ultimately Linux is not a suitable \gls{RTOS} for running safety-critical \gls{HRT} applications. The large amount of source code results in a colossal trusted computing base,where it is impossible to guarantee correctness through formal verification or timeliness through {\gls{WCET}} analysis.  Major reasons for adapting Linux to real-time are the existing applications and wide array of device and platform support. For mixed-criticality systems these advantages can be leveraged by virtualising Linux to run \gls{SRT} and best effort applications.
 
 \subsection{Commercial RTOSes}
 %TODO add details on resource sharing to this section
@@ -224,7 +224,7 @@ Real-time tasks execute as the second-highest priority tasks in the system, the 
 The advantage of this implementation is that different types of bandwidth servers can be implemented on top of {\sc Minix 3} without kernel modifications.
  Although not covered in the paper, this could be extended to a split, user-level \gls{RBED} implementation, however the overheads of such an approach are unclear. 
 The {\sc Minix 3} implementation is a good example of implementing bandwidth servers with minimal kernel modifications.
- {\sc Minix 3} is not aimed at hard-real time, supporting only mixed-criticality between \gls{SRT} and \gls{NRT} processes.
+ {\sc Minix 3} is not aimed at hard-real time, supporting only mixed-criticality between \gls{SRT} and best effort processes.
 
 
 \section{Other research kernels}

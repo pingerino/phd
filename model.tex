@@ -109,7 +109,7 @@ resources.
 
 
 Our goal is to provide support in the kernel for mixed-criticality workloads.
-This involves supporting tasks of different real-time strictness (\gls{HRT}, \gls{SRT}, \gls{NRT}), different criticalities, and different levels of security.
+This involves supporting tasks of different real-time strictness (\gls{HRT}, \gls{SRT}, best effort), different criticalities, and different levels of security.
 Such tasks should not be forced into total isolation, but be permitted to share resources without violating their temporal correctness properties through mechanisms provided by the kernel.
 
 To achieve this we require temporal isolation: a feature of resource kernels, whose mechanisms we apply to our research platform, seL4.
@@ -196,7 +196,7 @@ This reduces the overheads of increased context switching inherent in hierarchic
 Additionally, it allows for a solid foundation of temporal isolation to be provided by the kernel: without this, we cannot verify important properties like information flow.
 
 Real-time literature is utterly divided between which real-time scheduling algorithm should be deployed as the core of real-time systems, \gls{EDF} or \gls{FP}.
-In the systems community, \gls{FP} is far more dominant due to its inclusion in \gls{POSIX} and its compatibility with existing, priority-based \gls{NRT} systems.
+In the systems community, \gls{FP} is far more dominant due to its inclusion in \gls{POSIX} and its compatibility with existing, priority-based best effort systems.
 Support for \gls{FP} is important as it is most prevalent in industry.
 It is quite common for kernels to provide \gls{EDF} scheduling at a specific priority level on top of an \gls{FP} based scheduler.
 However it is not emulate \gls{FP} scheduling on top of \gls{EDF}.
