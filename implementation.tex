@@ -218,7 +218,7 @@ Users can specify the amount of extra refills a scheduling context can have, up 
 
 Scheduling contexts with zero extra refills behave like polling servers (\cref{p:polling-servers}), otherwise they behave as sporadic servers (\cref{p:sporadic}), allowing application developers to tune the behaviour of threads depending on their preemption levels and execution durations.
 
-The algorithms to manage replenishments are taken from \citet{Danish_LW_2011}, with adjustments to support periods of 0 (for round robin threads) and to implement a minimum budget.
+The algorithms to manage replenishments are taken from \citet{Danish_LW_11}, with adjustments to support periods of 0 (for round robin threads) and to implement a minimum budget.
 Whenever the current scheduling context is changed, \texttt{check\_budget} as shown in Listing \ref{list:check-budget} is called to bill the amount of time consumed since the last scheduling context change.
 `check\_budget`
 If the budget is not completely consumed by \texttt{check\_budget}, \texttt{split\_budget} as shown in Listing \ref{list:split-check} is called to schedule the subseqeunt refill for the chunk of time just consumed.

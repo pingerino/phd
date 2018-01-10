@@ -74,7 +74,15 @@
     linkcolor=black,
     urlcolor=black
     }
-\usepackage{cleveref}
+
+\usepackage{listings}
+% references
+%  use \cref to reference labels and automagically guess the
+% name (ie Section, Figure etc).
+\usepackage[capitalise]{cleveref} 
+% clever ref doesn't know about listings, add a format for it
+\crefformat{lstlisting}{Listing #2#1#3}  
+
 \usepackage{array}
 %\usepackage[usenames,dvipsnames]{color}
 \usepackage{colortbl}
@@ -84,11 +92,10 @@
 \newcommand{\tableheadline}[1]{\multicolumn{1}{l}{\spacedlowsmallcaps{#1}}}
 \newcommand{\myfloatalign}{\centering} % to be used with each float for alignment
 \usepackage{booktabs}
-\usepackage{listings}
 \usepackage{tikz}
-\usepackage{listings}
 \usepackage{xspace}
 
+% abbreviations with correct spacing
 \newcommand*{\eg}{e.g.\@\xspace}
 \newcommand*{\ie}{i.e.\@\xspace}
 

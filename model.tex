@@ -156,7 +156,7 @@ Threads without reservations are not considered runnable, as they have no rights
 A scheduling context is considered \emph{active} if it currently has budget available, and \emph{inactive} otherwise.
 
 Scheduling contexts have been used in kernels before -- Fiasco introduced the concept in \citet{Steinberg_WH_05}, where the contexts contain a priority, budget and period.
-They are also used in NOVA~\citep{Steinburg_Kauer_10}, where they contain a timeslice and a priority.
+They are also used in NOVA~\citep{Steinberg_Kauer_10}, where they contain a timeslice and a priority.
 
 In our model, scheduling contexts are decoupled from priority, and contain sporadic task parameters -- a budget and a period.
 Instead, the priority remains as a property of a thread which allows for a very efficient implementation of \gls{HLP}, which will be discussed in \Cref{sec:model-resource-sharing}.
@@ -240,7 +240,7 @@ If a task is truly trusted, no enforcement is required, as in standard \gls{HRT}
 Therefore, our model must allow for enforcement to be optional.
 
 Then the question is how enforcement should be undertaken: given seL4's capability based design, and user-level management of kernel memory, we must rule out isolation policies that require the kernel to have full knowledge of all threads.
-Of the policies discussed in \Cref{background:fp-isolation} this rules out priority exchange servers and slack steal.Given that deferrable servers do not enforce temporal isolation, we choose a combination of polling and sporadic servers similar to Quest-V~\citep{Danish_LW_2011} with a significant difference: we allow threads to specify the amount of replenishments available up to a statically configurable max, rather than denoting kernel threads as either I/O threads (1 replenishment - a polling server) or not (MAX replenishments), users can then tune threads that are subject to enforcement as per their system policy.
+Of the policies discussed in \Cref{background:fp-isolation} this rules out priority exchange servers and slack steal.Given that deferrable servers do not enforce temporal isolation, we choose a combination of polling and sporadic servers similar to Quest-V~\citep{Danish_LW_11} with a significant difference: we allow threads to specify the amount of replenishments available up to a statically configurable max, rather than denoting kernel threads as either I/O threads (1 replenishment - a polling server) or not (MAX replenishments), users can then tune threads that are subject to enforcement as per their system policy.
 
 Replenishments are tracked in scheduling conterxts, and threads are only runnable while they are bound to an active scheduling context.
 If the replenishment of the current thread expires, that thread is removed from its run queue and placed in a release queue of threads waiting for their next replenishment.
@@ -268,7 +268,8 @@ Many other combinations are possible.
 \subsection{Asymmetric Protection}
 
 Recall that in a mixed-criticality system, asymmetric protection means that tasks with higher criticality can cause deadline misses in lower criticality tasks.
-Two approaches to mixed criticality scheduling that provide asymmetric are slack scheduling and \gls{RTA}\citet{Burns_Davis_2013}.
+Two approaches to mixed criticality scheduling that provide asymmetric are slack scheduling and
+\gls{RTA}\citet{Burns_Davis_14}.
 
 Under slack scheduling, low-criticality tasks run in slack time of high criticality tasks.
 Our system supports this easily: hi criticality tasks are given reservations to all of processing time at high priorities, and low criticality tasks given reservations at a lower priority band.
@@ -382,7 +383,7 @@ While our resource sharing mechanisms should not rule out this policy, it is onl
 
 \subsubsection{Timeslice donation}
 
-Fiasco.O.C~\citep{Steinberg_BK_2010} implements timeslice donation, where servers run on the reservation of the client, at the priority of the client.
+Fiasco.O.C~\citep{Steinberg_BK_10} implements timeslice donation, where servers run on the reservation of the client, at the priority of the client.
 %TODO define active
 Such a design allows for temporal isolation as clients can only make requests while their reservation is active, and servers deplete the clients reservation.
 
@@ -546,11 +547,11 @@ Additionally, nested requests would not work, so although simple and effective, 
 Under this policy, servers are assigned an emergency reservation (ER), which the kernel switches the server to when a clients reservation expires.
 
 Server reservations need to be sufficient: if the servers emergency reservation expires, the schedulability impact will degrade to that of the blocking case.
-Sufficient reservations are derived by \citep{deNiz_LSR_2001}, although their work assumed servers always execute on their own reservation (never billing a clients reservation), the bounds still apply.
+Sufficient reservations are derived by \citep{deNiz_LSR_01}, although their work assumed servers always execute on their own reservation (never billing a clients reservation), the bounds still apply.
 A sufficient reservation is the sum of all non hard-real time client requests, replenished at the highest rate of all of those clients, in order to guarantee that no hard real time task is blocked by the server for more than the length of a single server request.
 This large, pessimistic reservation for the server must then be incorporated into the schedulability test, which then suffers a large utilisation penalty.
 
-\Citet{deNiz_LSR_2001} reduce this penalty by observing that the main source of pessimism in this estimate is due to the use of a single reservation, whose period must be the highest period of all non hard real-time clients.
+\Citet{deNiz_LSR_01} reduce this penalty by observing that the main source of pessimism in this estimate is due to the use of a single reservation, whose period must be the highest period of all non hard real-time clients.
 The schedulability penalty can be reduced by assigning the server one reservation per client, such that each reservation can have a period matching the client.
 However, for a dynamic system this requires dynamic allocations of scheduling contexts, and one wonders if such effort were to go into creating and assigning reservations for servers, then what was preventing clients reservations from being specified sufficiently initially?
 For this reason we do not consider the multiple reservation alternative.

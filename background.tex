@@ -141,7 +141,7 @@ constrained deadlines.
 \section{Scheduling}
 \label{sec:rt-scheduling}
 
-Scheduling is the act of assigning resources to activities or tasks~\citep{Baruah_CPV_96}}.
+Scheduling is the act of assigning resources to activities or tasks~\citep{Baruah_CPV_96}.
 It is generally discussed in the context of processing time, but is required for other resources such as communication channels.
 A correct scheduling algorithm  can guarantee that all deadlines are met within their requirements whilst also maintaining maximum utilisation of the scheduled resource(s).
 
@@ -207,7 +207,7 @@ Two well established techniques are rate monotonic and deadline monotonic, both 
 \Gls{RM} priority assignment~\citep{Liu_Layland_73} allocates higher priorities to tasks with higher rates.
 
 Schedulability analysis for \gls{RM} priority assignment requires that deadlines are equal to periods.
-\Gls{DM} priority assignment~\citep{Leung_Whitehead_82}} allocates higher priorities to tasks with shorter deadlines and relaxes this requirement.
+\Gls{DM} priority assignment~\citep{Leung_Whitehead_82} allocates higher priorities to tasks with shorter deadlines and relaxes this requirement.
 In both cases, ties are broken arbitrarily.
 The \gls{FP} scheduling technique itself is not optimal, as it results in algorithmic capacity loss and may leave up to 30\% of the processor idle.
 
@@ -242,7 +242,7 @@ Priorities are assigned by examining the deadlines of each ready job --- jobs wi
 \gls{FP} is mandated by the P\gls{OS}IX standard, possibly due to these misconceptions.
 It was often argued that even though \gls{FP} suffers from algorithmic capacity loss, this is mediated by the fact that \gls{EDF} has higher overhead-related capacity loss.
 
-All of these points were debunked by \citet{Buttazzo_05}}.
+All of these points were debunked by \citet{Buttazzo_05}.
 Although \gls{EDF} is difficult and inefficient to implement on top of existing, priority-based \gls{OS}es, \gls{FP} and \gls{EDF} can be considered equally complex to implement from scratch.
 \gls{FP} scheduling has higher overhead-related capacity loss due to an increase in the amount of preemption.
 This compounds the algorithmic capacity loss, rendering \gls{EDF} a clear winner in from-scratch implementations.
@@ -400,14 +400,14 @@ Open systems are generally \emph{dynamic} -- where resource allocations are conf
 \subsection{Real-Time Operating Systems}
 
 An \gls{RTOS} is an \gls{OS} that provides temporal guarantees, and can be microkernel-based or monolithic.
- Whilst some real-time systems run without operating systems at all, this approach is generally limited to small, closed systems and is both inflexible and difficult to maintain~\citep{Lui_AACBBBCLM_04}}.
+ Whilst some real-time systems run without operating systems at all, this approach is generally limited to small, closed systems and is both inflexible and difficult to maintain~\citep{Lui_AACBBBCLM_04}.
 
  In a general purpose \gls{OS}, time is shared between applications with the aim of providing \emph{fairness}, where applications share the processor equally.
  This fairness is not divided into equal share, but weighted, such that some applications are awarded more time than others in order to tune overall system performance.
 The OS itself is not directly aware of the timing needs of applications.
 
  In an \gls{RTOS}, fairness is replaced by the need to meet deadlines according to \gls{HRT} or \gls{SRT} specifications.
- This means that time is promoted to be a first class resource~\citep{Stankovic_88}}.
+ This means that time is promoted to be a first class resource~\citep{Stankovic_88}.
 
 Time being an integral part of the system effects every other part of the \gls{OS}.
 For example, in an \gls{RTOS}, one application having exclusive access to a resource cannot be allowed to cause a deadline miss.
@@ -426,7 +426,7 @@ Resource kernels provide timely, guaranteed access to system resources, by using
 In a resource kernel, a reservation represents a portion of a shared resource, like processor, or disk bandwidth.
 Unlike traditional real-time operation systems, resource kernels do not trust all applications to stay within their specified resource bounds: resource kernels enforce them, preventing misbehaving applications from interfering with other applications and thus providing temporal isolation.
 
-\citet{Rajkumar_JMO_01}} outline four main goals that are integral to resource kernels:
+\citet{Rajkumar_JMO_98} outline four main goals that are integral to resource kernels:
 \begin{description}
 	\item[G1: Timeliness of resource usage] Applications must be able to specify resource requirements that the kernel will guarantee.
 	Requirements should be dynamic: applications must be able to change them at run-time, however the kernel should ensure that the set of all requirements can be admitted.
@@ -435,7 +435,7 @@ Unlike traditional real-time operation systems, resource kernels do not trust al
 \item[G4: Access to multiple resource types] The kernel must provide access to multiple resource types, including processing cycles, disk bandwidth, network bandwidth and virtual memory.
 \end{description}
 
-In another paper, \citet{deNiz_LSR_01}} outline the four main mechanisms that a resource kernel must provide, in order to implement the above concepts.
+In another paper, \citet{deNiz_LSR_01} outline the four main mechanisms that a resource kernel must provide, in order to implement the above concepts.
 
 \begin{description}
 	\item[Admission] check that all resource requests can be scheduled (\textbf{G1}).
@@ -445,7 +445,7 @@ In another paper, \citet{deNiz_LSR_01}} outline the four main mechanisms that a 
 \end{description}
 
 In order to share resources in a resource kernel, avoiding priority inversion becomes a more complicated problem.
-\citet{deNiz_LSR_01}} outline three key policies that must be considered when handling resource sharing in reservation-based systems:
+\citet{deNiz_LSR_01} outline three key policies that must be considered when handling resource sharing in reservation-based systems:
 
 \begin{description}
     \item[Prioritisation] What (relative) priority is used by the task accessing the shared resource (and under what conditions)?
