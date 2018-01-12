@@ -393,10 +393,10 @@ NetBSD~\citep{NetBSD:url} all on the \textsc{x64} machine.
 
 For \selfour, we use a single-core Rump library OS~\citep{Kantee_Cormack_14} to provide 
 NetBSD~\citep{NetBSD:url} network drivers at user level. The system architecture is 
-shown in \label{f:redis-arch}. 
+shown in \cref{f:redis-arch}. 
 The system consists of Redis/Rump running on three active \selfour threads: 
 two for servicing interrupts (network, timer) and one for Rump, as shown in
-\autoref{f:redis-arch}. Interrupt threads run at the highest priority,
+\cref{f:redis-arch}. Interrupt threads run at the highest priority,
 followed by Redis and a low-priority idle thread (not shown) for measuring CPU utilisation;
 this setup forces frequent invocations of the scheduler and interrupt path.
 
@@ -413,7 +413,7 @@ in single-user mode. \Cref{f:redis-arch} shows the architecture of the benchmark
 \end{figure}
 
 
-\autoref{t:redis} shows the achieved throughput of Redis+Rump
+\cref{t:redis} shows the achieved throughput of Redis+Rump
 running  bare-metal, and Redis on the \selfour baseline and as well as the MCS
 branch, plus Linux and NetBSD for comparison.
 

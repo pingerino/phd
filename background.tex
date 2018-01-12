@@ -140,64 +140,80 @@ constrained deadlines.
 
 \section{Scheduling}
 \label{sec:rt-scheduling}
+% introduce scheduling terms, how we describe and evaluate schedulers
 
-Scheduling is the act of assigning resources to activities or tasks~\citep{Baruah_CPV_96}.
-It is generally discussed in the context of processing time, but is required for other resources such as communication channels.
-A correct scheduling algorithm  can guarantee that all deadlines are met within their requirements whilst also maintaining maximum utilisation of the scheduled resource(s).
+Simply put, scheduling is deciding which task to run at a specific time. More formally, scheduling
+is the act of assigning resources to activities or tasks~\citep{Baruah_CPV_96}, generally discussed
+in the context of processing time, but is required for other resources such as communication
+channels.  A correct scheduling algorithm  can guarantee that all deadlines are met within their
+requirements whilst also maintaining maximum utilisation of the scheduled resource(s).
 
-Scheduling can be either \emph{static} or \emph{dynamic}.
-Static or \emph{off-line} scheduling involves a pre-computed set of tasks and schedule that are executed.
-No new tasks can be added and schedules cannot change.
-Dynamic or \emph{on-line} scheduling involves a set of tasks that can change and where scheduling decisions are made according to the current state of the system.
-While closed systems often use static scheduling, dynamic schedulers can also be used.
-Open systems require dynamic schedulers due to their dynamic resource demands.
+Scheduling can be either \emph{static} or \emph{dynamic}.  Static or \emph{off-line} scheduling
+involves a pre-computed set of tasks and schedule that are executed.  No new tasks can be added and
+schedules cannot change.  Dynamic or \emph{on-line} scheduling involves a set of tasks that can
+change and where scheduling decisions are made according to the current state of the system.
 
-% optimality, scheduling tests
 A task set is schedulable by a scheduling algorithm if all temporal requirements are satisfied.
 If at least one scheduling algorithm can schedule a task set, it is said to be \emph{feasible}.
 An \emph{optimal} scheduling algorithm can schedule every feasible task set.
 To test if a task set is schedulable by a scheduling algorithm, a \emph{schedulability test} is applied.
-The complexity of schedulability tests is important for online schedulers, as schedulability tests with high complexity have high overheads.
-Online schedulability tests are referred to as \emph{admission tests}, as they are applied to admit new tasks to the system.
+The complexity of schedulability tests is important for both dynamic and static schedulers. For
+static schedulers, the test is conducted offline and not repeated, but the algorithm must complete
+in a reasonable time for the number of tasks in the task set. Dynamic schedulers conduct
+schedulability test each time a new task is submitted to the scheduler, or scheduling parameters are
+altered, which requires less complexity. The schedulability test conducted at admission time is
+referred to as an \emph{admission test}.
 
 There is an absolute limit on the feasibility of task sets.
-The \emph{total utilisation} of a task set is the sum of all of the rates and must be less than the total processing capacity of a system in a \gls{HRT} context.
-In the case of a uniprocessor using the sporadic task model, this amounts to
+The \emph{total utilisation} of a task set is the sum of all of the rates and must be less than the
+total processing capacity of a system for all deadlines to be met.
+For each processor in a system, this amounts to
 \begin{equation*}
 	\sum\limits_{i=0}^n \dfrac{e_{i}}{p_{i}} \leq 1
 \end{equation*}
-however if the inequality does not hold, the system is considered \emph{overloaded}.
+however if the inequality does not hold, the system is considered \emph{overloaded}. Overload
+can be \emph{constant}, in that it is all the time, or \emph{transient}, where the overload may be
+temporary due to exceptional circumstances.
 
 \begin{table}
     \centering
     \begin{tabular}{cccc} \toprule
-        & \emph{$e_{i}$} & $p_{i}$ & $u_{i} $ \\ \midrule
-			$ T_{1}$ & 1 & 4 & 0.25 \\
-			$ T_{2}$ & 1 & 5 & 0.20 \\
-			$ T_{3}$ & 3 & 9 & 0.33 \\
-			$ T_{4}$ & 3 & 18 & 0.17  \\\midrule 
-	$ u_{sum}(\tau)$ & &  & 0.95 \\ \bottomrule
+        & \emph{$C_{i}$} & $T_{i}$ & $U_{i} $ \\ \midrule
+			$ A_{1}$ & 1 & 4 & 0.25 \\
+			$ A_{2}$ & 1 & 5 & 0.20 \\
+			$ A_{3}$ & 3 & 9 & 0.33 \\
+			$ A_{4}$ & 3 & 18 & 0.17  \\\midrule 
+	$ U_{sum}(\tau)$ & &  & 0.95 \\ \bottomrule
 	\end{tabular}
 	\caption{A sample task set, adapted from ~\citep{Brandenburg:phd}}
 	\label{tab:example_task_set}
 \end{table}
 
-Ideally, task sets are scheduled such that the total utilisation is equal to the number of processors.
-In practice, scheduling algorithms are subject to two different types of \emph{capacity loss} which render 100\% utilisation impossible --- algorithmic and overhead-related.
-\emph{Algorithmic} capacity loss refers to processing time that is wasted due to the schedule used.
-\emph{Overhead-related} capacity loss refers to time spent due to hardware effects (such as cache misses and context switches) and computing scheduling decisions.
-Accurate schedulability tests should account for overhead-related capacity loss.
+Ideally, task sets are scheduled such that the total utilisation is equal to the number of
+processors.  In practice, scheduling algorithms are subject to two different types of \emph{capacity
+loss} which render 100\% utilisation impossible --- algorithmic and overhead-related.
+\emph{Algorithmic} capacity loss refers to processing time that is wasted due to the schedule used,
+due to a non-optimal scheduling algorithm.  \emph{Overhead-related} capacity loss refers to time
+spent due to hardware effects (such as cache misses, cache contention, and context switches) and
+computing scheduling decisions.  Accurate schedulability tests should account for overhead-related
+capacity loss in addition to algorithmic capacity loss.
 
-\gls{HRT} tasks often do not use all of their execution requirement, as this is generally based on pessimistic \gls{WCET} values.
-The remaining time is referred to as \emph{slack}.
-Many scheduling algorithms attempt to gain performance by reclaiming or stealing slack.
+Tasks often do not use all of their execution requirement, any execution remaining in is referred to
+as \emph{slack}. For \gls{HRT} tasks, slack is a consequence of pessimistic \gls{WCET} values. Slack
+also occurs for \gls{SRT} tasks as they may be variable in length. Slack also occurs for aperiodic
+tasks where the actual arrival time varies from the minimum inter-arrival time. Many scheduling algorithms
+attempt to gain performance by reclaiming or stealing slack.
 
-
-Uniprocessor scheduling algorithms are generally well understood - the two definitive algorithms being \acrlong{FP} \acrlong{RM} and \acrlong{EDF}.
-Both algorithms are defined along with schedulability tests for the periodic task model in the seminal paper by \citet{Liu_Layland_73}.
+Scheduling algorithms are referred to as either dynamic or fixed priority. A scheduling algorithm 
+is \emph{fixed priority} if all the jobs in each task run at the same priority, which never changes. 
+\emph{Dynamic priority} scheduling algorithms assign priorities to jobs not tasked, based on some criteria. 
+Of the two definitive scheduling algorithms \acrlong{FP} \acrlong{RM} and \acrlong{EDF}, the former
+is fixed and the latter is dynamic. Both algorithms are defined along with
+schedulability tests for the periodic task model in the seminal paper by \citet{Liu_Layland_73}.
 
 % survey of scheduling algorithms (FP, EDF, PFAIR)
-\subsection{Fixed Priority Scheduling}
+\subsection{Fixed priority scheduling}
+
 As the name implies, \gls{FP} scheduling involves assigning fixed priorities to each task.
 The scheduler is invoked when a job is released or a job ends.
 The job with the highest priority is always scheduled.
@@ -209,12 +225,14 @@ Two well established techniques are rate monotonic and deadline monotonic, both 
 Schedulability analysis for \gls{RM} priority assignment requires that deadlines are equal to periods.
 \Gls{DM} priority assignment~\citep{Leung_Whitehead_82} allocates higher priorities to tasks with shorter deadlines and relaxes this requirement.
 In both cases, ties are broken arbitrarily.
-The \gls{FP} scheduling technique itself is not optimal, as it results in algorithmic capacity loss and may leave up to 30\% of the processor idle.
+The \gls{FP} scheduling technique itself is not optimal, as it results in algorithmic capacity loss
+and may leave up to 30\% of the processor idle.
+\cref{f:fp-schedule} shows an example \gls{FP}\gls{RM} schedule.
 
 \begin{figure}[h!tb]
 	\begin{center}
 		\leavevmode
-		\includegraphics[width=10cm]{fpschedule}
+		\includegraphics[width=\textwidth]{fpschedule}
 		\caption{An example FPRM schedule using the task set from Table \ref{tab:example_task_set}.}
 		\label{fig:fp-schedule}
 	\end{center}
@@ -222,46 +240,60 @@ The \gls{FP} scheduling technique itself is not optimal, as it results in algori
 
 \subsection{Earliest Deadline First Scheduling}
 
-The \gls{EDF} algorithm is theoretically optimal for scheduling a single resource, with no algorithmic capacity loss.
-Tasks themselves have no priority under \gls{EDF} scheduling, instead individual jobs have priorities.
-Priorities are assigned by examining the deadlines of each ready job --- jobs with more immediate deadlines have higher priorities.
+The \gls{EDF} algorithm is theoretically optimal for scheduling a single resource, with no
+algorithmic capacity loss; the is 100\% of processing time can be scheduled. This is due to
+\gls{EDF} being a dynamic algorithm.
+Priorities are assigned by examining the deadlines of each ready job; jobs with more immediate deadlines have higher priorities.
+\Cref{f:edf-schedule} illustrates how the task set in \cref{tab:example_task_set} is scheduled by
+\gls{EDF}, highlighting the places where tasks are scheduled differently than FPRM.
 
 \begin{figure}[h!tb]
 	\begin{center}
 		\leavevmode
-		\includegraphics[width=10cm]{edfschedule}
+		\includegraphics[width=\textwidth]{edfschedule}
 		\caption{An example EDF schedule using the task set from Table \ref{tab:example_task_set}.}
-		\label{fig:edf-schedule}
+		\label{f:edf-schedule}
 	\end{center}
 \end{figure}
 
 \subsection{Earliest Deadline First vs. Fixed Priority Scheduling}
 
-\gls{EDF} is less popular in commercial practice than \gls{FP} for a number of reasons.
-\gls{EDF} is considered more complex to implement and to have higher overhead-related capacity loss.
-\gls{FP} is mandated by the P\gls{OS}IX standard, possibly due to these misconceptions.
-It was often argued that even though \gls{FP} suffers from algorithmic capacity loss, this is mediated by the fact that \gls{EDF} has higher overhead-related capacity loss.
+\gls{EDF} is less popular in commercial practice than \gls{FP} for a number of reasons.  \gls{EDF}
+is considered more complex to implement and to have higher overhead-related capacity loss.  \gls{FP}
+is mandated by the POSIX standard, possibly due to these misconceptions. One common argument for
+\gls{FPRM} is the idea that the algorithmic capacity loss is mediated by the overhead related
+capacity loss of \gls{EDF}, and much easier to implement. 
 
-All of these points were debunked by \citet{Buttazzo_05}.
-Although \gls{EDF} is difficult and inefficient to implement on top of existing, priority-based \gls{OS}es, \gls{FP} and \gls{EDF} can be considered equally complex to implement from scratch.
-\gls{FP} scheduling has higher overhead-related capacity loss due to an increase in the amount of preemption.
-This compounds the algorithmic capacity loss, rendering \gls{EDF} a clear winner in from-scratch implementations.
+However, all of these points were debunked by \citet{Buttazzo_05}.  Although \gls{EDF} is difficult
+and inefficient to implement on top of existing, priority-based \glspl{OS}, both schedulers
+can be considered equally complex to implement from scratch.  \gls{FP} scheduling has higher
+overhead-related capacity loss due to an increase in the amount of preemption.  This compounds the
+algorithmic capacity loss, rendering \gls{EDF} a clear winner in from-scratch implementations.
 
-Other comparisons between \gls{EDF} and \gls{FP} are the complexity of their schedulability tests and how
-they behave under overload.
-\gls{EDF} and \gls{FP} scheduling both have pseudo-polynomial schedulability tests under the sporadic task model, although \gls{EDF} under the periodic task model\footnote{The periodic task model is the same as the sporadic task model, with the restriction that deadlines must be equal to periods ($d = p$), while periods themselves are considered absolute, not minimum.} has an $O(n)$ schedulability test.
-Like all pseudo-polynomial problems, approximations can be made to reduce the complexity, although this comes with an error factor which may not be suitable for \gls{HRT} systems.
-Both algorithms behave differently under constant overload --- \gls{EDF} allows progress for all jobs but at a lower rate, while \gls{FP} will continue to meet deadlines for jobs with higher \gls{RM} priorities, completely starving other jobs.\footnote{\emph{Constant overload} means that the total utilisation of the system is greater than the number of processors.}
-Whether these behaviours are desirable is subject to context.
-Under transient overload conditions both algorithms can cause deadline misses.\footnote{\emph{Transient overload} means that the total utilisation is temporarily higher than the number of processors.}
+Other comparisons between \gls{EDF} and \gls{FP} are the complexity of their schedulability tests
+and how they behave under overload.  \gls{EDF} and \gls{FP} scheduling both have pseudo-polynomial
+schedulability tests under the sporadic task model, although \gls{EDF} under the periodic task
+model\footnote{The periodic task model is the same as the sporadic task model, with the restriction
+that deadlines must be equal to periods ($d = p$), while periods themselves are considered absolute,
+not minimum.} has an $O(n)$ schedulability test.  Like all pseudo-polynomial problems,
+approximations can be made to reduce the complexity, although this comes with an error factor which
+may not be suitable for \gls{HRT} systems.  Both algorithms behave differently under constant
+overload --- \gls{EDF} allows progress for all jobs but at a lower rate, while \gls{FP} will
+continue to meet deadlines for jobs with higher \gls{RM} priorities, completely starving other
+jobs. Whether these behaviours are desirable is subject to context.  Under
+transient overload conditions both algorithms can cause deadline misses.
 
 \subsection{Multiprocessors}
 
-\gls{EDF} and \gls{FP} scheduling can be used on multiprocessor machines.
-Scheduling can either be global, where all processors share a single scheduling data structure, or partitioned, where there is a data structure per processor.
- Neither is perfect: global approaches suffer from scalability issues such as hardware contention, however partitioned schedulers require load balancing.
-Partitioning itself is known to be a NP-hard problem.
+Both fixed and dynamic scheduling algorithms scheduling can be used on multiprocessor machine either
+\emph{globally} or \emph{partitioned}. Global schedulers share a single scheduling data structure
+between all processors in the system, whereas partitioned schedulers have a scheduler per processor.
+ Neither is perfect: global approaches suffer from scalability issues such as hardware contention,
+ however partitioned schedulers require load balancing across cores.
+Partitioning itself is known to be a NP-hard bin-packing problem.
 On modern hardware, partitioned schedulers outperform global schedulers~\citep{Brandenburg:phd}.
+For clustered multiprocessors a combination of global and partitioned scheduling can be used; global
+within a cluster, and partitioned across clusters.
 
 \section{Resource sharing}
 \label{sec:resource-sharing-theory}
@@ -269,16 +301,23 @@ On modern hardware, partitioned schedulers outperform global schedulers~\citep{B
 In the discussion so far we have assumed all real-time tasks are separate, and do not share resources.
 Of course, any practical system involves shared resources.
 
-Resource sharing in a real-time context is more complicated than standard resource sharing and synchronised, due to the problem of \emph{priority inversion}, which threatens the temporal correctness of a system.
-Priority inversion occurs when a low priority task prevents a high priority task from running.
-Consider the following example: if a low priority task locks a resource that a high priority task requires, then the low priority task can cause the high priority task to miss its deadline.
-Consequently, all synchronised resource accesses in a real-time system must be bounded, and the deadlines of tasks must be able to tolerate being blocked by other tasks.
+Resource sharing in a real-time context is more complicated than standard resource sharing and
+synchronised, due to the problem of \emph{priority inversion}, which threatens the temporal
+correctness of a system.  Priority inversion occurs when a low priority task prevents a high
+priority task from running.  Consider the following example: if a low priority task locks a resource
+that a high priority task requires, then the low priority task can cause the high priority task to
+miss its deadline.  Consequently, all synchronised resource accesses in a real-time system must be
+bounded, and the deadlines of tasks must be able to tolerate being blocked by other tasks.
 
-Bounded critical sections alone are not sufficient to guarantee correctness in a real-time system.Consider the scenario outlined earlier, where a low priority thread holds a lock that a high priority thread is blocked on.
-If other medium priority tasks exist in the system then the low priority task will never run and unlock the lock, leaving the high priority task blocked for an unbounded period.
-This exact scenario caused the Mars Pathfinder to fault, causing unexpected system resets~\citep{Mars_Pathfinder}.
+Bounded critical sections alone are not sufficient to guarantee correctness in a real-time
+system.Consider the scenario outlined earlier, where a low priority thread holds a lock that a high
+priority thread is blocked on.  If other medium priority tasks exist in the system then the low
+priority task will never run and unlock the lock, leaving the high priority task blocked for an
+unbounded period.  This exact scenario caused the Mars Pathfinder to fault, causing unexpected
+system resets~\citep{Mars_Pathfinder}.
 
-In this section we provide a brief overview of four basic real-time synchronisation protocols that avoid unbounded priority inversion.
+In this section we provide a brief overview of four basic real-time synchronisation protocols that
+avoid unbounded priority inversion.
 
 \subsection{Non-preemptive critical sections}
 
