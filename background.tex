@@ -487,16 +487,16 @@ larger kernels thread scheduling, memory allocation and some device drivers are 
 In others, subsets of these functionality are included and the kernel and others delegated to
 user-mode. 
 
-Microkernels are far more amendable to security domains, due to their small trusted computing base.
+Microkernels are far more amenable to security domains, due to their small trusted computing base.
 Services on top of the microkernel can be isolated and assigned different levels of trust, unlike
-the services in a monolithic \gls{OS} which all run at the same privilege level and a fault in one
-can compromise the entire system. 
+the services in a monolithic \gls{OS} which all run at the same privilege level such that a fault in
+one service can compromise the entire system. 
 
 \subsection{Open vs. Closed Systems}
 
 Operating systems can be built for open or closed systems.  An \emph{open system} is any system
-where code outside of the control of the system designers can be executed.  A modern smart phone is
-an open system, given that users can install third-party applications.
+where code outside of the control of the system designers can be executed. For example, modern
+smart phones are open systems, given that users can install third-party applications.
 
 A \emph{closed system} is the opposite; the system designers have complete control over all code
 that will execute on the system.  The majority of closed systems are embedded, including those found
@@ -512,7 +512,7 @@ general case, which has led to researchers demonstrating attacks on
 cars~\citep{Checkoway_MKASSKCRK_11}.
 
 Open systems are generally \emph{dynamic} -- where resource allocations are configured at run-time
-and can change, as opposed to closed systems which are \emph{fixed} or \emph{static} resource
+and can change, as opposed to closed systems which have \emph{fixed} or \emph{static} resource
 allocation patterns.
 
 %% introduce RTOSes
@@ -549,24 +549,29 @@ to guarantee that all temporal requirements are met.  This is done by using sche
 \label{sec:resource-kernels}
 
 Resource kernels are a class of \gls{OS} that treat time as a first class resource, by providing
-timely, guaranteed access to system resources. 
-In a resource kernel, a reservation represents a portion of a shared resource, like processor, or
-disk bandwidth.  Unlike traditional real-time operation systems, resource kernels do not trust all
-applications to stay within their specified resource bounds: resource kernels enforce them,
-preventing misbehaving applications from interfering with other applications and thus providing
-temporal isolation.
+timely, guaranteed access to system resources.  In a resource kernel, a reservation represents a
+portion of a shared resource, like processor, or disk bandwidth.  Unlike traditional real-time
+operating systems, resource kernels do not trust all applications to stay within their specified
+resource bounds: resource kernels enforce them, preventing misbehaving applications from interfering
+with other applications and thus providing temporal isolation.
 
 In the seminal resource kernel paper, \citet{Rajkumar_JMO_98} outline four main goals that are
 integral to resource kernels:
 \begin{description}
-	\item[G1: Timeliness of resource usage] Applications must be able to specify resource requirements that the kernel will guarantee.
-	Requirements should be dynamic: applications must be able to change them at run-time, however the kernel should ensure that the set of all requirements can be admitted.
-\item[G2: Efficient resource utilisation] The mechanisms used by the resource kernel utilise available resources efficiently and must not impose high utilisation penalties.
-\item[G3: Enforcement and protection] The kernel must enforce resource access such that rogue applications cannot interrupt the resource use of other applications.
-\item[G4: Access to multiple resource types] The kernel must provide access to multiple resource types, including processing cycles, disk bandwidth, network bandwidth and virtual memory.
+    \item[G1: Timeliness of resource usage] Applications must be able to specify resource
+        requirements that the kernel will guarantee.  Requirements should be dynamic: applications
+        must be able to change them at run-time, however the kernel should ensure that the set of
+        all requirements can be admitted.
+    \item[G2: Efficient resource utilisation] The mechanisms used by the resource kernel utilise
+        available resources efficiently and must not impose high utilisation penalties.
+    \item[G3: Enforcement and protection] The kernel must enforce resource access such that rogue
+        applications cannot interrupt the resource use of other applications.
+    \item[G4: Access to multiple resource types] The kernel must provide access to multiple resource
+        types, including processing cycles, disk bandwidth, network bandwidth and virtual memory.
 \end{description}
 
-In another paper, \citet{deNiz_LSR_01} outline the four main mechanisms that a resource kernel must provide, in order to implement the above concepts.
+In another paper, \citet{deNiz_LSR_01} outline the four main mechanisms that a resource kernel must
+provide, in order to implement the above concepts.
 
 \begin{description}
 	\item[Admission] check that all resource requests can be scheduled (\textbf{G1}).
@@ -575,19 +580,23 @@ In another paper, \citet{deNiz_LSR_01} outline the four main mechanisms that a r
 	\item[Accounting] of reservation use, to implement scheduling and enforcement (\textbf{G1, G2, G3}).
 \end{description}
 
-In order to share resources in a resource kernel, avoiding priority inversion becomes a more complicated problem.
-\citet{deNiz_LSR_01} outline three key policies that must be considered when handling resource sharing in reservation-based systems:
+In order to share resources in a resource kernel, avoiding priority inversion becomes a more
+complicated problem.  \citet{deNiz_LSR_01} outline three key policies that must be considered when
+handling resource sharing in reservation-based systems:
 
 \begin{description}
     \item[Prioritisation] What (relative) priority is used by the task accessing the shared resource (and under what conditions)?
-    \item[Charging] Which reservation(s), if any, gets charged?
+    \item[Charging] Which reservation(s), if any, gets charged, and when?
     \item[Enforcement] What happens when the reservations being charged by the charging policy expire?
 \end{description}
 
-Resource kernels are a form of monolithic operating system, where all system services and drivers are provided by the kernel.
-In a microkernel, not all of the mechanisms of a resource kernel are suitable for inclusion in the kernel itself: some can be provided by user-level middle-ware.
-This is because core resource kernel concepts contain both policy and mechanism.
-We argue that the microkernel should provide resource kernel mechanisms such that a resource kernel can be built with a microkernel, but policy should be left up to the system designer, as long as it does not result in performance concessions.
+Resource kernels are a form of monolithic operating system, where all system services and drivers
+are provided by the kernel.  In a microkernel, not all of the mechanisms of a resource kernel are
+suitable for inclusion in the kernel itself: some can be provided by user-level middle-ware.  This
+is because core resource kernel concepts contain both policy and mechanism.  We argue that the
+microkernel should provide resource kernel mechanisms such that a resource kernel can be built with
+a microkernel, but policy should be left up to the system designer, as long as it does not result in
+performance or security concessions.
 
 \section{Summary}
 
