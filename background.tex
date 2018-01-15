@@ -61,10 +61,13 @@ allocated by the deadline, but the result remains useful \eg image recognition a
 in autonomous vehicles. In such tasks, a minimum allocation of time to the task mights be \gls{HRT},
 while further allocations are \gls{SRT}.
 
-Various models exist to quantify permissible deadline misses in \gls{SRT} systems.
-One measure is to consider the upper bound on how late a deadline miss may occur, referred to as \emph{tardiness}~\citep{Devi:phd}.
-Another is to express an upper bound on the percentage of deadline misses, which is easier to measure but less meaningful, as this allows for unbounded execution time.
-Some \gls{SRT} systems allow deadlines to be skipped completely~\citep{Koren_Shasha_95} while others allow deadlines to be postponed. Systems that allow deadlines to be skipped are often referred to as firm real-time.
+Various models exist to quantify permissible deadline misses in \gls{SRT} systems.  One measure is
+to consider the upper bound on how late a deadline miss may occur, referred to as
+\emph{tardiness}~\citep{Devi:phd}.  Another is to express an upper bound on the percentage of
+deadline misses, which is easier to measure but less meaningful, as this allows for unbounded
+execution time.  Some \gls{SRT} systems allow deadlines to be skipped
+completely~\citep{Koren_Shasha_95} while others allow deadlines to be postponed. Systems that allow
+deadlines to be skipped are often referred to as firm real-time.
 
 \emph{Best effort} tasks do not have temporal requirements that generally execute in the
 background of a real-time system. Examples include logging services and standard applications, but
@@ -288,18 +291,25 @@ transient overload conditions both algorithms can cause deadline misses.
 Both fixed and dynamic scheduling algorithms scheduling can be used on multiprocessor machine either
 \emph{globally} or \emph{partitioned}. Global schedulers share a single scheduling data structure
 between all processors in the system, whereas partitioned schedulers have a scheduler per processor.
- Neither is perfect: global approaches suffer from scalability issues such as hardware contention,
- however partitioned schedulers require load balancing across cores.
-Partitioning itself is known to be a NP-hard bin-packing problem.
-On modern hardware, partitioned schedulers outperform global schedulers~\citep{Brandenburg:phd}.
-For clustered multiprocessors a combination of global and partitioned scheduling can be used; global
-within a cluster, and partitioned across clusters.
+Neither is perfect: global approaches suffer from scalability issues such as hardware contention,
+however partitioned schedulers require load balancing across cores.  Partitioning itself is known to
+be a NP-hard bin-packing problem.  On modern hardware, partitioned schedulers outperform global
+schedulers~\citep{Brandenburg:phd}.  For clustered multiprocessors a combination of global and
+partitioned scheduling can be used; global within a cluster, and partitioned across clusters.
 
 \section{Resource sharing}
 \label{sec:resource-sharing-theory}
 
 In the discussion so far we have assumed all real-time tasks are separate, and do not share resources.
-Of course, any practical system involves shared resources.
+Of course, any practical system involves shared resources. In this section we introduce the basics
+of resource sharing, and the complexities if doing so in a real-time system.
+
+Access to shared resources requires \emph{mutual exclusion}, where only one 
+task is permitted to access a resource at a time, to prevent system corruption. Code that
+must be access in a mutually exclusive fashion is called a \emph{critical section}. Generally
+speaking, tasks lock access to a resources, preventing other tasks from accessing that resource
+until it is unlocked. However many variants on locking protocols exist, including locks that permit
+$n$ tasks to access a section, or locks that behave differently for read and write access.
 
 Resource sharing in a real-time context is more complicated than standard resource sharing and
 synchronised, due to the problem of \emph{priority inversion}, which threatens the temporal
@@ -307,59 +317,85 @@ correctness of a system.  Priority inversion occurs when a low priority task pre
 priority task from running.  Consider the following example: if a low priority task locks a resource
 that a high priority task requires, then the low priority task can cause the high priority task to
 miss its deadline.  Consequently, all synchronised resource accesses in a real-time system must be
-bounded, and the deadlines of tasks must be able to tolerate being blocked by other tasks.
+bounded, and the deadlines of tasks must account for those bounds.
 
 Bounded critical sections alone are not sufficient to guarantee correctness in a real-time
-system.Consider the scenario outlined earlier, where a low priority thread holds a lock that a high
+system. Consider the scenario outlined earlier, where a low priority thread holds a lock that a high
 priority thread is blocked on.  If other medium priority tasks exist in the system then the low
 priority task will never run and unlock the lock, leaving the high priority task blocked for an
 unbounded period.  This exact scenario caused the Mars Pathfinder to fault, causing unexpected
 system resets~\citep{Mars_Pathfinder}.
 
-In this section we provide a brief overview of four basic real-time synchronisation protocols that
-avoid unbounded priority inversion.
+In this section we provide a brief overview of real-time synchronisation protocols that
+avoid unbounded priority inversion drawn from \citet{Sha_RL_90}. First we consider uniprocessor
+protocols before canvassing multiprocessor resource sharing.
 
 \subsection{Non-preemptive critical sections}
 
-Using \gls{NCP}, preemption is totally disabled whilst in a critical section.
-This approach blocks all threads in the system while any client accesses a critical section.
-Consequently, the bound on any single priority inversion is the length of the longest critical section in the system.
-Although functional, this approach results in a lot of unnecessary blocking of higher priority threads.
-The maximum priority inversion that a task will experience is the sum of all critical section accesses in the system.
+Using \gls{NCP}, preemption is totally disabled whilst in a critical section.  This approach blocks
+all threads in the system while any client accesses a critical section.  Consequently, the bound on
+any single priority inversion is the length of the longest critical section in the system.  Although
+functional, this approach results in a lot of unnecessary blocking of higher priority threads.  The
+maximum priority inversion that a task will experience is the sum of all critical section accesses
+in the system.
 
 \subsection{Priority Inheritance Protocol}
 \label{sec:pip}
 
-The \gls{PIP} has the server running at the priority of the client.
-This approach avoids blocking any higher priority threads that do not access this server.
+In \gls{PIP}, when a high priority task encounters a locked resource it donates its priority 
+to the task holding the lock. When the lock is released the priority is restored. 
+This approach avoids blocking any higher priority threads that do not access this server, and
+works for both fixed and dynamic priority scheduling.
 However it results in a large preemption overhead and as a result has poor WCET analysis.
 
-To understand this, consider a  server at the lowest priority, $s$.
-A client with priority $s + 1$ makes a request of the server, the server priority is elevated to $s + 1$.
-Immediately following, the server is preempted by another client, with priority $s + 2$, which the server inherits.
-Then the server is preempted by a client running at $s + 3$ ... and so on.
-This continues until the highest priority client pre-empts the server at priority $n$, and the server has been preempted $n$ times.
+To understand this, consider a task set with $n$ tasks, $A_{1}, ... , A_{n}$, where each tasks priority
+corresponds to its index, such the priority of $A_{i} = i$. The highest priority is $n$ and the
+lowest is 1 and all tasks access the same resource. If $A_{1}$ holds the lock to that resource, then
+the worst preemption overhead occurs if $A_{2}$ wakes up, elevating of $A_{1}$ to 2. Subsequently,
+each task wakes up in increasing priority order, each preempting $A_{1}$ until its priority reaches
+$n$ resulting in $n$ total preemptions. 
 
-\gls{PIP} can also lead to deadlock if resource ordering is not used.
+Another disadvantage of \gls{PIP} is that deadlock can occur if resource ordering is not used.
+
 
 \subsection{Highest lockers' protocol / Immediate ceiling priority protocol}
 \label{sec:hlp}
 
-Under \gls{HLP}, also known as the immediate priority ceiling protocol, servers are assigned a ceiling priority -- the highest priority of all clients that access that server + 1.
-When a server processes a request, it always runs at the ceiling priority, removing all of the preemption overhead of \gls{PIP}.
+Under \gls{HLP}, also known as the immediate priority ceiling protocol, resources are assigned a
+priority; the highest priority of all tasks that access that resource + 1.  When tasks
+lock that resource, they run at the ceiling priority, removing the preemption overhead
+of \gls{PIP}.
 
-The disadvantage of \gls{HLP} is that all priorities of clients to servers must be known \emph{a priori}.
-Additionally, if priority ceilings are all set to the highest priority, then behaviour degrades to that of \gls{NCP}.
-This protocol allows intermediate priority tasks that do not need the resource to be blocked.
+The disadvantage of \gls{HLP} is that all priorities of clients to servers must be known \emph{a
+priori}.  Additionally, if priority ceilings are all set to the highest priority, then behaviour
+degrades to that of \gls{NCP}. Finally this protocol allows intermediate priority tasks that do not need
+the resource to be blocked. 
 
 \subsection{Priority Ceiling Protocol}
 
-The \gls{PCP} combines the previous two approaches, and avoids deadlock, excessive blocking and excessive preemption.
-The system maintains a `system ceiling', which is the ceiling of the highest priority server currently in use.
-If a client wants to access a server, it must have a higher priority than the system ceiling, otherwise the client currently holding the highest priority server inherits the priority of the other client.
-The server runs at the clients priority, and only inherits a priority if another client preempts it.
-Note that the server that sets the system ceiling and the server that the donating client is accessing can be different servers.
-This implementation results in less blocking overall than \gls{HLP}, whilst avoiding the excessive preemption of priority inheritance.
+The \gls{PCP} combines the previous two approaches, and avoids deadlock, excessive blocking and
+excessive preemption. In addition to considering the priorities of tasks, \gls{PCP} introduces
+a dynamic global state referred to as the \emph{system ceiling}, which is the highest
+priority ceiling of any currently locked resource. When a task locks a resource its priority 
+is not changed until another task attempts to acquire that resource, at which point the resource
+holders priority is boosted to the resources ceiling. By delaying the priority boost the excessive 
+preemption of \gls{PIP} is avoided. Additionally, tasks can only lock resources
+if when priority is higher than the system ceiling, otherwise they block until this condition is
+true, thus avoiding the risk of deadlock. \gls{PCP} results in less blocking overall than \gls{HLP},
+however requires global state to be tracked across all tasks, even those that do not share
+resources, increasing the complexity of an implementation.
+
+Neither protocol requiring resource ceilings is suitable for dynamic priority scheduling algorithms
+like \gls{EDF}, however analogous algorithms exist, namely the \gls{SRP}~\citep{Baker_91}.
+
+\subsection{Other locking protocols}
+
+We do not consider lock-free and wait-free algorithms in detail in this chapter, but note while
+these may be deployed in real time systems there are always resources that need true blocking in
+order to access them; in a word, stateful devices. For memory based resources, algorithms that avoid
+blocking, as long as the total blocking time is bounded and fairness is not mandated. Any approach that is 
+transactional with no guarantee of progress is not suitable, additionally, fair algorithms are not suited to a
+real-time system, which are fundamentally not fair. 
 
 \subsection{Summary}
 
@@ -373,8 +409,8 @@ This implementation results in less blocking overall than \gls{HLP}, whilst avoi
     \put(7,-4){Priority inversion bound}
     \put(0,-5){\vector(0,1){25}}
     \put(-4.5,2){\rotatebox{90}{Complexity}}
-    \put(2,15){OPCP}
-    \put(12,3){IPCP}
+    \put(2,15){PCP}
+    \put(12,3){HLP}
     \put(25,11){PIP}
     \put(35,1.5){NCP}
   \end{picture}
@@ -383,28 +419,65 @@ This implementation results in less blocking overall than \gls{HLP}, whilst avoi
   \label{f:locking}
 \end{figure}
 
-\Cref{f:locking} compares the different locking protocols, showing that \gls{PCP} provides the lowest bound on priority inversion; however is also the most complicated to implement.
-\gls{NCP} on the other hand, is the simplest to implement but exhibits the worst priority inversion behaviour, with \gls{PIP} and \gls{HLP} falling between the two.
-\gls{HLP} provides minimal implementation complexity but requires a policy on priority assignment to be in place in the system.
-Many other more sophisticated locking protocols exist, however we do not survey them here.
+\Cref{f:locking} compares the different uniprocessor locking protocols, showing that \gls{PCP}
+provides the lowest bound on priority inversion; however is also the most complicated to implement.
+\gls{NCP} on the other hand, is the simplest to implement but exhibits the worst priority inversion
+behaviour, with \gls{PIP} and \gls{HLP} falling between the two.  \gls{HLP} provides minimal
+implementation complexity but requires a policy on priority assignment to be in place in the system.
 
+\subsection{Multiprocessor locking protocols}
+
+Resource sharing on multiprocessors is far more complicated than the single processor case and still
+a topic of active research. Of course, uniprocessor techniques can be used for resources that are
+local to a processor, but further protocols are required for resources shared across cores (termed
+\emph{global} resources).
+
+Protocols for multiprocessor locking are either spinning or suspension
+based; \emph{spinning} protocols spin on shared memory; \emph{suspension} based protocols block the
+task until the resource is available, such that other tasks can use the processor during that time.
+Spin lock protocols are effective for short critical sections, but once the critical section exceeds
+the time taken to switch to another task and back, semaphore protocols are more efficient. 
+
+Multiprocessor locking protocols differ depending on the scheduling policy across cores; in
+partitioned approaches, priorities on different cores are not comparable, meaning existing protocols
+do not work. While the protocols we have examined so far can be used under global scheduling,
+\citet{Brandenburg:phd} showed that partitioned approaches suffer far less cache overheads than
+global scheduling. 
+
+\gls{MPCP}~\citep{Rajkumar_90} is a modified version of \gls{PCP} for multiprocessors, which is a
+suspension based protocol that works by boosting task priorities. Tasks run at the highest priority
+of any task that may access a global resource, and waiting tasks block in a priority queue. Nested
+access to global resources is disallowed. \gls{MSRP}~\citep{Gai_DL_03} is a spin-lock based
+protocol, which can be used for \gls{FP} and \gls{EDF} scheduling and uses the \gls{SRP} locally,
+combined with \gls{FIFO} spin-locks which guard global resources. 
+
+Multiprocessor real-time locking protocols are an extensive field of research alone, and 
+many more sophisticated locking protocols exist, however we do not survey them here.
+
+% TODO note. i.e bjorn's IPC locking protocol somewhere else after we understand IPC
+% talk about priorities etc
 
 \section{Operating systems}
 \label{sec:background-operating-systems}
 
-An \gls{OS} is a software system that interfaces with hardware and devices in order to present a common interface to applications.
-The \emph{kernel} is the part of the operating system that operates with privileged access to the processor(s) in order to safely perform tasks that allow applications to run independently of each other.
+An \gls{OS} is a software system that interfaces with hardware and devices in order to present a
+common interface to applications.  The \emph{kernel} is the part of the operating system that
+operates with privileged access to the processor(s) in order to safely perform tasks that allow
+applications to run independently of each other.
 
-Common \glspl{OS}, such as Windows, Mac OS X and Linux, are \emph{monolithic} operating systems, which means that services required to run applications are inside the kernel.
-A \emph{microkernel} attempts to minimise the amount of code running in the kernel in order to minimise the amount of trusted code.
-Figure \ref{fig:os-microkernel} illustrates the difference between monolithic \glspl{OS} and microkernels.
-Modern microkernel implementation is guided by the minimality principle~\citep{Liedtke_95} which aims to provide minimal mechanisms to allow resource servers to function, leaving the rest of the policy up to the software running outside of the kernel.
+Common \glspl{OS}, such as Windows, Mac OS X and Linux, are \emph{monolithic} operating systems,
+which means that many services required to run applications are inside the kernel.  A \emph{microkernel}
+attempts to minimise the amount of code running in the kernel in order to reduce the amount of
+trusted code.  Figure \ref{fig:os-microkernel} illustrates the difference between monolithic
+\glspl{OS} and microkernels.  Modern microkernel implementation is guided by the minimality
+principle~\citep{Liedtke_95} which aims to provide minimal mechanisms to allow resource servers to
+function, leaving the rest of the policy up to the software running outside of the kernel.
 
 \begin{figure}[tb]
 	\begin{center}
 		\leavevmode
 		\includegraphics{os-microkernel.pdf}
-		\caption{Structure of a microkernel vs. monolithic operating system}
+		\caption{Structure of a microkernel vs. monolithic operating system.}
 		\label{fig:os-microkernel}
 	\end{center}
 \end{figure}
@@ -421,51 +494,70 @@ can compromise the entire system.
 
 \subsection{Open vs. Closed Systems}
 
-Operating systems can be built for open or closed systems.
-An \emph{open system} is any system where code outside of the control of the system designers can be executed.
-A modern smart phone is an open system, given that users can install third-party applications.
+Operating systems can be built for open or closed systems.  An \emph{open system} is any system
+where code outside of the control of the system designers can be executed.  A modern smart phone is
+an open system, given that users can install third-party applications.
 
-A \emph{closed system} is the opposite --- the system designers have complete control over all code that will execute on the system.
-The majority of closed systems are embedded, including those found in cars, spacecraft and aircraft.
+A \emph{closed system} is the opposite; the system designers have complete control over all code
+that will execute on the system.  The majority of closed systems are embedded, including those found
+in cars, spacecraft and aircraft.
 
-In general, there is a trend toward systems becoming more open -- initial mobile phones were closed systems.
-This trend can be perceived from infotainment units in automobiles to televisions, where the option to install third party applications is becoming more prevalent.
-Allowing third-party applications to run alongside critical applications on shared hardware increases the security requirements of the system: critical applications must be isolated from third-party applications and secure communications must be used between distributed components.
-This is currently not the general case, which has led to researchers demonstrating attacks on cars~\citep{Checkoway_MKASSKCRK_11}.
+In general, there is a trend toward systems becoming more open; initial mobile phones were closed
+systems.  This trend can be perceived from infotainment units in automobiles to televisions, where
+the option to install third party applications is becoming more prevalent.  Allowing third-party
+applications to run alongside critical applications on shared hardware increases the security
+requirements of the system: critical applications must be isolated from third-party applications and
+secure communications must be used between distributed components.  This is currently not the
+general case, which has led to researchers demonstrating attacks on
+cars~\citep{Checkoway_MKASSKCRK_11}.
 
-Open systems are generally \emph{dynamic} -- where resource allocations are configured at run-time and can change, as opposed to closed systems which are \emph{fixed} or \emph{static} resource allocation patterns.
+Open systems are generally \emph{dynamic} -- where resource allocations are configured at run-time
+and can change, as opposed to closed systems which are \emph{fixed} or \emph{static} resource
+allocation patterns.
 
 %% introduce RTOSes
 \subsection{Real-Time Operating Systems}
 
-An \gls{RTOS} is an \gls{OS} that provides temporal guarantees, and can be microkernel-based or monolithic.
- Whilst some real-time systems run without operating systems at all, this approach is generally limited to small, closed systems and is both inflexible and difficult to maintain~\citep{Lui_AACBBBCLM_04}.
+An \gls{RTOS} is an \gls{OS} that provides temporal guarantees, and can be microkernel-based or
+monolithic.  Whilst some real-time systems run without operating systems at all, this approach is
+generally limited to small, closed systems and is both inflexible and difficult to
+maintain~\citep{Lui_AACBBBCLM_04}.
 
- In a general purpose \gls{OS}, time is shared between applications with the aim of providing \emph{fairness}, where applications share the processor equally.
- This fairness is not divided into equal share, but weighted, such that some applications are awarded more time than others in order to tune overall system performance.
-The OS itself is not directly aware of the timing needs of applications.
+In a general purpose \gls{OS}, time is shared between applications with the aim of providing
+\emph{fairness}, where applications share the processor equally.  This fairness is not divided into
+equal share, but weighted, such that some applications are awarded more time than others in order
+to tune overall system performance.  The \gls{OS} itself is not directly aware of the timing needs of
+applications.
 
- In an \gls{RTOS}, fairness is replaced by the need to meet deadlines according to \gls{HRT} or \gls{SRT} specifications.
- This means that time is promoted to be a first class resource~\citep{Stankovic_88}.
+In an \gls{RTOS}, fairness is replaced by the need to meet deadlines. As a result, time is promoted
+to a first class resource~\citep{Stankovic_88}.
 
-Time being an integral part of the system effects every other part of the \gls{OS}.
-For example, in an \gls{RTOS}, one application having exclusive access to a resource cannot be allowed to cause a deadline miss.
-Similarly, the \gls{RTOS} itself cannot cause a deadline miss.
-This means that all operations in the \gls{RTOS} must either be bounded with known {\gls{WCET}} or the \gls{RTOS} must be fully preemptible.
-However, it must be noted that a fully preemptible \gls{OS} is completely non-deterministic, making correctness impossible to guarantee~\citep{Blackham_TH_12}.
- The overheads of \gls{RTOS} operations like interrupt handling and context switching must also be considered when determining whether deadlines can be met.
+Time being an integral part of the system effects every other part of the \gls{OS}.  For example, in
+an \gls{RTOS}, one application having exclusive access to a resource cannot be allowed to cause a
+deadline miss.  Similarly, the \gls{RTOS} itself cannot cause a deadline miss.  This means that all
+operations in the \gls{RTOS} must either be bounded with known {\gls{WCET}} or the \gls{RTOS} must
+be fully preemptible.  However, it must be noted that a fully preemptible \gls{OS} is completely
+non-deterministic, making correctness impossible to guarantee~\citep{Blackham_TH_12}.  The overheads
+of \gls{RTOS} operations like interrupt handling and context switching must also be considered when
+determining whether deadlines can be met.
 
-Traditional \glspl{RTOS}, and the applications running on them, require extensive offline analysis to guarantee that all temporal requirements are met.
-This is done by using scheduling algorithms, \gls{WCET} analysis, and resource sharing algorithms with known real-time properties.
+Traditional \glspl{RTOS}, and the applications running on them, require extensive offline analysis
+to guarantee that all temporal requirements are met.  This is done by using scheduling algorithms,
+\gls{WCET} analysis, and resource sharing algorithms with known real-time properties.
 
 \subsection{Resource kernels}
 \label{sec:resource-kernels}
 
-Resource kernels provide timely, guaranteed access to system resources, by using a \emph{resource-centric} approach.
-In a resource kernel, a reservation represents a portion of a shared resource, like processor, or disk bandwidth.
-Unlike traditional real-time operation systems, resource kernels do not trust all applications to stay within their specified resource bounds: resource kernels enforce them, preventing misbehaving applications from interfering with other applications and thus providing temporal isolation.
+Resource kernels are a class of \gls{OS} that treat time as a first class resource, by providing
+timely, guaranteed access to system resources. 
+In a resource kernel, a reservation represents a portion of a shared resource, like processor, or
+disk bandwidth.  Unlike traditional real-time operation systems, resource kernels do not trust all
+applications to stay within their specified resource bounds: resource kernels enforce them,
+preventing misbehaving applications from interfering with other applications and thus providing
+temporal isolation.
 
-\citet{Rajkumar_JMO_98} outline four main goals that are integral to resource kernels:
+In the seminal resource kernel paper, \citet{Rajkumar_JMO_98} outline four main goals that are
+integral to resource kernels:
 \begin{description}
 	\item[G1: Timeliness of resource usage] Applications must be able to specify resource requirements that the kernel will guarantee.
 	Requirements should be dynamic: applications must be able to change them at run-time, however the kernel should ensure that the set of all requirements can be admitted.
