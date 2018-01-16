@@ -174,17 +174,23 @@ the budget can never be exceeded.  This removes latency problems with polling se
 unfortunately breaks rate-monotonic schedulability analysis, as this policy can result in servers
 executing back-to-back and exceeding their allocated scheduling bandwidth for any specific occurrence of
 the period.  This occurs as deferrable servers replenish the budget to full at the start of each
-period, and the budget can be used at any point during a tasks execution.  The problem occurs when a
-task wakes at $A_{ij} - C_{i}$, consumes its whole budget, however then has its budget replenished at
-$A_{ij+1}$.  This means for the time between $A_{ij} - C$ and $A_{ij+1} + C$, the task has exceeded
-more than its utilisation ($\frac{C_{i}}{T_{i}}.$ As a result deadline misses can be caused in other
+period, and the budget can be used at any point during a tasks execution. 
+
+We demonstrate the problem with deferrable servers using the notation introduced in
+\Cref{t:notation}. Consider a sporadic task with implicit deadlines in a task set, 
+$A_{1}$, with jobs $A_{11}, A_{12}, ..., A_{1n}$. Each job in that task set has a deadline once the
+period has passed: $d_{1j} = t_{1j} + T_{1}$. The problem occurs if the first job arrives at $a_{11}
+= d_{11} - C_{1}$, such that it is only complete at exactly the implicit deadline.  
+Then a second job may arrive arrives at the release time $d_{11}$ such that it runs back-to-back with the first
+task, from $a_11$ to $d_{11} + C_{1}$, then the task has exceeded its permitted utilisation 
+($\frac{C_{1}}{T_{1}})$. As a result deadline misses can be caused in other
 tasks, violating temporal isolation.
 
 \paragraph{Sporadic servers}~\citep{Sprunt_SL_89a}\label{p:sporadic} address the problems of
 deferrable servers by scheduling multiple replenishment times, in order to preserve the property
-that $\forall t_{i}, t_{j} U \leq \frac{C}{T}$, known as the \emph{sliding window} constraint, which
+that for all possible points in time $U_{i} \leq \frac{C_{i}}{T_{i}}$, known as the \emph{sliding window} constraint, which
 is the condition that deferrable servers violate.  Each time a task is preempted, or blocks, a
-replenishment is set for current time + $T$, for the amount consumed.  When no replenishments are
+replenishment is set for current time + $T_{i}$, for the amount consumed.  When no replenishments are
 available, sporadic servers have their priority decreased below any real-time task.  The priority is
 restored once a replenishment is available.  While this addresses the problems of deferrable
 servers, the implementation is problematic as the number of times a thread is preempted or blocked
@@ -197,7 +203,6 @@ aperiodic task with a periodic task, such that server capacity is not lost but u
 priority.  Implementations of priority exchange require control and access to priorities across an
 entire system.
 
-%TODO slack defined?
 \paragraph{Slack stealing}~\citep{Ramos_Thuel_Lehoczky_93} is an approach that runs a scheduling
 task at the lowest priority and tracks the amount of slack per task in the system.  As aperiodic
 tasks arrive, the slack stealer calculates whether they can be scheduled or not based on the slack
@@ -207,17 +212,25 @@ for the aperiodic tasks, unless a certain bound is placed on the execution of pe
 % TODO table comparing methods
 \section{Resource sharing}
 
-Like the scheduling algorithms, the locking protocols presented in \Cref{sec:resource-sharing-theory} do not work if tasks are untrusted: in all of the protocols, if a task does not voluntarily release the resource, all other tasks sharing that resource will be blocked.
+Like the scheduling algorithms, the locking protocols presented in
+\Cref{sec:resource-sharing-theory} do not work if tasks are untrusted: in all of the protocols, if a
+task does not voluntarily release the resource, all other tasks sharing that resource will be
+blocked.
 
-One of our goals is to allow tasks of different criticality to share resources. 
-While the resource itself must be at the highest criticality of systems using it, this relationship need not be symmetric; low criticality systems should be able to use high criticality resources.
+One of our goals is to allow tasks of different criticality to share resources.  While the resource
+itself must be at the highest criticality of systems using it, this relationship need not be
+symmetric; low criticality systems should be able to use high criticality resources.
 
-In this section we explore how resource reservations and real-time locking protocols interact, and asses their suitability for mixed criticality systems.
-As introduced in \cref{sec:resource-kernels}, when combining locking protocols and reservations one must consider prioritisation, charging and enforcement.
+In this section we explore how resource reservations and real-time locking protocols interact, and
+asses their suitability for mixed criticality systems.  As introduced in
+\cref{sec:resource-kernels}, when combining locking protocols and reservations one must consider
+prioritisation, charging and enforcement.
 
-Prioritisation, or what priority a task uses while accessing a resource, can be decided by any of the existing protocols: \gls{PCP}, \gls{HLP} or \gls{PIP}. 
-Charging the reservation, and which reservation to charge, is more interesting. 
-\citet{deNiz_LSR_01} describe the possible mappings between reservations and resources consuming those reservations, and comes down to the following choices:
+Prioritisation, or what priority a task uses while accessing a resource, can be decided by any of
+the existing protocols: \gls{PCP}, \gls{HLP} or \gls{PIP}.  Charging the reservation, and which
+reservation to charge, is more interesting.  \citet{deNiz_LSR_01} describe the possible mappings
+between reservations and resources consuming those reservations, and comes down to the following
+choices:
 
 \begin{description}
 \item[Bandwidth inheritance] Tasks using the resource run on their own reservation.
@@ -228,33 +241,41 @@ Once again, if tasks are untrusted no temporal isolation is provided
 \item[Multi-reserve resources] Shared resources have multiple reservations, and the resource actively switches between them depending on which task it is servicing. 
 \end{description} 
 
-Of most relevant to mixed-criticality systems, where tasks cannot be guaranteed to release a resource, is the enforcement mechanism.
-Many protocols rely on tasks being trusted with \emph{a priori} knowledge of a tasks resource usage. 
-However, in systems where tasks may not be trusted (either due to security, ceritification level, or potential incorrectness) such \emph{a priori} knowledge is unavailable. 
+Of most relevant to mixed-criticality systems, where tasks cannot be guaranteed to unlock a
+resource, is the enforcement mechanism.  Many protocols rely on tasks being trusted with \emph{a
+priori} knowledge of a tasks resource usage.  However, in systems where tasks may not be trusted
+(either due to security, certification level, or potential bugs) such \emph{a priori}
+knowledge is unavailable. 
 
 We address this topic further in the next chapter, when we evaluate survey existing operating systems.
 
 \section{Asymmetric Protection} 
 % TODO more more more
 
-Temporal isolation in mixed-criticality systems can result in \emph{criticality inversion}, where high criticality tasks miss their deadlines due to lower criticality tasks.
-Rather than temporal isolation, mixed-criticality systems require \emph{asymmetric protection}, where deadline misses of low-criticality tasks caused by high-criticality tasks are permitted, but not vice-versa.
-This can be realised as a system mode-switch or form of graceful degredation.
+Temporal isolation in mixed-criticality systems can result in \emph{criticality inversion}, where
+high criticality tasks miss their deadlines due to lower criticality tasks.  Rather than temporal
+isolation, mixed-criticality systems require \emph{asymmetric protection}, where deadline misses of
+low-criticality tasks caused by high-criticality tasks are permitted, but not vice-versa.  This can
+be realised as a system mode-switch or form of graceful degradation.
 
-There are many varied definitions of mixed criticality in the literature.
-Some consider merely the combination of \gls{HRT}, \gls{SRT} and best effort tasks, with criticality observed in that order.
-Others allow for \gls{QoS} specifications, which can reflect criticality.
-Systems where criticality can be specified explicitly (regardless of SRT/HRT specification) also exist.
+There are many varied definitions of mixed criticality in the literature.  Some consider merely the
+combination of \gls{HRT}, \gls{SRT} and best effort tasks, with criticality observed in that order.
+Others allow for \gls{QoS} specifications, which can reflect criticality.  Systems where criticality
+can be specified explicitly (regardless of SRT/HRT specification) also exist.
 
-A key observation about mixed-criticality systems is neither the strictness of the real-time model, nor rate-monotonic priorities have any direct correlation with the criticality of a task.
-While in general critical tasks are \gls{HRT}, it is possible to have critical tasks that are \gls{SRT}, for instance, object tracking algorithms whose \gls{WCET} depends on factors external to the software system.
+A key observation about mixed-criticality systems is neither the strictness of the real-time model,
+nor rate-monotonic priorities have any direct correlation with the criticality of a task.  While in
+general critical tasks are \gls{HRT}, it is possible to have critical tasks that are \gls{SRT}, for
+instance, object tracking algorithms whose \gls{WCET} depends on factors external to the software
+system.
 
-None of the scheduling algorithms so far directly support mixed-criticality systems.
-\gls{RBED} is the closest, although it assumes a direct relationship between criticality and real-time model, with the assumption that \gls{HRT} tasks are more critical than \gls{SRT} tasks which are more critical than best effort tasks.
+None of the scheduling algorithms so far directly support mixed-criticality systems.  \gls{RBED} is
+the closest, although it assumes a direct relationship between criticality and real-time model, with
+the assumption that \gls{HRT} tasks are more critical than \gls{SRT} tasks which are more critical
+than best effort tasks.
 
-Scheduling algorithms for mixed-criticality systems are a hot-topic in the real-time community.
-In this section we briefly present a few such algorithms.
-
+Scheduling algorithms for mixed-criticality systems are a hot-topic in the real-time community.  In
+this section we briefly present a few such algorithms.
 
 \subsection{Zero Slack Scheduling}
 
