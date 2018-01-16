@@ -1,6 +1,27 @@
 \chapter{Conclusion}
 \label{chap:conclusion}
 
+\section{Contributions}
+
+Specifically, we make the following contributions:
+\begin{itemize}
+\item A capability system for time that has low overhead and does not
+  limit the system to a particular scheduling policy, including
+  implementation of arbitrary scheduling policies at user level;
+\item a notion of CPU reservations that is compatible with
+  fast IPC implementations traditionally used in high-performance
+  microkernels, and is compatible with established real-time resource-sharing policies;
+\item the first OS kernel supporting an explicit notion of
+  criticality, orthogonal to priority, in addition to the above;
+\item an exploration of implementation in the non-preemptible \selfour
+  microkernel and its interaction with the kernel's model of
+  user-level management of kernel memory, which is a critical enabler
+  of strong spatial isolation.
+\end{itemize}
+
+
+
+
 This chapter outlines what this PhD project has accomplished so far and what I plan to achieve in the future.
 
 \section{Progress}
