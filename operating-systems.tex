@@ -4,21 +4,10 @@
 \label{chap:operating-systems}
 
 In this chapter we provide a survey of existing operating systems, with a focus on how each one
-provides mechanisms for temporal isolation, asymmetric protection, and resource sharing. 
+provides mechanisms for mixed criticality systems, including temporal isolation, asymmetric protection,
+and resource sharing. 
 
-% TODO break up into sections: discuss resource sharing, isolation approaches
-% summarise with short comings: things you will solve
-\section{Industry Standards}
-
-
-
-\citet{ARINC653} is an aviation standard for developing mixed-criticality systems, with static,
-time-triggered scheduling and fixed-partitions. Controlled communication is permitted between
-partitions. 
-
-% TODO AUTOSAR
-
-\subsection{POSIX}
+\section{POSIX}
 
 The \gls{POSIX} standard specifies real-time operating systems interfaces~\citep{Harbour_93} which
 influence a large amount of \glspl{OS}.  Scheduling policies specified by \gls{POSIX} are shown in
@@ -76,83 +65,65 @@ Few \glspl{OS} implement the full \gls{POSIX} standard, however many incorporate
 
 \subsection{Linux}
 
-While Linux cannot be considered a real-time operating system for high criticality applications, it is frequently used for lower criticality applications with \gls{SRT} demands.
-Additionally, Linux is often used as a platform for conducting real-time systems research. 
+While Linux cannot be considered a real-time operating system for high criticality applications, it
+is frequently used for lower criticality applications with \gls{SRT} demands.  Additionally, Linux
+is often used as a platform for conducting real-time systems research. 
 % TODO cite completely fair scheduler
-Linux has fixed-priority preemtive scheduler which is split into scheduling classes. 
-Real-time threads can be scheduled with \gls{POSIX} \schedfifo and \schedsporadic.
-best effort threads are scheduled with \gls{CFS}, and real-time threads are scheduled either \gls{FIFO} or round-robin, and are prioritised over the best effort tasks. 
-Fixed priority threads in Linux are completly trusted: apart from a bound on total execution time for real-time threads which guarantees that best effort threads are scheduled (referred to as real-time throttling~\citep{Corbet_08}), individual temporal isolation is not possible.
+Linux has fixed-priority preemptive scheduler which is split into scheduling classes.  Real-time
+threads can be scheduled with \gls{POSIX} \schedfifo and \schedsporadic.  best effort threads are
+scheduled with \gls{CFS}, and real-time threads are scheduled either \gls{FIFO} or round-robin, and
+are prioritised over the best effort tasks.  Fixed priority threads in Linux are completely trusted:
+apart from a bound on total execution time for real-time threads which guarantees that best effort
+threads are scheduled (referred to as real-time throttling~\citep{Corbet_08}), individual temporal
+isolation is not possible.
 
-Linux version 3.14 saw the introduction of an \gls{EDF} scheduling class to
-Linux~\citep{Corbet_09}, which is between the fair and the fixed priority scheduling classes.  The
-\gls{EDF} implementation allows threads to be temporally isolated using \gls{CBS}.
+Linux version 3.14 saw the introduction of an \gls{EDF} scheduling class to Linux~\citep{Corbet_09},
+which is between the fair and the fixed priority scheduling classes.  The \gls{EDF} implementation
+allows threads to be temporally isolated using \gls{CBS}.
 
-Scheduling in Linux promotes the false correlation we see in many systems: real-time tasks are automatically trusted (unless scheduled with \gls{EDF}) and assumed to be more important, or more critical, than best effort tasks.
-In reality, criticality and real-time strictness are orthogonal.
-Linux does not provide any mechansims for assymettric protection.
+Scheduling in Linux promotes the false correlation we see in many systems: real-time tasks are
+automatically trusted (unless scheduled with \gls{EDF}) and assumed to be more important, or more
+critical, than best effort tasks.  In reality, criticality and real-time strictness are orthogonal.
+Linux does not provide any mechanisms for asymmetric protection beyond priority.
 
-On the resource sharing side Linux provides real-time locking via the POSIX  as per \Cref{tab:posix-mutex}.
+On the resource sharing side Linux provides real-time locking via the POSIX  as per
+\Cref{tab:posix-mutex}.
  
 \subsection{Real-time Linux Extensions}
 
-A large amount of projects exist that attempt to retrofit more extensive real-time features onto Linux.
-We briefly summarise major and relevant works here. 
-One of the original works~\citep{Yodaiken_Barabanov_97} runs Linux as a fully preemptable task via virtualisation and kernel modifications.
-Interrupts are handled by the virtualisation layer, and only directed to Linux if required.
-This means that real-time tasks do not have to suffer from long interrupt latencies, however it also means that devices drivers need to be rewritten from scratch for real-time.
+A large amount of projects exist that attempt to retrofit more extensive real-time features onto
+Linux.  We briefly summarise major and relevant works here.  One of the original
+works~\citep{Yodaiken_Barabanov_97} runs Linux as a fully preemptable task via virtualisation and
+kernel modifications.  Interrupts are handled by the virtualisation layer, and only directed to
+Linux if required.  This means that real-time tasks do not have to suffer from long interrupt
+latencies, however it also means that devices drivers need to be rewritten from scratch for
+real-time.
 
-\litmus~\citep{Calandrino_LBDA_07} is an extension of Linux that allows for pluggable real-time schedulers to be easily developed for testing multiprocessor schedulers.
+\litmus~\citep{Calandrino_LBDA_07} is an extension of Linux that allows for pluggable real-time
+schedulers to be easily developed for testing multiprocessor schedulers.
 
-% TODO write this up here
-\citet{Brandenburg_14} presents an \gls{IPC} protocol 
+Linux/RK~\citep{Oikawa_Rajkumar_98} is a resource kernel implementation Linux that is often used to
+implement new scheduling algorithms.  \gls{ZS} scheduling~\citep{deNiz_LR_09} was implemented and
+tested using Linux/RK.
 
-Linux/RK~\citep{Oikawa_Rajkumar_98} is a resource kernel implementation Linux that is often used to implement new scheduling algorithms.
-\gls{ZS} scheduling~\citep{deNiz_LR_09} was implemented and tested using Linux/RK.
-
-Whilst Linux implementations are suitable for implementing algorithms, being used as test-beds and even being deployed for non-critical \gls{SRT} applications, ultimately Linux is not a suitable \gls{RTOS} for running safety-critical \gls{HRT} applications. The large amount of source code results in a colossal trusted computing base,where it is impossible to guarantee correctness through formal verification or timeliness through {\gls{WCET}} analysis.  Major reasons for adapting Linux to real-time are the existing applications and wide array of device and platform support. For mixed-criticality systems these advantages can be leveraged by virtualising Linux to run \gls{SRT} and best effort applications.
-
-\subsection{Commercial RTOSes}
-%TODO add details on resource sharing to this section
-There are several widely deployed \glspl{RTOS} used commercially. 
-The majority implement part or all of \gls{POSIX}.
-We present three popular alternatives: VxWorks, QNX Neutrino and RTEMS.
-
-\paragraph{RTEMS}~\citep{RTEMS:URL} is an open-source \gls{RTOS} that operates with or without memory protection, although in either case it is statically configured.
-Although it is an open source project, RTEMS is used widely in industry and research.
-The main scheduling policy is \gls{FPRM}, however \gls{EDF} is also available with temporal isolation an option using \gls{CBS}.
-No temporal isolation mechanisms are present for fixed-priority scheduling.
-RTEMS provides semaphores with priority inheritance or immediate priority ceilings for resource sharing, as well as higher level primitives for these. 
-
-\paragraph{QNX Neutrino}~\citep{QNX_10} is a commercial, microkernel-based \gls{RTOS} that provides \gls{FP} scheduling and resource sharing with POSIX semantics.
-QNX satisfies many industry certification standards, although these in practice do not require {\gls{WCET}} analysis or formal verification of correctness.
-
-\paragraph{VxWorks}~\citep{VxWorks_08} is a monolithic \gls{RTOS} deployed most notably in aircraft and spacecraft. 
-It supports \gls{FP} scheduling with a native POSIX-compliant scheduler. 
-VxWorks also has a pluggable scheduler framework, allowing developers to implement their own, in-kernel scheduler.
-
-There are many other \gls{RTOS}es used commercially, but the general pattern is POSIX-compliant, \gls{FP} scheduling and resource sharing.
- \citet{Deos:URL} and \citet{PikeOS:URL} are two more examples.
-This brief survey shows that \gls{FP} scheduling is dominant in industry due to its place in the POSIX standard. 
-Although temporal isolation is sometimes provided with the possibility of bounded bandwidth via \glspl{CBS}, asymmetric protection is not provided.
-In addition to scheduling, code-bases are generally large and complex, and beyond the grasp of modern {\gls{WCET}} analysis.
-Although all of these \gls{RTOS}es are deployed in safety critical systems, their support for mixed-criticality applications is questionable if non-existent.
+Whilst Linux implementations are suitable for implementing algorithms, being used as test-beds and
+even being deployed for non-critical \gls{SRT} applications, ultimately Linux is not a suitable
+\gls{RTOS} for running safety-critical \gls{HRT} applications. The large amount of source code
+results in a colossal trusted computing base,where it is impossible to guarantee correctness through
+formal verification or timeliness through {\gls{WCET}} analysis.  Major reasons for adapting Linux
+to real-time are the existing applications and wide array of device and platform support. For
+mixed-criticality systems these advantages can be leveraged by virtualising Linux to run \gls{SRT}
+and best effort applications.
 
 
 %TODO{Where does Free RTOS go??}
 
 \section{Microkernels}
 
-Microkernels, as introduced in  are small operating systems kernels which contain the minimum amount of software to
-implement an OS. 
-meal-time concepts are not new microkernels.
-
-Real-Time
-First we review some common microkernel based concepts, before presenting an overview of relevant microkernel designs.
-
-
-Many microkernels with varying real-time support have arisen since.
-
+Microkernels, as introduced in \cref{sec:background-operating-systems} are small operating systems
+kernels which contain the minimum amount of software to implement an OS. Real-time concepts are not
+new microkernels. In this section we present several existing mechanisms that exist in microkernels
+that can be used to support mixed-criticality systems and survey existing microkernels. 
 
 \subsection{Capabilities}
 \label{s:capabilities}
@@ -270,8 +241,45 @@ TODO Quest first, then quest v.
 As a separation kernel, Quest does not provide resource sharing mechanisms by definition. 
 
 \paragraph{Quest-V}~\citep{Danish_LW_11} is a separation kernel / hypervisor with fixed priority scheduling.
-Temporal isolation is provided by sporadic servers, however I/O and normal processes are ditinguished statically: I/O processes use polling servers and normal processes use sporadic servers, with a maximum replenishment length of 32.
-%TODO{there are more quest papers reference them}
+Temporal isolation is provided by sporadic servers, however I/O and normal processes are
+ditinguished statically: I/O processes use polling servers and normal processes use sporadic
+servers, with a maximum replenishment length of 32. In Quest-V, separate partitions are assigned to
+different priority levels, and are not permitted to communicate. 
+
+\subsection{Commercial RTOSes}
+%TODO add details on resource sharing to this section
+There are several widely deployed \glspl{RTOS} used commercially.  The majority implement part or
+all of \gls{POSIX}.  We present three popular alternatives: VxWorks, QNX Neutrino and RTEMS.
+
+\paragraph{RTEMS}~\citep{RTEMS:URL} is an open-source \gls{RTOS} that operates with or without
+memory protection, although in either case it is statically configured.  Although it is an open
+source project, RTEMS is used widely in industry and research.  The main scheduling policy is
+\gls{FPRM}, however \gls{EDF} is also available with temporal isolation an option using \gls{CBS}.
+No temporal isolation mechanisms are present for fixed-priority scheduling.  RTEMS provides
+semaphores with priority inheritance or immediate priority ceilings for resource sharing, as well as
+higher level primitives for these. 
+
+\paragraph{QNX Neutrino}~\citep{QNX_10} is a commercial, microkernel-based separation kernel that provides
+\gls{FP} scheduling and resource sharing with POSIX semantics.  QNX satisfies many industry
+certification standards, although these in practice do not require {\gls{WCET}} analysis or formal
+verification of correctness.
+
+\paragraph{VxWorks}~\citep{VxWorks_08} is a monolithic \gls{RTOS} deployed most notably in aircraft
+and spacecraft.  It supports \gls{FP} scheduling with a native POSIX-compliant scheduler.  VxWorks
+also has a pluggable scheduler framework, allowing developers to implement their own, in-kernel
+scheduler.
+
+\paragraph{PikeOS}~\citep{PikeOS:URL} implements ARINC 653~\citep{ARINC653} via a separation
+microkernel which paravirtualises RTOS guests in different partitions.
+
+There are many other \gls{RTOS}es used commercially, including \citet{Deos:URL} but the general pattern is POSIX-compliant, \gls{FP} scheduling and resource sharing.
+This brief survey shows that \gls{FP} scheduling is dominant in industry due to its place in the POSIX standard. 
+Although temporal isolation is sometimes provided with the possibility of bounded bandwidth via
+\glspl{CBS}, asymmetric protection is not provided.  In addition to scheduling, code-bases are
+generally large and complex, and beyond the grasp of modern {\gls{WCET}} analysis.  Although all of
+these \gls{RTOS}es are deployed in safety critical systems, their support for mixed-criticality
+applications is questionable if non-existent. 
+
 
 
 \subsection{Summary}

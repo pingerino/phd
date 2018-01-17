@@ -455,15 +455,19 @@ combined with \gls{FIFO} spin-locks which guard global resources.
 Multiprocessor real-time locking protocols are an extensive field of research alone, and 
 many more sophisticated locking protocols exist, however we do not survey them here.
 
-\subsection{Mixed-criticality systems}
+\section{Mixed-criticality systems}
 \label{s:mixed-criticality}
 
 Broadly, a mixed-criticality system is simply a system where software classified at different levels
-of criticality, according to a standard such as DO-178C (recall \Cref{tab:criticality_table)}, share
+of criticality, according to a standard such as DO-178C (recall \Cref{tab:criticality_table}), share
 the same physical hardware. 
 
-Varying definitions exist in the literature. In the real-time community, much work has been
-conducted around a theoretical model introduced by \citet{Vestal_2007}. In this model, a system has
+Varying definitions exist in the literature. Some consider merely
+the combination of \gls{HRT}, \gls{SRT} and best effort tasks, with criticality observed in that order.
+Others allow for \gls{QoS} specifications, which can reflect criticality. 
+
+In the real-time community, much work has been
+conducted around a theoretical model introduced by \citet{Vestal_07}. In this model, a system has
 a specific range of criticality levels, $L_{min} - L_{max}$ and a current criticality level
 $L_{now}$. Each task in the system is assigned a criticality level, $L_{i}$, and has a vector of
 execution times of size $L_{i} - L_{min}$. When the system undergoes a mode change, should $L_{i}
@@ -485,7 +489,7 @@ for error handling and proof of isolation in order to make mixed-criticality sys
 
 The focus on this thesis is for the broader definition of mixed-criticality, such that software of
 different levels of criticality can safely share hardware, and not specifically to the model
-presented by \citet{Vestal_2007} and beyond~\citep{Burns_Davis_17}.
+presented by \citet{Vestal_07} and beyond~\citep{Burns_Davis_17}.
 
 \section{Operating systems}
 \label{sec:background-operating-systems}
