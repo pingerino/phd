@@ -209,7 +209,74 @@ tasks arrive, the slack stealer calculates whether they can be scheduled or not 
 in the system and current load of periodic tasks.  This method does not provide guarantees at all
 for the aperiodic tasks, unless a certain bound is placed on the execution of periodic tasks.
 
-% TODO table comparing methods
+\section{Mixed-criticality schedulers}
+
+In this section, we briefly consider schedulers designed specifically for mixed-criticality systems. 
+However, as this has been a very active topic, we refer the reader to \citet{Burns_Davis_17} for
+an extensive background. 
+
+Temporal isolation in mixed-criticality systems can result in \emph{criticality inversion}, where
+high criticality tasks miss their deadlines due to lower criticality tasks.  Rather than temporal
+isolation, mixed-criticality systems require \emph{asymmetric protection}, where deadline misses of
+low-criticality tasks caused by high-criticality tasks are permitted, but not vice-versa.  This can
+be realised as a system mode-switch or form of graceful degradation.
+
+A key observation about mixed-criticality systems is neither the strictness of the real-time model,
+nor rate-monotonic priorities have any direct correlation with the criticality of a task.  While in
+general critical tasks are \gls{HRT}, it is possible to have critical tasks that are \gls{SRT}, for
+instance, object tracking algorithms whose \gls{WCET} depends on factors external to the software
+system.
+
+None of the scheduling algorithms so far directly support mixed-criticality systems.  \gls{RBED} is
+the closest, although it assumes a direct relationship between criticality and real-time model, with
+the assumption that \gls{HRT} tasks are more critical than \gls{SRT} tasks which are more critical
+than best effort tasks. 
+
+Recall that in this model \glspl{CA} provide \gls{WCET} estimates that must be schedulable, however they are often very
+pessimistic.  This results in a tasks with two {\gls{WCET}} estimates, one very pessimistic one from
+the \gls{CA} and a less pessimistic one from the system designers or automated tools.  As a result
+of this, a family of mixed-criticality schedulers exists that handle high criticality tasks with two
+{\gls{WCET}} estimates, and low-criticality tasks.  The scheduling algorithm will always schedule
+high-criticality tasks.  If high-criticality tasks finish before the lower \gls{WCET} estimate,
+lower criticality tasks are also scheduled.  Otherwise, tasks of lower criticality may not be
+scheduled at all. 
+
+Schedulers in this class are distinguished by a mode-switch between two or more criticality levels,
+which may result in low criticality tasks being dropped or de-prioritised in some way. 
+Schedulers for this model of mixed-criticality have been developed and extensively studied for
+\gls{FP}~\citet{Vestal_07, Pathan:phd}, \gls{EDF}~\citet{Baruah_BDMVS_11},
+
+\subsection{Zero Slack Scheduling}
+
+\Citet{deNiz_LR_09} propose a scheduling approach that can handle multiple levels of criticality,
+called \gls{ZS} scheduling. \gls{ZS} scheduling is based on the fact that tasks rarely use their
+\gls{WCET}.  This means that resource reservation techniques like \gls{CBS} without slack donation
+result in low effective utilisation.  ZS scheduling takes the reverse approach: high criticality
+tasks steal utilization from lower criticality tasks.  This involves calculating a \gls{ZS} instant
+- the last point at which a task can be scheduled without missing its deadline.  Under overload, the
+\gls{ZS} scheduler makes sure that high criticality tasks are scheduled by their \gls{ZS} instant,
+such that they cannot be preempted by lower criticality tasks.
+
+Implementations of \gls{ZS} scheduling can be built using any priority-based scheduling technique,
+however in the initial work \gls{FP} with \gls{RM} priority assignment is used.  The
+\gls{ZS}\gls{RM} scheduler is proven to be able to schedule anything that standard \gls{RM}
+scheduling can, whilst maintaining the asymmetric protection property.  \gls{ZS} scheduling can be
+combined with temporal isolation via bandwidth servers.
+
+% TODO possible rewrite
+\gls{ZS} scheduling has been adapted to use a \gls{QoS} based resource allocation
+model~\citep{deNiz_WSRR_12}, in the context of \glspl{UAV}.  Many models of real-time systems assume
+that \glspl{WCET} for real-time tasks are stable and can be calculated.  However, \glspl{UAV} have
+complicated visual object tracking algorithms where \gls{WCET} is difficult to calculate, and
+execution time varies with the number of objects to track.  In practice, \Citet{deNiz_WSRR_12} found
+that \gls{ZS}\gls{RM} scheduling resulted in \emph{utility inversion} --- where lower utility tasks
+prevent the execution of higher utility tasks.  Although assuring no criticality inversion occurred
+with a criticality based approach, under overload, some tasks offer more utility than others with
+increased execution time.  As a result, the authors replace criticality in the algorithm with a
+utility function.  Two execution time estimates are used for real-time tasks --- \gls{NCET} and
+\gls{OCET}, each having their own utility.  The goal of the scheduler is to maximise utility, under
+normal operation and overload.
+
 \section{Resource sharing}
 
 Like the scheduling algorithms, the locking protocols presented in
@@ -227,18 +294,21 @@ asses their suitability for mixed criticality systems.  As introduced in
 prioritisation, charging and enforcement.
 
 Prioritisation, or what priority a task uses while accessing a resource, can be decided by any of
-the existing protocols: \gls{PCP}, \gls{HLP} or \gls{PIP}.  Charging the reservation, and which
-reservation to charge, is more interesting.  \citet{deNiz_LSR_01} describe the possible mappings
-between reservations and resources consuming those reservations, and comes down to the following
+the existing protocols: \gls{PCP}, \gls{HLP} or \gls{PIP}, \gls{SRP}. Which reservation to charge 
+for processing time consumed when accessing a shared resource, and when to charge, are more
+interesting. \citet{deNiz_LSR_01} describe the possible mappings
+between reservations and resources consuming those reservations, which comes down to the following
 choices:
 
 \begin{description}
-\item[Bandwidth inheritance] Tasks using the resource run on their own reservation.
-If that reservation expires and their are other pending tasks, the task runs on the reservations of the pending tasks. 
+\item[Bandwidth inheritance] Tasks using the resource run on their own reservation.  If that
+    reservation expires and their are other pending tasks, the task runs on the reservations of the
+    pending tasks. 
 \item[Reservation for the resource] Shared resources have their own reservation, which tasks use.
-This reservation must be enough for all tasks to complete their request. 
-Once again, if tasks are untrusted no temporal isolation is provided 
-\item[Multi-reserve resources] Shared resources have multiple reservations, and the resource actively switches between them depending on which task it is servicing. 
+    This reservation must be enough for all tasks to complete their request.  Once again, if tasks
+    are untrusted no temporal isolation is provided. 
+\item[Multi-reserve resources] Shared resources have multiple reservations, and the resource
+    actively switches between them depending on which task it is servicing. 
 \end{description} 
 
 Of most relevant to mixed-criticality systems, where tasks cannot be guaranteed to unlock a
@@ -247,83 +317,11 @@ priori} knowledge of a tasks resource usage.  However, in systems where tasks ma
 (either due to security, certification level, or potential bugs) such \emph{a priori}
 knowledge is unavailable. 
 
-We address this topic further in the next chapter, when we evaluate survey existing operating systems.
-
-\section{Asymmetric Protection} 
-% TODO more more more
-
-Temporal isolation in mixed-criticality systems can result in \emph{criticality inversion}, where
-high criticality tasks miss their deadlines due to lower criticality tasks.  Rather than temporal
-isolation, mixed-criticality systems require \emph{asymmetric protection}, where deadline misses of
-low-criticality tasks caused by high-criticality tasks are permitted, but not vice-versa.  This can
-be realised as a system mode-switch or form of graceful degradation.
-
-There are many varied definitions of mixed criticality in the literature.  Some consider merely the
-combination of \gls{HRT}, \gls{SRT} and best effort tasks, with criticality observed in that order.
-Others allow for \gls{QoS} specifications, which can reflect criticality.  Systems where criticality
-can be specified explicitly (regardless of SRT/HRT specification) also exist.
-
-A key observation about mixed-criticality systems is neither the strictness of the real-time model,
-nor rate-monotonic priorities have any direct correlation with the criticality of a task.  While in
-general critical tasks are \gls{HRT}, it is possible to have critical tasks that are \gls{SRT}, for
-instance, object tracking algorithms whose \gls{WCET} depends on factors external to the software
-system.
-
-None of the scheduling algorithms so far directly support mixed-criticality systems.  \gls{RBED} is
-the closest, although it assumes a direct relationship between criticality and real-time model, with
-the assumption that \gls{HRT} tasks are more critical than \gls{SRT} tasks which are more critical
-than best effort tasks.
-
-Scheduling algorithms for mixed-criticality systems are a hot-topic in the real-time community.  In
-this section we briefly present a few such algorithms.
-
-\subsection{Zero Slack Scheduling}
-
-\Citet{deNiz_LR_09} propose a scheduling approach that can handle multiple levels of criticality, called \gls{ZS} scheduling.
-
-\gls{ZS} scheduling is based on the fact that tasks rarely use their \gls{WCET}.
-This means that resource reservation techniques like \gls{CBS} without slack donation result in low effective utilisation.
-ZS scheduling takes the reverse approach: high criticality tasks steal utilization from lower criticality tasks.
-This involves calculating a \gls{ZS} instant - the last point at which a task can be scheduled without missing its deadline.
-Under overload, the \gls{ZS} scheduler makes sure that high criticality tasks are scheduled by their \gls{ZS} instant, such that they cannot be preempted by lower criticality tasks.
-
-Implementations of \gls{ZS} scheduling can be built using any priority-based scheduling technique, however in the initial work \gls{FP} with \gls{RM} priority assignment is used.
-The \gls{ZS}\gls{RM} scheduler is proven to be able to schedule anything that standard \gls{RM} scheduling can, whilst maintaining the asymmetric protection property.
-\gls{ZS} scheduling can be combined with temporal isolation via bandwidth servers.
-
-% TODO possible rewrite
-\gls{ZS} scheduling has been adapted to use a \gls{QoS} based resource allocation model~\citep{deNiz_WSRR_12}, in the context of \glspl{UAV}.
-Many models of real-time systems assume that \glspl{WCET} for real-time tasks are stable and can be calculated.
-However, \glspl{UAV} have complicated visual object tracking algorithms where \gls{WCET} is difficult to calculate, and execution time varies with the number of objects to track.
-In practice, \Citet{deNiz_WSRR_12} found that \gls{ZS}\gls{RM} scheduling resulted in \emph{utility inversion} --- where lower utility tasks prevent the execution of higher utility tasks.
-Although assuring no criticality inversion occurred with a criticality based approach, under overload, some tasks offer more utility than others with increased execution time.
-As a result, the authors replace criticality in the algorithm with a utility function.
-Two execution time estimates are used for real-time tasks --- \gls{NCET} and \gls{OCET}, each having their own utility.
-The goal of the scheduler is to maximise utility, under normal operation and overload.
-
-% TODO vestal
-% TODO quest
-
-\subsection{Mixed Criticality and Certification}
-\label{sec:multiple-criticality}
-
-An approach to mixed-criticality scheduling that involves two different WCET estimates arises due to the pessimism of \glspl{CA}.
-High criticality tasks in safety-critical systems require certification, conducted by a \gls{CA}.
-Note that tasks of lower criticality may not require certification.
-
-\Glspl{CA} provide {\gls{WCET}} estimates that must be schedulable, however they are often very pessimistic.
-This results in a tasks with two {\gls{WCET}} estimates, one very pessimistic one from the \gls{CA} and a less pessimistic one from the system designers or automated tools.
-As a result of this, a family of mixed-criticality schedulers exists that handle high criticality tasks with two {\gls{WCET}} estimates, and low-criticality tasks.
-The scheduling algorithm will always schedule high-criticality tasks.
-If high-criticality tasks finish before the lower \gls{WCET} estimate, lower criticality tasks are also scheduled.
-Otherwise, tasks of lower criticality may not be scheduled at all.
-An \gls{EDF} based algorithm is presented in \citet{Baruah_BDMVS_11}, which is generalised to an unlimited amount of criticality levels.
-An \gls{FP} based approach is implemented in \citet{Pathan:phd}, where run-time monitoring is used to switch between criticalities.
-Some tasks may be dropped in order to better utilise processors without violating certification requirements.
-
-%TODO{more mixed-criticality scheduling algorithms}
-%TODO{mixed-criticality resource sharing algorithms}
-% TODO mixed criticality resource sharing protocols
+\citet{Brandenburg_14} outlines a multiprocessor \gls{IPC} based protocol where shared resources are placed in
+resource servers accessed. In this scheme, the resources themselves must be at the ceiling
+criticality of any task accessing those resources, but all tasks do not have to be at that
+criticality level. The protocol works by channeling all IPC requests through a three-level,
+multi-ended queue where high criticality tasks are prioritised over best effort tasks. 
 
 \section{Summary}
 

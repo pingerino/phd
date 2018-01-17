@@ -8,8 +8,17 @@ provides mechanisms for temporal isolation, asymmetric protection, and resource 
 
 % TODO break up into sections: discuss resource sharing, isolation approaches
 % summarise with short comings: things you will solve
+\section{Industry Standards}
 
-\section{POSIX}
+
+
+\citet{ARINC653} is an aviation standard for developing mixed-criticality systems, with static,
+time-triggered scheduling and fixed-partitions. Controlled communication is permitted between
+partitions. 
+
+% TODO AUTOSAR
+
+\subsection{POSIX}
 
 The \gls{POSIX} standard specifies real-time operating systems interfaces~\citep{Harbour_93} which
 influence a large amount of \glspl{OS}.  Scheduling policies specified by \gls{POSIX} are shown in
@@ -94,6 +103,9 @@ Interrupts are handled by the virtualisation layer, and only directed to Linux i
 This means that real-time tasks do not have to suffer from long interrupt latencies, however it also means that devices drivers need to be rewritten from scratch for real-time.
 
 \litmus~\citep{Calandrino_LBDA_07} is an extension of Linux that allows for pluggable real-time schedulers to be easily developed for testing multiprocessor schedulers.
+
+% TODO write this up here
+\citet{Brandenburg_14} presents an \gls{IPC} protocol 
 
 Linux/RK~\citep{Oikawa_Rajkumar_98} is a resource kernel implementation Linux that is often used to implement new scheduling algorithms.
 \gls{ZS} scheduling~\citep{deNiz_LR_09} was implemented and tested using Linux/RK.

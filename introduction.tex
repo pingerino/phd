@@ -49,7 +49,7 @@ but is essential for emerging cyber-physical systems like self-driving cars.
 % finally, overcommitting
 Our goal is to design and implement an OS that provides the right mechanisms for efficiently
 supporting mixed criticality systems, and reason about their safety.
-The implementation platform will be the \selfour
+The implementation platform will be the \selfour~\citep{Klein_EHA_etal_09}.
 microkernel, which is has been designed for the high-assurance, safety-critical domain.
 
 Concisely, the goals of this research are to provide:
@@ -75,15 +75,20 @@ software for commercial aircraft in the United States.
      \rowcolors{2}{gray!25}{}
      \begin{tabular}{ l p{10cm}} \toprule
          \emph{Level}   & \emph{Impact} \\ \midrule
-         Catastrophic   & Failure may cause a crash \\
-         Hazardous      & Failure has a large negative impact on safety or performance \\
-         Major          & Failure is significant, but less than hazardous
-                                (passenger discomfort or increased crew workload) \\
-         Minor          & Failure is noticeable (passenger inconvenience or changed route) \\
-         No Effect      & No impact on safety, aircraft operation or crew workload \\
+         Catastrophic   & Failure may cause multiple fatalities, usually with loss of the airplane. \\
+         Hazardous      & Failure has a large negative impact on safety or performance, or reduces the
+                          ability of the crew to operate the aircraft due to physical distress or 
+                          a higher workload, or causes serious or fatal injuries among the passengers.\\
+         Major          & Failure significantly reduces the safety margin or significantly increases
+                          crew workload. May result in passenger discomfort (or even minor
+                          injuries).\\
+         Minor          & Failure slightly reduces the safety margin or slightly increases crew
+                          workload. Examples might include causing passenger inconvenience or a
+                          routine flight plan change. \\
+         No Effect      & Failure has no impact on safety, aircraft operation or crew workload. \\
          \bottomrule
      \end{tabular}
-     \caption{Criticality levels from DO-178B, a safety standard for commercial aircraft.}
+     \caption{Criticality levels from DO-178C, a safety standard for commercial aircraft.}
      \label{tab:critable}
  \end{table}
 
@@ -99,15 +104,8 @@ air gaps between physical components. However, given the increased amount of
 computing in every part of our daily lives, the practice of physical isolation
 has resulted in unscalable growth in the amount of computing hardware in
 embedded systems, with some modern cars containing over 100
-processors~\citep{Hergenhan_Heiser_08}. 
-
-More complex systems such as those found in aviation allow for highly
-restricted mixed-criticality systems in the form of separation kernels.
-\citet{ARINC653} allows for sharing of hardware between software applications
-of mixed criticality, and outlines the primitives required from an \gls{OS}
-built for these systems, mandating full temporal and spatial isolation of the
-different criticality components. However, such standards are restrictive in three forms:
-\gls{SWaP}, efficiency, and function.
+processors~\citep{Hergenhan_Heiser_08}. The practise of physical separation is no 
+longer viable for three reasons: \gls{SWaP}, efficiency, and function.
 
 \paragraph{SWaP} First, systems with air-gaps require increased physical
 resources: increasing production costs and environmental impact.
@@ -117,13 +115,10 @@ utility in the form of reducing vehicle range. Therefore the consolidation that 
 with combining systems of different criticalities is worthwhile.  
 
 \paragraph{Function} 
-However, one could argue that it is possible to simply consolidate hardware
-from systems of the same criticality. Ignoring the fact that this may not be
-possible, mixed-criticality systems also bring opportunities for new types of
-systems. This is because, by definition, isolated isolated  cannot interact.
-\glspl{AAV} and other autonomous vehicles provide an excellent motivations for
-systems where sub systems of different criticality share resources: meaning
-they must share hardware.  For example, consider the system for a self driving
+Mixed-criticality systems also bring opportunities for new types of
+systems, and are indeed required for emerging cyber-physical systems like
+advanced driver assistance systems, autonomous vehicles and internet of things devices.
+For example consider the system for a self driving
 car as with components as outlined in \Cref{tab:self-driving-car}.  The safety
 systems are the most critical: if air bag or anti-lock breaks fail this could
 cause great injury or death to the passengers.  The communications system is
@@ -175,23 +170,40 @@ guaranteed to be schedulable.  In case of actual overload, the system must guara
 to the critical components at the expense of the less critical ones, which is referred to as
 \emph{asymmetric protection}.
 
+Additionally, the higher the criticality
+of a software component, the higher the pessimism in analysis, raising the \gls{WCET} and reducing
+the amount of software that can be consolidated onto a single platform. Therefore it is 
+impractical to raise all software to the same criticality level should it share hardware, as the
+total resource utilisation is lowered.
+
+More complex systems such as those found in aviation allow for highly
+restricted mixed-criticality systems in the form of separation kernels.
+\citet{ARINC653} allows for sharing of hardware between software applications
+of mixed criticality, and outlines the primitives required from an \gls{OS}
+built for these systems, mandating full temporal and spatial isolation of the
+different criticality components and controlled communication. However, this is one 
+standard that may not be suitable for all types of system.
+
 \section{Contributions}
 
 Given their improvements to \gls{SWaP}, function and efficiency, mixed-criticality systems offer
 great advantages over the traditional physical isolation approach. 
-Such systems have strong requirements, and as such, the contributions of this thesis are operating
-system design and mechanisms for achieving the following:
+\citet{Ernst_DiNatale_16} identify two sets of mechanisms that need to be provided in order to
+support true mixed-criticality systems:
 
-\begin{itemize}
-    \item Temporal and spatial isolation are essential to providing the same guarantees as their
-physically isolated counterparts. 
-    \item Asymmetric protection across criticalities is required,
-    which means that higher criticality sub-systems are prioritised over lower ones: if success of a
-    high criticality task may cause a failure in a low criticality task this is permitted, but not
-    vice versa.
-    \item Trusted resource sharing mechanisms, which allow tasks of different criticalities to 
-        safely share resources.
-\end{itemize}
+\begin{enumerate}
+    \item kernels and schedulers that guarantee resource
+        management to provide independence in the
+        functional and time domain; separation kernels
+        are the most notable example;
+    \item mechanisms to detect timing faults and control
+        them, including monitors, and the scheduling
+        provisions for guaranteeing controllability in the
+        presence of faults.
+\end{enumerate}
+
+The contributions of our research are to provide the core mechanisms for building whole
+mixed-criticality systems upon. 
 
 \section{Approach}
 
