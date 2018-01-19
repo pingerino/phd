@@ -26,6 +26,15 @@ that all applications are trusted: trusted to not crash, and trusted to not over
 If one application does overrun its deadline or use more processing time that specified by its
 \gls{WCET}, guarantees are no longer met. 
 
+Tasks can be untrusted for many reasons including:
+\begin{itemize}
+    \item sporadic tasks with inter-arrival times that are event driven will not necessarily
+      have device drivers which guarantee the inter-arrival time;
+    \item the task may have an unknown or unreliable \gls{WCET};
+    \item the system may be open and the task from an untrusted source;
+    \item the task may be low criticality and therefore not certified to a high level.
+\end{itemize}
+
 The issue of trust in real-time literature has not been greatly addressed: real time tasks are often
 assumed to perform correctly and safely.  However, much research has looked into the scheduling of
 aperiodic tasks, which by definition do cannot be trusted to follow a specific schedule, or abide by

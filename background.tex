@@ -532,6 +532,12 @@ Services on top of the microkernel can be isolated and assigned different levels
 the services in a monolithic \gls{OS} which all run at the same privilege level such that a fault in
 one service can compromise the entire system. 
 
+Many security focused microkernels make use of \emph{capabilities}~\citep{Dennis_VanHorn_66}, an
+established mechanism for fine-grained access control to spatial resources which allow for spatial
+isolation. A capability is a unique, unforgeable token that gives the possessor permission to access
+an entity or object in system. Capabilities can have different levels of access rights, e.g. read,
+write, execute etc.
+
 \subsection{Open vs. Closed Systems}
 
 Operating systems can be built for open or closed systems.  An \emph{open system} is any system
