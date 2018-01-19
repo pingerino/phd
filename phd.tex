@@ -110,7 +110,7 @@
 % lists 
 \usepackage{enumitem}
 \setlist[enumerate]{itemsep=0mm}
-\setlist[itemize]{itemsep=2mm}
+\setlist[itemize]{itemsep=0mm}
 
 \usepackage{multirow}
 \usepackage{verbatim}
@@ -256,8 +256,7 @@
 \newcommand{\irqmicro}[2]{\inputbenchmarkrows{#1}{#2}{irq}}
 \newcommand{\schedulemicro}[2]{\inputbenchmarkrows{#1}{#2}{schedule}}
 \begin{document}
-\pagenumbering{roman}
-
+\frontmatter
 % Title page 
 \input{title}
 
@@ -302,8 +301,6 @@ The implementation platform will be the \selfour microkernel, which is built for
 \mainmatter
 
 \sloppy
-\setcounter{page}{1}
-\pagenumbering{arabic}
 % glossary
 \input{glossary}
 \pagebreak

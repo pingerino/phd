@@ -168,7 +168,7 @@ task to run, the polling server will go back to sleep. That is, at time $t_{i}$,
 tasks ready to execute, the server will sleep until $t_{i+1}$. This has the limitation task latency
 is a function of the period $T$.
 
-\paragraph{Deferrable Servers} Unlike polling servers, \emph{deferrable
+\paragraph{Deferrable Servers}\label{p:ds} Unlike polling servers, \emph{deferrable
 servers}\citep{Lehoczky_LS_87, Strosnider_LS_95} preserve any unused budget across periods, although
 the budget can never be exceeded.  This removes latency problems with polling servers, but
 unfortunately breaks rate-monotonic schedulability analysis, as this policy can result in servers
