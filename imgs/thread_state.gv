@@ -1,0 +1,31 @@
+digraph {
+    ratio = "compress"
+    node [fontsize=11,style=rounded,fontname="inconsolata"]
+    edge [fontsize=11,fontname="inconsolata"]
+    //actual nodes
+    Running [shape=box]
+    BlockedOnRecv [shape=box]
+    BlockedOnSend [shape=box]
+    BlockedOnReply [shape=box]
+    BlockedOnNotification [shape=box]
+    Inactive [shape=box]
+    Invisible [shape=point,height=0]
+    
+    Running -> BlockedOnRecv[label=" Recv"];
+    Running -> BlockedOnSend[label=" Send"];
+    Running -> BlockedOnReply[label=" Call"];
+    Running -> BlockedOnNotification[label=" Wait"];
+    BlockedOnRecv     -> Running[label=" IPC/Signal",color="forestgreen",fontcolor="forestgreen"]
+    BlockedOnSend     -> Running[label=" IPC sent",color="forestgreen",fontcolor="forestgreen"]
+    BlockedOnReply     -> Running[label=" IPC",color="forestgreen",fontcolor="forestgreen"]
+    BlockedOnNotification     -> Running[label=" Signal",color="forestgreen",fontcolor="forestgreen"]
+    Inactive -> Running[label=" Resume",color="forestgreen",fontcolor="forestgreen"];
+    Running -> Invisible[dir = none];
+    BlockedOnRecv     -> Invisible[dir = none];
+    BlockedOnSend     -> Invisible[dir = none];
+    BlockedOnReply     -> Invisible[dir = none];
+    BlockedOnNotification     -> Invisible[dir = none];
+//    Invisible [shape=dot];
+    Invisible -> Inactive [label=" Suspend"];
+    
+}

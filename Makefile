@@ -83,8 +83,9 @@ Fig_Sources = $(wildcard imgs/*.fig)
 Gnuplot_Sources = $(wildcard imgs/*.gnuplot)
 #SVG_Sources = $(wildcard imgs/*.svg)
 R_Sources = $(wildcard imgs/*.r)
+GV_Sources = $(wildcard imgs/*.gv)
 Styles = $(wildcard *.sty)  $(wildcard *.cls)
-Figures = $(Perf_Sources:.perf=.pdf) $(Dia_Sources:.dia=.pdf) $(Fig_Sources:.fig=.pdf) $(SVG_Sources:.svg=.pdf) $(Gnuplot_Sources:.gnuplot=.pdf)  $(R_Sources:.r=.pdf) $(ExtraFigs)
+Figures = $(Perf_Sources:.perf=.pdf) $(Dia_Sources:.dia=.pdf) $(Fig_Sources:.fig=.pdf) $(SVG_Sources:.svg=.pdf) $(Gnuplot_Sources:.gnuplot=.pdf)  $(R_Sources:.r=.pdf) $(GV_Sources:.gv=.pdf) $(ExtraFigs)
 
 Pdf = $(addsuffix .pdf, $(Targets))
 Bib = references.bib
@@ -154,6 +155,11 @@ diff_pdf: $(Figures) Makefile $(Diff_Pdf)
 %.eps: %.gnuplot imgs/common.inc
 	@echo $< '->' $@
 	${Q} ${GnuPlot} $<
+
+# graph vis
+%.pdf: %.gv
+	@echo $< '->' $@
+	dot -Tpdf $< -o $@
 
 %.eps: %.r
 	@echo $< '->' $@
