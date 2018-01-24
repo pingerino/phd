@@ -391,37 +391,146 @@ and were also required to be donated across \gls{IPC}. In addition to donation, 
 the server, but the server can account the current clients request to the pending client in order to
 finish the initial request. 
 
+All of the scheduling context donation policies implement a form of bandwidth inheritance, which
+forces the use of \gls{PIP}, which has high preemption overhead. This conflicts with the
+policy-freedom goal of a microkernel; out claim is \gls{PIP} does not belong in the kernel. 
+
 \subsection{Capabilities to time}
 \label{s:capabilities}
 
-Many existing and research \glspl{OS} use capabilities for a variety of things. \composite provides
-a capability system outside of the kernel as a user-level policy, while \selfour, NOVA  and Fiasco
-O.C all contain capability implementations in the kernel.
+Capabilities~\citep{Dennis_VanHorn_66} are an established mechanism for
+fine-grained access control to spatial resources. The  \selfour
+microkernel uses capabilities to provide a memory-management model
+that delegates all management decisions to user level,
+including allocation of kernel memory, resulting in a largely
+policy-free
+kernel~\citep{Elkaduwe_DE_08,Heiser_Elphinstone_16}.
+However, the capability system in \selfour does not presently apply to time.
 
-% meters  
-Capability systems have been applied to the control of processing time, first in 
-KeyKOS~\citep{Bomberger_FFHLS_92} which had capabilities to \emph{meters}, which granted the holder
+Many existing and research \glspl{OS} use capabilities for a variety of things. \composite, NOVA,
+KeyKOS, EROS, Fiasco O.C and Barrelfish all provide capability systems. 
+
+Prior uses of capabilities for controlling time include
+KeyKOS~\citep{Bomberger_FFHLS_92}, which had capabilities to \emph{meters}, which granted the holder
 the right to execute for the unit of time held by the meter.
 However, the KeyKOS model treats time as fungible, with no guarantee
 of \emph{when} the time will be provided, which makes this approach
 unsuitable for real-time use.
+
 EROS~\citep{Shapiro_SF_99} combined processor capacity reserves with capabilities rather than the
-meters of KeyKOS.
+meters of KeyKOS. However these reserves were optional: a two level scheduler first
+scheduled the reserves with available capacity, then threads with no
+or exhausted reserves were scheduled.
+Like any hierarchical scheduling model, this enforces a policy that
+reduces flexibility.
 
-% TODO more here. 
-\composite with its user-level capability system provides temporal capabilities
+Furthermore, hierarchical delegation has the significant disadvantage
+of algorithmic utilisation loss~\citep{Lackorzynski_WVH_12}; this is a
+direct result of the unfungible nature of time. Consider real
+estate: like time, it is (arbitrarily) divisible but not fungible: If
+a block is too small to build a house, then having a second,
+disconnected block of the same size is of no help (unlike spatial resources in a kernel, which can
+be mapped side-by-side). The implication is
+that capabilities for time have a different flavour from those for
+spatial resources -- they cannot support hierarchical delegation
+without loss, and cannot be recursively virtualised. While delegation is an
+attractive property of spatial capabilities,
+this delegation is not their defining characteristic, which is actually
+\emph{prima facie evidence of access}; in the case of time
+capabilities, the access is to processor time.
+
+\composite recently introduced temporal capabilities
 (tCaps)~\citep{Gadepalli_GBKP_17} reminiscent of
-the meters of KeyKOS. An initial capability provides authority to all of time, and this capability
-can used to replenish tCaps. The kernel up calls user-level schedulers which must then provide a
-tCap and a thread to execute. tCaps are shared between subsystems and have an array of priorities in
-them which is used to determine which tCap to schedule, however this comes at a cost: tCaps can only
-track 16 subsystems. 
+the meters of KeyKOS in that they represent a scalar unit of time.
+Unlike KeyKOS, tCaps integrate with user-level scheduling, decoupling access control
+from scheduling. An initial capability \emph{chronos} provides authority to all of time, and this capability
+can used to replenish tCaps by a top level scheduler. The kernel up calls user-level schedulers 
+which must then provide a tCap and a thread to execute. A tCap is always active in the system with
+any time billed to it. The top level scheduler delegates fixed amounts of time from the initial,
+infinite tCap, which can then be further delegated and split according to the scheduling policy,
+which could be simple fixed-priority or a more complex scheduling hierarchy, such as that presented
+in \hires~\citep{Parmer_West_11}. If all time
+in a tCap is depleted, other, non-depleted tCaps will be scheduled until eventually the top level
+tCap is scheduled. For efficiency, tCap delegation is limited to a constant of 16. 
 
+\section{Summary}
 
-\subsection{Summary}
+In this chapter we have reviewed existing real-time operating systems and techniques applicable to
+treating time as a first class resource, as part of our goal to design microkernel mechanisms for 
+the support of mixed-criticality workloads. 
+As we have seen, many existing systems conflate criticality and time sensitivity 
+in a single value: priority. A further assumption is that high criticality, time sensitive tasks are
+always trusted, one the falls apart in the mixed criticality context.
 
-%TODO{what did we learn in this chapter?}
-%TODO{note gap between rt theory and systems}
-%TODO{note the false correlation of priority, rt model, trust, criticality etc}
+The \emph{criticality} of a component reflects its importance to the
+overall system mission.
+Criticality may reflect the impact of failure~\citep{ARINC653} or the
+utility of a function. An MCS should degrade gracefully, with
+components of lower criticality (which we will for simplicity refer to
+as \crit{low} components) suffering degradation before higher
+criticality (\crit{high}) components.
 
+\emph{Time sensitivity} refers to how important it is to a thread to
+get access to the processor at a particular time. For best-effort activities, time is
+fungible, in that only the amount of time allocated is of
+relevance. In contrast, for a hard real-time component, time is
+largely unfungible, in that the allocation has no value if it occurs after
+the deadline; soft real-time components are in between.
 
+Finally, \emph{trust} refers to the degree of reliance in the correct
+behaviour of a component. Untrusted components may fail completely
+without affecting the core system mission, while a component which
+must be assumed to operate correctly for achieving the overall mission
+is trusted. A component is \emph{trustworthy} if it has undergone a process
+that establishes that it can be trusted, the degree of trustworthiness
+being a reflection of the rigour of this process (testing,
+certification, formal verification)~\citep{Verissimo_NC_03}.
+\Cref{plot:ternary} illustrates these axis.
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}
+        \begin{ternaryaxis}[
+            xlabel=Criticality,
+            ylabel=Trustworthiness,
+            zlabel=Real-time sensitivity,
+            label style=sloped,]
+        \end{ternaryaxis}
+    \end{tikzpicture}
+    \caption{Commonly conflated attributes of systems software}
+    \label{plot:ternary}
+\end{figure}
+
+In practice, criticality and trust are closely aligned, as the most
+critical parts should be the most trustworthy.
+However, criticality must be decoupled from time sensitivity in MCS.
+Referring back to the
+example in the introduction, interrupts from networks or buses have
+high time sensitivity, but low criticality (i.e.\ deadline misses are
+tolerable), while the opposite is true for the flight control component.
+Similarly, threads (other than the most critical ones which should
+have undergone extensive assurance) cannot be
+trusted to honour their declared WCET.
+
+Our claim is that how these attributes are conflated is
+policy that is specific to a system.
+We need a mechanism that allows  enforcing time limits, and thus
+isolate the timeliness of critical threads from those of untrusted,
+less critical ones.
+Reservation-based kernels often allow for a form of over-committing where
+best-effort threads are run in the slack-time left by unused reservations or unreserved CPU.
+However this also aligns criticality and time-sensitivity, and
+enforces a two-level scheduling model.
+
+If trustworthiness and real-time sensitivity are not conflated, many assumptions about real-time
+scheduling fail.
+Much real-time analysis rely on threads having a known \gls{WCET}, which implies that those threads
+are predictable, which implies trust.
+If a real-time thread is not expected to behave correctly, one cannot
+assume it will surrender access to the processor voluntarily.
+Consequently, the \gls{PIP}/\gls{BWI} based scheduling-context donation mechanisms seen in this chapter are
+insufficient, forcing not only a protocol which causes extensive preemption overhead, but 
+requiring shared servers to have known, bounded execution time on all requests.
+
+In the next chapter we present a model for mixed-criticality scheduling that is suitable for high
+assurance systems such as \selfour. 

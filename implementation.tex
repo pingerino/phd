@@ -3,7 +3,7 @@
 
 
 In the previous chapter we presented our model for MCS mechanisms for a microkernel.
-This section provides the deatils of the implementation in seL4.
+This section provides the details of the implementation in seL4.
 
 % TODO should the seL4 background section go here?
 
@@ -25,10 +25,15 @@ implement our mechanisms.
 \label{s:resume}
 
 Resume objects are introduced to track scheduling context donation over IPC path when \call is
-used. Futher detail is provided in TODO.
+used. Further detail is provided in TODO.
 
 \begin{description}
-    \item[Caller] a pointer to the \gls{TCB} that is blocked on this reply object.
+    \item[TCB] a pointer to the \gls{TCB} that is blocked on this reply object. Depending on the
+        thread state this is either: 
+        \begin{description}
+            \item [BlockedOnReply]
+            \item [BlockedOnRecv]
+        \end{description}
     \item[Prev,Next] pointers which track the call chain.
 \end{description}
 

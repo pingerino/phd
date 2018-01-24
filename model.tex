@@ -22,53 +22,11 @@
 % Outline selection of algorithms
 % Outline new things
 
-Our goal is to design microkernel mechanisms for the support of mixed-criticality workloads.
-% TODO where
-As we have seen, many existing systems conflate criticality, temporal sensitivity and
-trustworthiness in a single value: priority. Our claim is that how these attributes are conflated is
-policy that is specific to a system.
-
-\begin{description}
-\item[Temporal sensitivity] refers to how sensitive an task is to when it gets access to the
-    processor. Every task is sensitive to time: if no processor time is given to an
-    application, it will never produce a result. However, For best-effort activities, time is
-    fungible, in that only the amount of time allocated is of relevance. In contrast, for a
-    \gls{HRT} tasks, time is largely non-fungible in that is has no value if the allocation is
-    after the deadline; \gls{SRT} tasks are in between.
-\item[Criticality] reflects the importance of an process to the overall system mission. In some
-    systems it may reflect the impact of failure~\citep{ARINC653} or the utility of a function. An
-    MCS system should degrade gracefully, with tasks of lower criticality suffering degradation
-    before higher criticality tasks.
-\item[Trustworthiness] whether a task is trustworthy or not. This could be due to the level or
-    certification, the correctness of a task, or where the code for the task has come from. For
-    example, in many open systems tasks using the processor are downloaded from an untrusted source.
-\end{description}
-
-\begin{figure}
-\centering
-\begin{tikzpicture}
-\begin{ternaryaxis}[
-        xlabel=Criticality,
-        ylabel=Trustworthiness,
-        zlabel=Temporal sensitivity,
-        label style=sloped,
-        ]
-\end{ternaryaxis}
-\end{tikzpicture}
-\caption{Commonly conflated attributes of systems software}
-\label{plot:ternary}
-\end{figure}
-
-\Cref{plot:ternary} shows these attributes with a scale for each. As discussed in TODO the majority
-of existing operating systems use a singe value, \emph{priority} to represent all of these values.
-With respect to real-time scheduling, priority is used for another thing entirely simply reflects
-scheduling order, used to achieve optimal processor use.
-
 The model we present defines operating systems primitives for building systems that leverage these
 properties in a way that is appropriate to that system, which can be implemented in middle ware or
 an OS personality on top of the trusted computing base.
 
-\subsection{Temporal sensitivity}
+\subsection{Time sensitivity}
 
 Tasks that are temporally sensitive require control over exactly when they are scheduled, and for
 what duration. For systems where tasks are independent this applies only to processor time. However,
