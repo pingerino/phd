@@ -1,0 +1,18 @@
+\begin{abstract}
+Criticality of a software system refers to the severity of the impact of a failure.
+In a high-criticality system, failure risks significant loss of life or damage to the environment.
+In a low-criticality system, failure may risk a downgrade in user-experience.
+Traditionally, systems of different criticality were isolated by hardware.
+This approach is no longer practical as it has proven inefficient and restrictive.
+The result is mixed-criticality systems, where software applications with different criticalities execute on the same hardware.
+Such systems go beyond standard temporal isolation and require asymmetric protection between applications of different criticalities.
+
+Whilst there has been some momentum in real-time operating system (RTOS) research, the implications of mixed-criticality systems for OSes have not been fully explored.
+The goal of this project is to develop a mixed-criticality OS.
+Two key properties are required: first, time must be managed as a central resource of the system, while allowing for overbooking with asymmetric protection without increasing certification burdens.
+Second, components of different criticalities should be able to safely share resources without suffering undue utilisation penalties.
+The implementation platform will be the \selfour microkernel, which is built for the safety-critical, high assurance domain.
+
+\end{abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\clearpage
