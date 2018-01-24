@@ -29,6 +29,7 @@ signalling. \Cref{f:legend-1} shows the legend for diagrams in this section.
 \end{figure}
 
 \subsection{Capabilities}
+\label{s:capabilities}
 
 As a capability-based \gls{OS}, access to any functionality in \selfour is via capabilities (recall
 \Cref{s:capabilities}. Capabilities to all system resources are passed to the initial task --- the first
@@ -161,6 +162,10 @@ contains two \gls{IPC} fastpaths which is used when the following, common-case c
 Endpoint capabilities can be minted with unique, unforgeable badges which are delivered to the
 receiver with the rest of the IPC message. This provides a mechanism for identifying senders.
 
+\subsection{Fault handling}
+
+% TODO write this
+
 \subsection{Signalling}
 
 Notification objects facilitate signalling in \selfour, either from other threads via \texttt{send()} or from
@@ -267,60 +272,11 @@ There is no way to enforce a certain processor allocation and how CPU time a thr
 \subsection{Accounting}
 % I think this should move to the design section?
 Due to the tick-based nature of the \selfour scheduler, when ticks are accounted complicates the
-scheduling as the precision is reduced to the tick granularity. Small tick intervals lead to an
-accurate scheduler but increase the base interrupt load, while larger intervals result in imprecise
-scheduling.  For example, signals and other preemptions bill the partially consumed tick to the
-preempting thread, which will suffer a shorter timeslice. 
+scheduling as the precision is reduced to the tick granularity, and described in
+\cref{s:tick-v-tickless}.
 
 Similarly, the \texttt{yield} system call will not alter the timeslice of the current thread, and
 only donates a portion of the current tick to the next thread in the round-robin scheduler. 
-
-\gls{IPC}, as introduced in \Cref{s:ipc}, complicates the timing behaviour of the kernel further.
-When a message is sent to a target thread, and that thread is a higher priority than any other
-thread in the scheduler that thread is switched to immediately, by passing the round-robin scheduler.
-Note that other threads in the scheduling queue are not starved, as when one of the rendezvous partners exhausts its timeslice the scheduler will choose the next round-robin thread.
-However, \textit{when} this can be hard to determine due to the timing of ticks. 
-Consider the case where threads $A$ and $B$, both at the same priority, and are exchanging IPC messages constantly.
-Another thread $C$ is running at the same priority, and all threads have full timeslice fields.
-$C$ will be scheduled when one threads timeslice is exhausted, i.e when either $A$ or $B$ has been preempted \texttt{CONFIG\_TIME\_SLICE} times.
-As a result $C$ could be scheduled after at minimum \texttt{CONFIG\_TIME\_SLICE} ticks (if one of the \gls{IPC} partners is preempted for every tick, or at maximum after \texttt{CONFIG\_TIME\_SLICE * 2 - 1} ticks (if both partners are preempted for ticks).
-This example is illustrated in \cref{fig:non-determinism}.
-
-\begin{figure}
-    \centering
-    \begin{tikzpicture}[x=1cm]
-
-        \draw[->,thick,>=latex] (0,0) -- (10,0) node[below right] {$time$};
-        \draw[thick] (0,0) -- ++(0,5pt) node[above] {A};
-        \draw[thick] (1,0) -- ++(0,5pt) node[above] {B};
-        \draw[thick] (2,0) -- ++(0,5pt) node[above] {\textbf{A}};
-        \draw[thick] (3,0) -- ++(0,5pt) node[above] {B};
-        \draw[thick] (4,0) -- ++(0,5pt) node[above] {A};
-        \draw[thick] (5,0) -- ++(0,5pt) node[above] {\textbf{B}};
-        \draw[thick] (6,0) -- ++(0,5pt) node[above] {A};
-        \draw[thick] (7,0) -- ++(0,5pt) node[above] {B};
-        \draw[thick] (8,0) -- ++(0,5pt) node[above] {\textbf{A}};
-        \draw[thick] (9,0) -- ++(0,5pt) node[above] {C};
-   
-        \node[below,align=left,anchor=north,inner xsep=0pt] at (5,0) 
-            {Worst case - C scheduled after 3 ticks};  
-    
-        \draw[->,thick,>=latex] (0,2) -- (10,2) node[below right] {$time$};
-        \draw[thick] (0,2) -- ++(0,5pt) node[above] {A};
-        \draw[thick] (2,2) -- ++(0,5pt) node[above] {\textbf{B}};
-        \draw[thick] (3.5,2) -- ++(0,5pt) node[above] {A};
-        \draw[thick] (5,2) -- ++(0,5pt) node[above] {\textbf{B}};
-        \draw[thick] (6,2) -- ++(0,5pt) node[above] {C};
-
-        \node[below,align=left,anchor=north,inner xsep=0pt] at (5,2) 
-            {Best case - C scheduled after 2 ticks};  
-    \end{tikzpicture}
-    \caption{Scheduling in the case of IPC and variable execution times. A and B are IPC partners, C is a third thread. A, B and C run at the same priority. \texttt{CONFIG\_TIME\_SLICE} is 2. Bold indicates the thread that is preempted by the timer tick. In the best case, B takes both timer ticks and C is scheduled after 2 ticks. In the worst case, A takes 2 ticks and B takes 1, such that C is scheduled after 3 ticks.}
-    \label{fig:non-determinism}
-\end{figure}
-
-Ultimately, the current tick-based scheduler is insufficient for accurately billing threads for time
-consumed.
 
 \subsection{Domain scheduler}
 

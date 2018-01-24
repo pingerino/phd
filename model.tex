@@ -1,132 +1,242 @@
-\chapter{Design and Model}
+\chapter{Mixed Criticality Scheduling Model}
 \label{chap:model}
 
-% In this section, discuss
-%
-% First: what are the design goals, derived from the previous chapters
-% Second: discuss possible solutions for each goal, incorporate any eval
-% Third: outline each detail of the proposed model
+We now present our design and model for mixed-criticality scheduling support in a high-assurance
+system such as \selfour. 
 
+Our goal is to provide support in the kernel for mixed-criticality workloads.  This involves
+supporting tasks of different real-time strictness (\gls{HRT}, \gls{SRT}, best effort), different
+criticalities, and different levels of security.  Such tasks should not be forced into total
+isolation, but be permitted to share resources without violating their temporal correctness
+properties through mechanisms provided by the kernel.
 
+To achieve this we require temporal isolation: a feature of resource kernels, whose mechanisms we
+apply to our research platform, \selfour.  However temporal isolation is not enough: mixed-criticality
+systems require asymmetric protection rather than temporal isolation, as a result we leverage
+traditional resource kernel reservations but decouple them from priority, allowing the processor to
+be overcommitted while providing guarantees for the highest priority tasks.
 
+In this section we first address how we integrate resource kernel mechanisms with \selfour and explain
+priority decoupling and our model for temporal isolation.  We then discuss alternatives for resource
+sharing and present mechanisms to facilitate sharing between tasks of different criticalities and
+different real-time models.
 
-\section{Design goals}
-
-% Model every task as a sporadic task
-% Goal: no policy, kernel does not distinguish threads at all
-% gives us: policy freedom, isolation mechanisms, no extra state per thread in kernel memory
-% kernel can't find threads
-
-%TODO rewrite
-% Outline design goals
-% Outline selection of algorithms
-% Outline new things
-
-The model we present defines operating systems primitives for building systems that leverage these
-properties in a way that is appropriate to that system, which can be implemented in middle ware or
-an OS personality on top of the trusted computing base.
-
-\subsection{Time sensitivity}
-
-Tasks that are temporally sensitive require control over exactly when they are scheduled, and for
-what duration. For systems where tasks are independent this applies only to processor time. However,
-in real systems where resources are shared this applies to every shared resource.
-
-In contrast, tasks that are not temporally sensitive should not be restricted by the model: all
-tasks should not be required to participate in complex scheduling 
-
-% what primitives are required for this
-% abilty to set scheduling order
-
-\subsection{Criticality}
-
-Support for tasks of different criticalities requires mechanisms for graceful degradation and
-asymmetric protection, even when sharing resources.
-% TODO have we defined asymmetric protection?
-
-% what is required for this
-% asymettric protection
-
-\subsection{Trustworthiness}
-
-If tasks do not trust each other they need to be able to to be isolated.
-Further, they should be able to share resources and maintain that isolation in order to facilitate
-mixed-criticality systems.
-Therefore we need mechanisms for processor reservations which allow for temporal isolation, and
-mechanisms for resource sharing where trust is not assumed between tasks that access those
-resources.
-
-
-% isolation
-% verifiableness
-
-
-%TODO do we define trusted
-
-
-
-
-Our goal is to provide support in the kernel for mixed-criticality workloads.
-This involves supporting tasks of different real-time strictness (\gls{HRT}, \gls{SRT}, best effort), different criticalities, and different levels of security.
-Such tasks should not be forced into total isolation, but be permitted to share resources without violating their temporal correctness properties through mechanisms provided by the kernel.
-
-To achieve this we require temporal isolation: a feature of resource kernels, whose mechanisms we apply to our research platform, seL4.
-However temporal isolation is not enough: mixed-criticality systems require asymmetric protection rather than temporal isolation, as a result we leverage traditional resource kernel reservations but decouple them from priority, allowing the processor to be overbooked while providing guarantees for the highest priority tasks.
-
-In this section we first address how we integrate resource kernel mechanisms with seL4 and explain priority decoupling and our model for temporal isolation.
-We then discuss alternatives for resource sharing and present mechanisms to facilitate sharing between tasks of different criticalities and different real-time models.
-
-%TODO{rewite properly}
 Our design goals are as follows:
+\begin{description}\sloppy
+    \item[Capability-controlled enforcement of time limits:] In general, capabilities
+      help to reason about access rights. Furthermore, they allow a
+        seamless integration with the existing capability-based spatial
+          access control of security-oriented systems such as \selfour.
+    \item[Policy freedom:] In line with microkernel philosophy
+        \citep{Heiser_Elphinstone_16}, the model should not force systems
+        into a particular resource-management policy. In particular, it
+        should support a wide range of scheduling policies and
+        resource-sharing models, such as locking protocols.
+i%    \item[Explicit notion of criticality] that is separate from priority /
+ %                   time sensitivity.
+    \item[Efficient:] The model should add minimal overhead over the best
+                      existing implementations. In particular, it should be compatible
+                        with fast IPC implementations in high-performance microkernels.
 
-\begin{itemize}
-\item Verifiable mechanisms
-\item Policy freedom - only in the kernel if it has to be
-\item Performance
-\item Security - trust
-\end{itemize}
+    \item[Asymmetric Protection:] The model should allow for asymmetric protection, where high
+        criticality tasks can disrupt low criticality tasks.
+    \item[Safe resource sharing:] mechanisms for sharing between applications of time sensitivity
+        and criticality.
+\end{description}
 
+The model  provides temporal isolation mechanisms from the kernel, while allowing for more complex
+scheduling policies to be implemented at user level.
 
+\section{Scheduling}
 
+% TODO
 
-\section{Design alternatives}
-
-\subsection{Resource Reservations}
+\subsection{Resource reservations}
 \label{sec:model-resource-reservations}
 
 We outlined four core resource kernel mechanisms -- admission, scheduling, enforcement and accounting -- that are essential to resource kernels for implementing temporal isolation.
 However, as noted in \Cref{sec:resource-kernels}, such kernels are monolithic, where all policy, drivers and mechanisms are provided by the kernel.
 
-Microkernels like seL4 offer a different design philosophy, based on the principle of minimality~\citep{Liedtke_95}, where mechanisms are only included in the kernel if they would otherwise prevent the implementation of a systems required functionality.
+Microkernels like \selfour offer a different design philosophy, based on the principle of minimality~\citep{Liedtke_95}, where mechanisms are only included in the kernel if they would otherwise prevent the implementation of a systems required functionality.
 Existing literature is divided as to whether resource kernel mechanisms should be provided by the kernel or at user-level.
 
 The goals of resource kernels do not directly align with that of microkernels in general.
 This is because microkernels do not directly manage all resources in the system, but provide mechanisms for the system designer to implement custom resource management policies.
 In fact, in the context of a microvisor, the resource managers may actually be OS guests.
 
-In seL4, mechanisms for physical memory, device memory, interrupt and I/O port management are exposed to the user via the capability system.
-As a result, the only resource that the kernel needs to provide reservations for is processing time.
+In \selfour, mechanisms for physical memory, device memory, interrupt and I/O port management are
+exposed to the user via the capability system, as outlined in \cref{chap:sel4}. As a result, the
+only resource that the kernel needs to provide reservations for is processing time.
+We now examine how each of the four resource kernel mechanisms are implemented in our model.
 
-To define processor time reservations, we rely on the sporadic task model as presented in \Cref{sec:sporadic-task-model}.
-A reservation is realised as new kernel object, a scheduling context, which contains scheduling related task parameters.
-One scheduling context can be bound to a thread at a time, allowing that thread to use the reservation.
-Threads without reservations are not considered runnable, as they have no rights to the processor.
-A scheduling context is considered \emph{active} if it currently has budget available, and \emph{inactive} otherwise.
+\subsection{Scheduling algorithm}
 
-Scheduling contexts have been used in kernels before -- Fiasco introduced the concept in \citet{Steinberg_WH_05}, where the contexts contain a priority, budget and period.
-They are also used in NOVA~\citep{Steinberg_Kauer_10}, where they contain a timeslice and a priority.
+Our model retains a scheduler in the kernel, and that scheduler is fixed-priority, as per previous
+incarnations of L4. 
+The kernel will not adjust priorities on its own, but they can be changed with a
+system call. 
+The scheduling algorithm also remains with priority determining what is scheduled next, \ie the
+highest-priority runnable (not blocked) thread.
 
-In our model, scheduling contexts are decoupled from priority, and contain sporadic task parameters -- a budget and a period.
-Instead, the priority remains as a property of a thread which allows for a very efficient implementation of \gls{HLP}, which will be discussed in \Cref{sec:model-resource-sharing}.
-Decoupling the priority also allows us to overbook the processor: since only threads with highest priorities and active reservations will run, reservations can be made that exceed 100\% of the processor.
+\subsubsection{Kernel scheduling}
+
+We retain the scheduler in the kernel, unlike \composite, for two reasons: to maintain a small
+trusted computing base, and for performance. Any system with multiple threads of execution, which is
+required in a mixed-criticality system, must have a scheduler, which for the purposes of temporal isolation 
+is part of the trusted computing base. If a system must have a scheduler, and in a mixed-criticality
+system, with untrusted components, that scheduler must be in a separate protection domain to those
+untrusted components, then a scheduling decision will require at least two context switches: from
+the preempted thread to the scheduler, and from the scheduler to the chosen thread. Placing a basic
+scheduler in the kernel reduces this overhead. 
+
+Additionally, as the scheduler is a core component of the system it must be verified: by keeping the
+scheduler in the kernel we maintain the current verification. Verification of a user level scheduler
+and its interaction with the kernel is a far more complex task, especially as verification of
+concurrent systems is very much an open research challenge. 
+
+One might claim maintaining a scheduler in the kernel is a violation of our goal of policy freedom.
+However we maintain this is not the case, which comes down to our choice of fixed priorities over
+\gls{EDF}.
+
+\subsubsection{Fixed priorities}
+
+We choose fixed-priority over \gls{EDF} for three reasons; 
+fixed-priority is dominant in industry
+as shown in \cref{chap:os} and maps well to \gls{FP}\gls{RM}; and dynamic scheduling policies like
+\gls{EDF} can be implemented at user level; and \gls{FP} has defined behaviour on overcommitted
+systems.
+
+Real-time literature is utterly divided between which real-time scheduling algorithm should be
+deployed as the core of real-time systems, \gls{EDF} or \gls{FP}.  In the systems community,
+\gls{FP} is far more dominant due to its inclusion in \gls{POSIX} and its compatibility with
+existing, priority-based best effort systems.  Support for \gls{FP} is important as it is most
+prevalent in industry.  
+However the opposite is not true: mapping the dynamic priorities of EDF to a fixed-priority
+is non-trivial and would come with high overheads. 
+Our approach is consistent with existing designs in Linux  and ADA\citep{Burns_Wellings:crtpa}, which
+support both scheduling algorithms, usually with \gls{EDF} at a specific priority.
+
+Therefore our model uses \gls{FP} scheduling as remain a core part of the kernel.  \gls{EDF}
+scheduling can be implemented by using a single priority for EDF's dynamic priorities, as we
+demonstrate in \cref{s:edf-impl}.
+
+We do not consider Pfair scheduling an option, as its high interrupt overheads and fairness
+properties are not suitable for hard real-time systems.  Again however, it is possible to implement
+a Pfair scheduler at user level.
+
+Our approach is a hybrid of that taken by \composite compared to resource kernels. We provide
+mechanisms for user-level scheduling, but also provide a basic scheduler suitable for many
+applications. 
+
+The final reason to base the approach on fixed priorities is the ability
+to reason about the behaviour of an
+overcommitted system. Overcommitting, is important for achieving high
+actual system utilisation, given the large time buffers required by
+critical hard real-time threads. It is also core to keeping the kernel
+policy-free: The degree and nature of overcommitment is a core policy
+of a particular system. For example, the policy might require that the
+total utilisation of all \crit{high} threads is below the RMS
+schedulability limit of 69\%, while \crit{low} threads can overcommit,
+and the degree of overcommitment may depend on the mix of hard RT,
+soft RT and best-effort threads. Such policy should be defined and
+implemented at user level rather than in the kernel.
+
+As indicated in \autoref{s:theory}, the result of overcommitting in an
+EDF-based system is hard to predict, and such a system is hard to
+analyse. In contrast, with fixed priority the result is easy to
+understand: If the sum of utilisations of threads at priority \(\geq
+P\) is below the utilisation bound, then all those threads will meet
+their deadlines, while any thread with priority \(<P\) may miss. This
+allows easy analysis of schedulability, including when the system
+criticality changes.
+
+\subsection{Scheduling contexts}
+
+At the core of the model is the \emph{\gls{SC}} as the
+fundamental abstraction for time allocation, and the basis of 
+the enforcement and accounting mechanisms in our model.
+An \gls{SC} is a representation
+of a reservation in the object-capability system, which means that 
+are first-class objects, like threads, address spaces, or
+communication endpoints (ports). An SC is represented by a capability to a
+scheduling context object (scCap).
+
+An scCap represents the privilege to access the processor, i.e.\ a
+time capability. In order to run, a thread needs an scCap, which represents the
+maximum CPU bandwidth the thread can consume.
+In a multicore system, an SC represents the right to access a
+particular core. Core migration, e.g.\ for load balancing, is policy
+that should not be imposed by the kernel but implemented at user
+level. A thread is migrated by replacing its SC with one tied to a
+different core. This renders the kernel scheduler a partitioned scheduler, 
+which aligns with our efficiency goal; partitioned schedulers outperform global
+schedulers~\citep{Brandenburg_PHD}.
+
+The unfungible nature of time in real-time systems requires that the
+bandwidth limit must be enforced within a certain time window. We
+achieve this by representing an SC by a \emph{period}, \(T\), and a
+\emph{budget}, \(C\), where \(C\leq T\) is the maximum amount of time
+the SC allows to be consumed in the period. \(U=\frac{C}{T}\) represents the
+maximum \emph{CPU utilisation} the SC allows. The SC can be viewed as
+a generalisation of the concept of a time slice that is used on many
+systems (including present mainline \selfour).
+
+In order to support MCS, we do not
+change the meaning of priority, but what it means for a thread to be
+\emph{runnable}: We associate each thread with a SC, and
+make it non-runnable if it has exhausted its budget. 
 
 
-\subsection{Admission}
+\glspl{SC} can be gracefully integrated into the 
+existing model used in \selfour,
+logically replacing the time slice attribute with the scCap. 
+
+Unlike Fiasco's scheduling contexts~\citep{Lackorzynski_WVH_12}, which
+are superficially similar to ours, we retain priorities as a thread
+attribute rather than making them part of SCs.\footnote{Fiasco's scheduling
+contexts were developed for an old API version that was not
+capability-based, and it is not obvious how they would integrate
+with the capability system of present Fiasco.OC.} The advantage of keeping the two
+orthogonal will become evident in \autoref{s:locking}.
+
+\subsection{Accounting}
+
+We introduce a new invariant that the currently running thread must have a scheduling context 
+with available budget. Any time executed on a processor is billed to the current threads scheduling
+context.
+
+We account for processing time using processor cycles, as opposed to fixed time ticks, as discussed
+in \cref{s:tick-v-tickless}. A tickless model offers less overheads and more precision to real-time 
+tasks, which suffer \gls{WCET} penalties for every preemption. Additionally, the evaluation will
+show in \cref{s:eval-timer}, the cost of reprogramming a timer has significantly decreased on modern hardware. 
+
+\subsection{Enforcement}
+
+Our model offers two options for enforcement: threads can have an optional timeout fault handler,
+which results in a fault being delivered should that thread exhaust its budget. Otherwise the kernel
+will not schedule threads until their budget is replenished. 
+
+\subsection{Admission control}
 \label{sec:model-admission}
 
-Admission tests in our system are intended to be conducted dynamically at run-time, or offline, as per user-level policy.
-In our design, we consider admission tests to be the domain of the user, as the type of schedulability test used is subject to the policy of the system.
-Thus, the kernel places no restriction on the creation of reservations apart from minor validity checks (i.e $b \leq p$).
+Setting budgets is admission control and requires appropriate
+privilege. The total available time on a core is represented in a
+(virtual) per-core scheduling-control capability, \code{sched\_control}.
+Access to this capability, provides the admission-control
+privilege. This is analogous to how \selfour controls the right
+to receive interrupts, which is controlled by the IRQ\_control
+capability as introduced in \cref{s:capabilities}. Like time, IRQ sources are non-fungible.
+
+Unlike the reservations in resource kernels, the scheduling context does not 
+act as a lower-bound on CPU bandwidth that a thread can consume. This, combined with the
+user-level admission control, is also key to allowing system designers to over-commit the system. 
+
+By designating admission tests as user-level policy, we allow system designers complete freedom
+in determining which admission test to use, if at all, and when that test should be done.
+Consequently, they can be run dynamically at run-time, or offline, as per user-level policy.
+
+Thus, the kernel places no restriction on the creation of reservations apart from minor validity
+checks (\ie $C \leq T$).
 For example, some high-assurance systems may sacrifice utilisation for safety with a very basic but easily verifiable, online, admission test.
 Other implementations may conduct complex admission tests offline in order to obtain the highest possible utilisation, using algorithms that are not feasible at run time.
 Some systems may require dynamic admission tests that sacrifice utilisation or have increased risk.
@@ -134,62 +244,114 @@ Basic systems may require a simple break up of the processing time into rate-lim
 By taking the admission test out of the kernel, all of these extremes (and hybrids of) are optional policy for the user.
 
 A consequence of this design is that more reservations can be made than processing time available.
-This is a desirable feature: it allows system designers to overload the system, while features of the scheduling mechanisms provided by the kernel guarantee that the most important tasks get their allocations, if the priorities of the system are set correctly.
+This is a desirable feature: it allows system designers to overcommit the system, while features of the scheduling mechanisms provided by the kernel guarantee that the most important tasks get their allocations, if the priorities of the system are set correctly.
 
 However, allowing any thread in the system to create reservations could result in overload behaviour and violation of temporal isolation.
-To prevent this, admission control is currently restricted to a single process.
-Delegatable reservations that would allow other processes to change their parameters can be implemented at user-level.
+To prevent this, admission control is currently restricted to the task that holds the scheduling
+control capability for each processing core.
 
-\subsection{Scheduling}
+\subsection{Replenishment}
 
-There are two questions with regard to scheduling policy:
+Scheduling contexts can be \emph{full} or \emph{partial}. A thread with a \emph{full} SC, where
+\(C=T\), may monopolise whatever
+CPU bandwidth is left over from higher-priority threads. This is
+useful for best-effort threads which run in slack time. It can also be
+used for critical threads that are trusted not to use more than a
+small share of the CPU except in emergencies. Threads with a full
+budget incur no inherent overhead other than the preemption rate $1/T$.
 
+Threads with \emph{partial} SCs, where \(C<T\), are not runnable once
+they have used up their budget, until it is replenished. For replenishment we
+use the sporadic servers model as described in \cref{p:sporadic} with an
+implementation based on the algorithms presented
+by~\citet{Stanovic_BWH_10}. 
+
+Recall that sporadic servers work by preserving the
+\emph{sliding window} constraint, meaning that during any time
+interval not exceeding the period, no more than $C$ can be consumed.
+This stops a thread from saving budget until near the end of its
+period, and then running uninterrupted for more than $C$. It is achieved by tracking any leftover
+budget when
+a thread is preempted at time \(t\), and scheduling a replenishment for time  $t+T$.
+
+In practice we cannot track an infinite number of
+replenishments, so in a real implementation, once the number of
+queued replenishments exceeds a threshold, any excess budget is
+discarded. If the threshold is one, the behaviour degrades to polling
+servers~\citep{Sprunt_SL_89a} where any unused budget is lost and the
+thread cannot run until the start of the next period.
+
+There is an obvious cost to replenishment fragmentation that will
+arise from preemptions, and polling servers are more efficient in the
+case of frequent preemption \citep{Li_WCM_14}; an arbitrarily high
+threshold makes little sense. The optimal value depends on
+implementation details of the system, as well as the characteristics
+of the underlying hardware.
+We therefore make the threshold an attribute of the SC. SCs are variably sized,
+such that system designers can set this bound per SC.
+
+\subsection{Budget overrun}\label{s:timeout}
+
+Threads may exhaust their budgets for different reasons. A budget may
+be used to rate-limit a best-effort thread, in which case budget
+overrun is not different to normal time-slice preemption of
+best-effort systems. A budget can be used to force an untrusted thread
+to adhere to its declared WCET. Such an overrun is a contract violation, which may be reason
+to suspend the thread or restart its subsystem. Finally, an overrun by
+a critical thread can indicate an emergency situation; for example,
+critical threads may be scheduled with an optimistic budget to provide
+better service to less critical threads, and overrun may require
+provision of an emergency budget or a system-criticality change.
+
+Clearly, the handling of overrun is a system-specific policy, and the
+kernel should only provide appropriate
+mechanisms for implementing the desired policy. Our core mechanism is
+the \emph{timeout exception}, which is raised when a thread is
+preempted. To allow the system to handle the exceptions, each thread
+is optionally associated with a timeout exception handler, which is
+the temporal equivalent to a (spatial) protection exception. When a
+thread is preempted, the kernel notifies its handler via an IPC message. The
+exception is ignored when the thread has no timeout exception handler.
+
+The handler has a choice of a range of overrun policies, including:
 \begin{itemize}
-\item Should the scheduler be in the kernel at all?
-\item Which base scheduling algorithm should be used, \gls{EDF} or {FP}?
-\end{itemize}
+      \item providing a one-off (emergency) budget to the thread and letting it continue,
+       \item permanently increasing the budget in the thread's SC,
+       \item killing/suspending the thread, and
+       \item changing the system criticality level.
+       \end{itemize}
+Obviously, these are all subject to the handler having sufficient
+authority (e.g.\ \code{sched\_control} for budget or criticality changes).
 
-First, in the context of a high assurance system, we believe scheduling, accounting and enforcement should all be included in the kernel.
-This reduces the overheads of increased context switching inherent in hierarchically scheduled systems.
-Additionally, it allows for a solid foundation of temporal isolation to be provided by the kernel: without this, we cannot verify important properties like information flow.
+If a replenishment is ready at the time the budget expires, the thread
+is immediately runnable. It is inserted at the end of the ready queue
+for its priority, meaning that within a priority, scheduling of
+runnable threads is round-robin.
 
-Real-time literature is utterly divided between which real-time scheduling algorithm should be deployed as the core of real-time systems, \gls{EDF} or \gls{FP}.
-In the systems community, \gls{FP} is far more dominant due to its inclusion in \gls{POSIX} and its compatibility with existing, priority-based best effort systems.
-Support for \gls{FP} is important as it is most prevalent in industry.
-It is quite common for kernels to provide \gls{EDF} scheduling at a specific priority level on top of an \gls{FP} based scheduler.
-However it is not emulate \gls{FP} scheduling on top of \gls{EDF}.
+\subsection{Priority assignment}
 
-Therefore our model uses \gls{FP} scheduling as remain a core part of the kernel.
-\gls{EDF} scheduling can be implemented by user-level using green threads or a user-level scheduler for kernel threads.
-We will demonstrate this in %TODO{section}, \gls{EDF} can be implemented at user level with our scheduler for
-a specific priority with little overheads.
-% TODO cite SCHED_DEADLINE for linux
-This is consistent with existing designs in Linux  and ADA\citep{Burns_Wellings:crtpa}, which support both scheduling algorithms, usually with \gls{EDF} at a specific priority.
+Assignment of priorities to threads is user-level policy. One approach is to simply
+use rate-monotonic scheduling: where priorities are assigned to threads based on their period, and threads use scheduling contexts that match their sporadic task parameters.
+Each thread in the system will be temporally isolated as the kernel will not permit them to exceed the processing time reservation that the scheduling context represents.
 
-We do not consider Pfair scheduling an option, as its high interrupt overheads and fairness properties are not suitable for hard real-time systems.
-Again however, it is possible to implement a Pfair scheduler at user level.
+However, the system we have designed offers far options than simple rate-monotonic fixed-priority scheduling.
+Policy freedom is retained as reservations simply grant a potential right to processing time, at a particular priority.
+What reservations actually represent is an upper bound on processing time for a particular thread.
+Low priorities threads are \emph{not} guaranteed to run if reservations at higher priorities use all available CPU.
+However, threads with reservations at low priorities will run in the system slack time, which occurs when threads do not use their entire reservation.
 
-%TODO{preserve round robin}
-%TODO{support periodic scheduling / reservations}
+The implication is that a system could use a high range of priorities for rate-monotonic threads, while best-effort and rate-limited threads run at lower priorities.
+Another alternative is to have real-time threads running at the EDF-priority, where they will be temporally contained, with non-real time threads running at lower priorities.
+Many other combinations are possible.
+
+% TODO up to here
+\section{Resource sharing}\label{s:locking}
+
+
+
+\section{Design alternatives}
 
 \subsection{Accounting}
-\label{sec:tick-v-tickless}
-
-There are two potential ways to account for time in a kernel: in discrete ticks, or in cycles.
-The former implies that the kernel is tick-based while the latter implies a tick-less kernel.
-
-In a tick-based kernel, timer interrupts are set for a periodic tick and are handled even if no kernel operation is required.
-This approach has advantages: the timer in the kernel is stateless and never has to be reprogrammed, rendering it very simple, fast and easy to verify.
-However, such simplicity comes with a cost of reduced precision and greater preemption overhead.
-The greater the desired precision in a tick-based kernel, the higher the preemption overhead, and vice versa.
-
-Tickless kernels set timer interrupts for the exact time of the next event.
-This approach affords greater precision and results in no more preemption overhead than is required by the workload.
-Since real-time tasks require greater precision and suffer \gls{WCET} penalties for every preemption, we have chosen to convert seL4 to a tickless kernel, although the impact of timer reprogramming has yet to be quantified.
-% TODO add timer reprogramming results
-We track accounting details, such as the last time scheduled and the amount of unused budget, in the current threads scheduling context alongside sporadic task parameters.
-
-
 \subsection{Enforcement}
 
 While systems must be able to use kernel mechanisms to enforce scheduling reservations, we do not want to force
@@ -207,21 +369,6 @@ When a replenishment is eligible, threads are placed back at the end of the run 
 Tasks can opt to have \emph{timeout faults} delivered if their budget is exhausted before the current job is completed, or if their deadline is not met.
 Similar to a page fault handler, timeout fault handlers can be used to adjust thread parameters dynamically as may be required for a \gls{SRT} system, or raise an error.
 Unlike page fault handlers, if a timeout fault is not handled, the thread can continue once the next refill is available, which is why timeout faults are optional.
-
-\subsection{Priority assignment}
-
-The mechanisms we have presented can be leveraged to implement standard rate-monotonic scheduling: where priorities are assigned to threads based on their period, and threads use scheduling contexts that match their sporadic task parameters.
-Each thread in the system will be temporally isolated as the kernel will not permit them to exceed the processing time reservation that the scheduling context represents.
-
-However, the system we have designed offers far options than simple rate-monotonic fixed-priority scheduling.
-Policy freedom is retained as reservations simply grant a potential right to processing time, at a particular priority.
-What reservations actually represent is an upper bound on processing time for a particular thread.
-Low priorities threads are \emph{not} guaranteed to run if reservations at higher priorities use all available CPU.
-However, threads with reservations at low priorities will run in the system slack time, which occurs when threads do not use their entire reservation.
-
-The implication is that a system could use a high range of priorities for rate-monotonic threads, while best-effort and rate-limited threads run at lower priorities.
-Another alternative is to have real-time threads running at the EDF-priority, where they will be temporally contained, with non-real time threads running at lower priorities.
-Many other combinations are possible.
 
 \subsection{Asymmetric Protection}
 
