@@ -164,7 +164,14 @@ receiver with the rest of the IPC message. This provides a mechanism for identif
 
 \subsection{Fault handling}
 
-% TODO write this
+Fault handling in \selfour is based on simulating an \gls{IPC} message from the kernel to a threads
+fault handler. \glspl{TCB} can have a specific fault endpoint registered, such that when a fault
+such as a page fault occurs, the faulting thread is blocked and a message is sent by the kernel
+about the fault to the fault handler over the fault endpoint. If no fault handler is present, the
+thread is rendered inactive. 
+
+Fault handlers can reply to the fault message and indicate to the kernel that the thread should be
+resumed, if the fault is recoverable. 
 
 \subsection{Signalling}
 
