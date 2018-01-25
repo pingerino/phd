@@ -449,50 +449,12 @@ server executes on the client's SC, until it replies to the
 request. This ensures that the time consumed by the server is billed
 to the client on whose behalf the server's work is done.
 
-\subsection{Scenarios}
-
-Our analysis of is guided by two models for the flow of time between communicating threads in a
-system: a client-server or \gls{RPC} scenario, and a data-flow scenario.
-
-\subsubsection{Client-Server}
-
-The client-server scenario involves clients contacting servers in an \gls{RPC} style fashion: the
-client sends a message to the server, the server executes an operation on the clients behalf and
-replies.  Servers can be clients too: a server may make a nested request to another server on behalf
-of a client.  There can be multiple servers, and multiple clients in operation at the same time.
-
-An example of this scenario is illustrated in \Cref{fig:client-server}, albeit with just one client
-and nested servers. The figure shows both stages of \gls{IPC} illustrated earlier in \cref{f:ipc} as
-one. 
-
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{client-server1}
-      \caption{Nested client-server \gls{RPC} scenario, using the legend presented in \cref{f:legend-1}.}
-      \label{fig:client-server}
+    \includegraphics[width=0.7\textwidth]{legend-full}
+    \caption{Legend for diagrams in this section, an expanded version of \cref{f:legend-1}}
+    \label{f:legend-2}
 \end{figure}
-
-\subsubsection{Data-flow}
-
-\TODO{The data flow scenario is currently not referenced anywhere, but its still relevant as the
-model allows it. Figure out how to fit it in.}
-
-In the data-flow scenario, as illustrated in \Cref{fig:dataflow}, an external event triggers the
-release of a job.  The job passes through a chain of activities, all doing different forms of
-processing.  Only one job can be active in an activity at a time, and the next job cannot be
-released until the previous has finished (consistent with the sporadic task model).  Forks are
-permitted in the chain, although the forks must be choices: one job cannot trigger two jobs, as a
-processor reservation cannot be transferred to two jobs at once.  Cycles and sequences are permitted
-in the chain.
-
-\begin{figure}
-      \centering
-      \includegraphics[width=\textwidth]{dataflow1}
-      \caption{Data-flow scenario, using the legend presented in \cref{f:legend1}.}
-      \label{fig:dataflow}
-\end{figure}
-
-Both scenarios can be combined to form a larger system.
 
 \subsection{Prioritisation}
 
@@ -525,21 +487,59 @@ require a shared service for all threads sharing a set of resources.
 
 \subsection{Charging}
 
-\TODO{pic of scheduling context donation}
+\begin{figure}
+    \centering
+    \begin{subfigure}[h]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{passive1}
+        \caption{Phase 1}
+        \label{f:ipc1}
+    \end{subfigure}%
+    \begin{subfigure}[h]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{passive2}
+        \caption{Phase 2}
+        \label{f:ipc2}
+    \end{subfigure}
+    \label{f:passive}
+    \caption{IPC phases between an active client and passive server: (a) shows the initial IPC rendezvous, (b) shows the
+    reply phase. The client's $SC_{A}$ is donated between client and server. See \Cref{f:legend-2} for the legend.}
+\end{figure}
+
 
 Unlike prior implementations of scheduling contexts discussed in \cref{s:sc-intro},
 donation is not compulsory, which provides more policy freedom than prior models.
 However it is also not optional: instead we infer whether donation is required by testing 
 if the server is passive or active. \emph{Passive} servers do not have a scheduling context 
 and receive them over \gls{IPC} whereas \emph{active} servers have their own scheduling context. 
-Passive servers effectively provide a migrating-thread
+Passive servers, as illustrated in \cref{f:passive}, effectively provide a migrating-thread
 model~\citep{Ford_Lepreau_94, Gabber_SBBS_99}, but without requiring
-the kernel to manage stacks. Active servers make temporal isolation optional, as it is not suitable
+the kernel to manage stacks. \cref{f:active} shows active servers, which allow system designers to
+build systems without temporal isolation, as it is not suitable
 for all systems.
 
 Charging for time executed in a server becomes simply with this model: always charge the scheduling
 context the server is executing on. The mechanism does not change regardless of the server being passive or
-active.
+active. 
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[h]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{active1}
+        \caption{Phase 1}
+        \label{f:ipc1}
+    \end{subfigure}%
+    \begin{subfigure}[h]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{active2}
+        \caption{Phase 2}
+        \label{f:ipc2}
+    \end{subfigure}
+    \label{f:passive}
+    \caption{IPC phases between an active client and server: (a) shows the initial IPC rendezvous, (b) shows the
+    reply phase. Both client and server have their own SC. See \Cref{f:legend-2} for the legend.}
+\end{figure}
 
 \subsection{Enforcement}
 
@@ -556,8 +556,17 @@ server in a state where it cannot take new requests as it is stuck without an ac
 complete the previous request.  Without a mechanism to handle this event the server, and any
 potential clients, would be blocked until the client's budget is replenished.
 
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\textwidth]{timeout}
+    \caption{Example of a timeout exception handler. The passive server $S$ performs a request on
+    client $A$'s scheduling context, $SC_{A}$. A timeout fault is generated when $SC_{A}$ is
+exhausted and send to the servers timeout fault endpoint $E_{2}$, and the timeout handler receives it. See legend \cref{f:legend-1}}
+    \label{f:timeout}
+\end{figure}
+
 Timeout exceptions can be used to remove this need for trust, and
-allow a server to be shared across criticalities. Timeout fault endpoints are specific to the
+allow a server to be shared across criticalities, as depicted in \cref{f:timeout}. Timeout fault endpoints are specific to the
 execution context of a thread, not the scheduling context. Consequently, servers may have timeout
 fault handlers while clients do not. The 
 server's timeout handler can, for example, provide an emergency budget
@@ -584,6 +593,8 @@ cleanup time).
 
 \subsection{Cross-core IPC}
 
+\TODO{diagram of cross core IPC}
+
 Scheduling context donation extends naturally to IPC and allows users to specify active servers on
 remote cores, or passive servers which migrate to the local core. The mechanism is simple: if a
 server is passive, it migrates to the core that the donated scheduling context is on. 
@@ -593,6 +604,8 @@ server is passive, it migrates to the core that the donated scheduling context i
 We now describe three policies for resource sharing over \gls{IPC} --- best-effort, helping and
 isolation --- and describe how they can be implemented 
 with our mechanisms of scheduling contexts, scheduling context donation and timeout exceptions.
+
+\TODO{A diagram of each of these policies}
 
 \subsubsection{Best effort}
 \label{sec:best-effort}
