@@ -1,8 +1,9 @@
-\chapter{Implementation}
+\chapter{Implementation in \selfour}
 \label{chap:implementation}
 
+\TODO{Finish this chapter}
 
-In the previous chapter we presented our model for MCS mechanisms for a microkernel.
+In the previous chapter we presented our model for  for a microkernel.
 This section provides the details of the implementation in seL4.
 
 % TODO should the seL4 background section go here?
@@ -17,57 +18,93 @@ We illustrate through example how threads can achieve resource sharing through r
 
 \section{Objects}
 
-We add two new objects to the kernel, \glspl{SCO} and resume objects. Additionally, we modify
+We add two new objects to the kernel, \emph{\glspl{SCO}} and \emph{resume objects}. Additionally, we modify
 the \gls{TCB} object although do not increase its total size. All three objects interact to
 implement our mechanisms.
 
 \subsection{Resume objects}
 \label{s:resume}
 
-Resume objects are introduced to track scheduling context donation over IPC path when \call is
-used. Further detail is provided in TODO.
+Resume objects, modelled after KeyKOS~\citep{Bomberger_FFHLS_92}, are
+a new object type that generalise
+``reply capabilities'' of baseline \selfour introduced in \cref{s:ipc}.
+The receiver of the message (i.e.\ the
+server) receives the reply capability in a magic ``reply slot'' in its
+capability space. The server replies by invoking that
+capability. Resume objects remove the magic by explicitly representing
+the reply channel (and representing the SC donation chain). They also
+provide more efficient support for stateful servers that handle
+concurrent client sessions, which we expand on further when we introduce the changed system call \gls{API} in \cref{s:new-api}.
+
+With \gls{SC} donation we need slightly more bookkeeping to guarantee that a
+donated SC eventually returns to its rightful owner, even if the
+server invokes another passive server, or the server operation is
+long-running and the server handles multiple requests concurrently (as
+a file server would). Resume objects are used to keep track of the donation chain, details are in \autoref{s:donation}.
+
+Resume objects are small (16 bytes on 32-bit platforms, and 32 bytes on 64-bit platforms) and
+contain the following:
 
 \begin{description}
     \item[TCB] a pointer to the \gls{TCB} that is blocked on this reply object. Depending on the
         thread state this is either: 
         \begin{description}
-            \item [BlockedOnReply]
-            \item [BlockedOnRecv]
+            \item [BlockedOnReply] a pointer to the caller that is blocked on this resume object
+                after performing a \call. 
+            \item [BlockedOnRecv] a pointer to the receiver that is blocked on an endpoint with this
+                resume object.
         \end{description}
-    \item[Prev,Next] pointers which track the call chain.
+    \item[Prev,Next] pointers which track the call chain. The head of the call chain is always the
+        \gls{SCO} which itself contains a pointer to the \gls{TCB} using the \gls{SCO}. Each reply
+        object then points to the \gls{TCB} which donated the \gls{SCO} along the chain.
 \end{description}
+
+\TODO{Diagram of reply objects and call chain.}
 
 \subsection{Scheduling context objects}
 \label{s:sco}
 
 \glspl{SCO} are variable sized objects that represent access to a certain amount of time and
 consist of a core amount of fields, and a circular buffer to track the consumption of time.
-The core fields in a \gls{SCO} are as follows:
+Each \gls{SCO} is 256 bytes in size, at minimum, and the core fields are as follows:
 
-% TODO picture of scheudling context layout
+\TODO{diagram of scheduling context layout}
 
 \begin{description}
-    \item[Period] The replenishment period.
-    \item[Refills] A circular buffer of sporadic replenishments.
+    \item[Period] The replenishment period, $T$.
     \item[Consumed] The amount of cycles consumed since the last reset.
     \item[Core] The id of the processor this scheduling context grants time on.
-    \item[TCB] A pointer to the thread this scheduling context is currently providing time to.
+    \item[TCB] A pointer to the thread (if any) that this scheduling context is currently providing time to.
     \item[Reply] A pointer to the last resume object (see \cref{s:resume}) in a call chain where
         this scheduling context was donated.
-    \item[Notification] A pointer to the notification object
-    \item[Badge] A unique identifier for this scheduling context.
+    \item[Notification] A pointer (if any) to the notification object this \gls{SCO} is bound to.
+    \item[Badge] A unique identifier for this scheduling context, which is delivered as part of a
+        timeout fault message to identify the faulting client.
     \item[YieldFrom] Pointer to a \gls{TCB} that has yielded to this \gls{SCO}.
     \item[Head,Tail] Indexes to the circular buffer of sporadic replenishments.
     \item[Max] Maximum amount of replenishments for this scheduling context.
 \end{description}
 
-In addition to the core fields, scheudling contexts contain a variable amount of
+In addition to the core fields, \glspl{SCO} contain a variable amount of
 \emph{replenishments}, which consist of a \emph{timestamp} and \emph{amount}. These are used for
-both round-robin and sporadic threads.
+both round-robin and sporadic threads. For round robin threads we simply use the head replenishment to track how much time is left in that \glspl{SCO} timeslice. 
 
-%TODO discuss sporadic vs round robin, invocatinos on scheduling contexts
+Sporadic threads are more complex; the amount of replenishments is limited by both a variable provided on configuration and the size of the \gls{SCO}, configured on creation. This allows system designers to control the preemption and fragmentation of sporadic replenishments as discussed in \cref{s:sporadic}.
 
-\subsection{Thread control block objects}
+\subsection{Thread control blocks}
+
+\glspl{TCB} are the abstraction of an execution context in \selfour. We add the following additional fields to the \gls{TCB} object for our implementation:
+
+\begin{description}
+    \item{Scheduling context} The scheduling context (if any) this \gls{TCB} consumes time from. 
+    \item{\gls{MCP}} The \gls{MCP} of this \gls{TCB}.
+    \item{Reply} A pointer to the reply object this TCB is blocked on, if blocked.
+  
+\end{description}
+
+
+\TODO{And we changed how fault handlers work}
+
 
 % TODO what is changed in TCBs
 
