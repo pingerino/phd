@@ -106,21 +106,6 @@ For periodic tasks, which are commonly found in control systems, jobs release an
 time; they are always ready to run once their period has passed. For aperiodic, \ie interrupt driven
 tasks, the arrival time can be at or beyond the release time. 
 
-Jobs must completed before their period has passed ($C_{i} \leq T_{i}$), as the model does not
-support jobs that run simultaneously. Tasks with interleaving jobs must be modelled as separate
-tasks which do not overlap.  \Cref{list:sporadic} shows pseudocode for a sporadic task and
-\Cref{t:notation} summarises the notation which is used throughout this thesis.
-
-Sporadic tasks have deadlines relative to the arrival time, which may be \emph{constrained} or
-\emph{implicit}.  An \emph{implicit} deadline means the job must finish before the period elapses.
-\emph{Constrained} deadlines are relative to the release time, but before the period elapses.  Other
-task models allow for \emph{arbitrary} deadlines, which can be after the period elapses, however
-arbitrary deadlines are not compatible with the sporadic task model as they allow multiple jobs from
-one task to be active at one time.  However, tasks with arbitrary deadlines can be modelled by the
-sporadic task model by splitting tasks into multiple, different tasks with larger periods and
-constrained deadlines.
-
-
 \begin{table}
 \rowcolors{2}{gray!25}{white}
 \centering
@@ -141,6 +126,31 @@ constrained deadlines.
     \caption{Parameters and notation for the sporadic task model as used in this document.}
     \label{t:notation}
 \end{table}
+
+Jobs must completed before their period has passed ($C_{i} \leq T_{i}$), as the model does not
+support jobs that run simultaneously. Tasks with interleaving jobs must be modelled as separate
+tasks which do not overlap.  \Cref{list:sporadic} shows pseudocode for a sporadic task and
+\Cref{t:notation} summarises the notation which is used throughout this thesis.
+
+Sporadic tasks have deadlines relative to the arrival time, which may be \emph{constrained} or
+\emph{implicit}.  An \emph{implicit} deadline means the job must finish before the period elapses.
+\emph{Constrained} deadlines are relative to the release time, but before the period elapses.  Other
+task models allow for \emph{arbitrary} deadlines, which can be after the period elapses, however
+arbitrary deadlines are not compatible with the sporadic task model as they allow multiple jobs from
+one task to be active at one time.  However, tasks with arbitrary deadlines can be modelled by the
+sporadic task model by splitting tasks into multiple, different tasks with larger periods and
+constrained deadlines.
+
+\begin{figure}[h!tb]
+	\begin{center}
+		\leavevmode
+		\includegraphics[width=\textwidth]{sporadic}
+        \caption{Diagram of the sporadic task model notation described in \cref{t:notation}, showing
+        a task set $A$ with a single task $A_{0}$ where $T_{0} = 4$ and $C_{0} = 1$.}
+		\label{fig:fp-schedule}
+	\end{center}
+\end{figure}
+
 
 \section{Scheduling}
 \label{sec:rt-scheduling}
