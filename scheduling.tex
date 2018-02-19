@@ -2,7 +2,7 @@
 \label{chap:scheduling}
 
 Mixed-criticality systems at their core require isolation: isolation as strong as that provided by
-physically isolated systems, meaning if one system fails it cannot effect another system.  Isolation
+physically isolated systems, meaning if one system fails it cannot affect another system.  Isolation
 can be divided into two categories of resources; physical and temporal. Physical resources include 
 devices and memory, where isolation can be achieved using the \gls{MMU} and \IO\glspl{MMU}.
 Temporal isolation of resources more complicated, and is our focus in this chapter, where
@@ -42,7 +42,7 @@ their estimated minimum inter-arrival time. Further applicable research examines
 \gls{SRT} and best-effort tasks along with \gls{HRT} tasks. Consequently we examine scheduling methods for
 these types of systems. 
 
-Neither \gls{FP} or \gls{EDF} scheduling
+Neither \gls{FP} nor \gls{EDF} scheduling
 approaches discussed so far provides temporal isolation, although both can be adapted to do so.  In
 this chapter we examine the techniques used by the real-time community to achieve temporal
 isolation.
@@ -173,7 +173,7 @@ one or more tasks in a server which prevents the task(s) from overrunning their 
 parameters.
 
 \paragraph{Polling servers}\label{p:polling-servers}~\citep{Lehoczky_LS_87} wake every period,
-checks if there are any pending tasks and runs them for maximum their budget time. If there is no
+to check if there are any pending tasks, then runs them for maximum their budget time. If there is no
 task to run, the polling server will go back to sleep. That is, at time $t_{i}$, if there are no
 tasks ready to execute, the server will sleep until $t_{i+1}$. This has the limitation task latency
 is a function of the period $T$.
@@ -190,8 +190,8 @@ We demonstrate the problem with deferrable servers using the notation introduced
 \Cref{t:notation}. Consider a sporadic task with implicit deadlines in a task set, 
 $A_{1}$, with jobs $A_{11}, A_{12}, ..., A_{1n}$. Each job in that task set has a deadline once the
 period has passed: $d_{1j} = t_{1j} + T_{1}$. The problem occurs if the first job arrives at $a_{11}
-= d_{11} - C_{1}$, such that it is only complete at exactly the implicit deadline.  
-Then a second job may arrive arrives at the release time $d_{11}$ such that it runs back-to-back with the first
+= d_{11} - C_{1}$, such that it only completes at exactly the implicit deadline.  
+Then a second job may arrive at the release time $d_{11}$ such that it runs back-to-back with the first
 task, from $a_11$ to $d_{11} + C_{1}$, then the task has exceeded its permitted utilisation 
 ($\frac{C_{1}}{T_{1}})$. As a result deadline misses can be caused in other
 tasks, violating temporal isolation.
@@ -243,7 +243,7 @@ the assumption that \gls{HRT} tasks are more critical than \gls{SRT} tasks which
 than best effort tasks. 
 
 Recall that in this model \glspl{CA} provide \gls{WCET} estimates that must be schedulable, however they are often very
-pessimistic.  This results in a tasks with two {\gls{WCET}} estimates, one very pessimistic one from
+pessimistic.  This results in a task with two {\gls{WCET}} estimates, one very pessimistic one from
 the \gls{CA} and a less pessimistic one from the system designers or automated tools.  As a result
 of this, a family of mixed-criticality schedulers exists that handle high criticality tasks with two
 {\gls{WCET}} estimates, and low-criticality tasks.  The scheduling algorithm will always schedule

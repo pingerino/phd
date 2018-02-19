@@ -101,10 +101,10 @@ automatically trusted (unless scheduled with \gls{EDF}) and assumed to be more i
 critical, than best effort tasks.  In reality, criticality and real-time strictness are orthogonal.
 Linux does not provide any mechanisms for asymmetric protection beyond priority.
 
-On the resource sharing side Linux provides real-time locking via the POSIX  as per
+On the resource sharing side Linux provides real-time locking via the \gls{POSIX} API as per
 \Cref{tab:posix-mutex}.
 
-A large amount of projects exist that attempt to retrofit more extensive real-time features onto
+A large number of projects exist that attempt to retrofit more extensive real-time features onto
 Linux.  We briefly summarise major and relevant works here.  One of the original
 works~\citep{Yodaiken_Barabanov_97} runs Linux as a fully preemptable task via virtualisation and
 kernel modifications.  Interrupts are handled by the virtualisation layer, and only directed to
@@ -115,8 +115,8 @@ real-time.
 \litmus~\citep{Calandrino_LBDA_07} is an extension of Linux that allows for pluggable real-time
 schedulers to be easily developed for testing multiprocessor schedulers.
 
-Linux/RK~\citep{Oikawa_Rajkumar_98} is a resource kernel implementation Linux that is often used to
-implement new scheduling algorithms.  \gls{ZS} scheduling~\citep{deNiz_LR_09} was implemented and
+Linux/RK~\citep{Oikawa_Rajkumar_98} is a resource kernel implementation of Linux that is often used to
+implement new scheduling algorithms. \Gls{ZS} scheduling~\citep{deNiz_LR_09} was implemented and
 tested using Linux/RK.
 
 Whilst Linux implementations are suitable for implementing algorithms, being used as test-beds and
@@ -166,8 +166,8 @@ significantly decreasing upper bounds on \gls{WCET}.
 \paragraph{NOVA}~\citep{Steinberg_Kauer_10} is a capability-based microkernel aimed at virtualisation. 
 NOVA provides fixed-priority round-robin scheduling, with priority inheritance across IPC~\citep{Steinberg_BK_10}.
 Priorities in NOVA reflect importance: it is not a real-time kernel, and periodic scheduling is not available.  
-NOVA provides \gls{BWI} through the microkernel mechanism of donation is used, so NOVA does not
-provide concrete reservations, but when a timeslice expires other tasks waiting for the resource
+NOVA provides \gls{BWI} through the microkernel mechanism of donation. NOVA does not
+provide concrete reservations, instead when a timeslice expires other tasks waiting for the resource
 \emph{help} the blocked task, where the blocked task executes on the pending tasks timeslice.
 If the task holding the resource does not release it, all pending tasks will block forever.
 
@@ -228,7 +228,7 @@ bandwidths to be altered.  Tiptoe implements bandwidth servers inside the kernel
 
 \paragraph{Barrelfish}~\citep{Peter_SBBIHR_10} is a capability-based multi-kernel \gls{OS}, where a separate kernel runs on each processing core and kernels themselves share no memory and are essentially \emph{\gls{CPU}-drivers}.
 Each CPU-driver is single-threaded and non-preemptible. 
- , although not explicitly real-time, implements a version of \gls{RBED} for managing distributed \gls{SRT} processes.
+Although not explicitly real-time, implements a version of \gls{RBED} for managing distributed \gls{SRT} processes.
 Barrelfish schedules dispatchers, which are roughly equivalent to processes. 
 Execution context and scheduling context are not split.
 When messages are sent between dispatchers on Barrelfish the sender can choose to yield to the receiver or not by flags on the message.
@@ -305,7 +305,7 @@ kernels which contain the minimum amount of software to implement an OS. Real-ti
 kernel concepts are not
 new microkernels. In this section we present several existing mechanisms that exist in microkernels
 that can be used to support mixed-criticality systems and survey existing microkernels. We look at
-how different kernels address resource kernel concepts required to treat time as a first class
+how different \glspl{OS} address resource kernel concepts required to treat time as a first class
 resource; scheduling, accounting, enforcement, admission. Additionally we look at how
 prioritisation, charging and enforcement are achieved, if at all, to achieve temporal isolation
 across shared resources.
@@ -318,8 +318,8 @@ a higher authority was required to replenish the meter. Meters treat time as fun
 only quantifies the amount of time to be consumed, not when it must be consumed by.
 
 L4~\citep{Elphinstone_Heiser_13} kernels extended this with time slices, although in different ways.
-Kernels like \selfour provide a timeslice which like meters are consumed as threads execute, but no
-authority is invoked the replenish the meter: the thread is simply preempted, placed at the end of
+Kernels like \selfour provide a timeslice which like meters is consumed as threads execute, but no
+authority is invoked the replenish the meter: the thread is simply preempted and placed at the end of
 the \gls{FIFO} scheduling queue for the appropriate priority with a refilled timeslice. NOVA
 extended the idea with variable time slices, which represented an amount of time that a thread could
 execute at a priority before preemption.

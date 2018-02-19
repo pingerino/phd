@@ -127,12 +127,12 @@ tasks, the arrival time can be at or beyond the release time.
     \label{t:notation}
 \end{table}
 
-Jobs must completed before their period has passed ($C_{i} \leq T_{i}$), as the model does not
+Jobs must complete before their period has passed ($C_{i} \leq T_{i}$), as the model does not
 support jobs that run simultaneously. Tasks with interleaving jobs must be modelled as separate
 tasks which do not overlap.  \Cref{list:sporadic} shows pseudocode for a sporadic task and
 \Cref{t:notation} summarises the notation which is used throughout this thesis.
 
-Sporadic tasks have deadlines relative to the arrival time, which may be \emph{constrained} or
+Sporadic tasks have deadlines relative to their arrival time, which may be \emph{constrained} or
 \emph{implicit}.  An \emph{implicit} deadline means the job must finish before the period elapses.
 \emph{Constrained} deadlines are relative to the release time, but before the period elapses.  Other
 task models allow for \emph{arbitrary} deadlines, which can be after the period elapses, however
@@ -162,10 +162,13 @@ in the context of processing time, but is required for other resources such as c
 channels.  A correct scheduling algorithm  can guarantee that all deadlines are met within their
 requirements whilst also maintaining maximum utilisation of the scheduled resource(s).
 
-Scheduling can be either \emph{static} or \emph{dynamic}.  Static or \emph{off-line} scheduling
-involves a pre-computed set of tasks and schedule that are executed.  No new tasks can be added and
-schedules cannot change.  Dynamic or \emph{on-line} scheduling involves a set of tasks that can
-change and where scheduling decisions are made according to the current state of the system.
+Scheduling can be either \emph{static} or \emph{dynamic}. In a static or \emph{off-line} schedule, 
+the set of tasks is fixed and the schedule pre-calculated when the system is built, and does not
+change once the system is running. 
+Dynamic or \emph{on-line} scheduling occurs while the system is running, and the schedule is
+calculated whenever a scheduling decision is required. In dynamic systems, the task set can change,
+allowing task parameters to be adjusted, and allowing tasks to be added and removed while the system
+is running.
 
 A task set is schedulable by a scheduling algorithm if all temporal requirements are satisfied.
 If at least one scheduling algorithm can schedule a task set, it is said to be \emph{feasible}.
@@ -175,10 +178,11 @@ The complexity of schedulability tests is important for both dynamic and static 
 static schedulers, the test is conducted offline and not repeated, but the algorithm must complete
 in a reasonable time for the number of tasks in the task set. Dynamic schedulers conduct
 schedulability test each time a new task is submitted to the scheduler, or scheduling parameters are
-altered, which requires less complexity. The schedulability test conducted at admission time is
+altered, which means the test cannot be too complex to reduce overheads. The schedulability test conducted at admission time is
 referred to as an \emph{admission test}.
 
-There is an absolute limit on the feasibility of task sets.
+There is an absolute limit on task sets that are feasible which can be derived from the total
+utilisation. 
 The \emph{total utilisation} of a task set is the sum of all of the rates and must be less than the
 total processing capacity of a system for all deadlines to be met.
 For each processor in a system, this amounts to
@@ -256,11 +260,11 @@ and may leave up to 30\% of the processor idle.
 \subsection{Earliest Deadline First Scheduling}
 
 The \gls{EDF} algorithm is theoretically optimal for scheduling a single resource, with no
-algorithmic capacity loss; the is 100\% of processing time can be scheduled. This is due to
-\gls{EDF} being a dynamic algorithm.
+algorithmic capacity loss; that is 100\% of processing time can be scheduled. This is because
+\gls{EDF} uses dynamic priorities rather than fixed priorities. 
 Priorities are assigned by examining the deadlines of each ready job; jobs with more immediate deadlines have higher priorities.
 \Cref{f:edf-schedule} illustrates how the task set in \cref{tab:example_task_set} is scheduled by
-\gls{EDF}, highlighting the places where tasks are scheduled differently than FPRM.
+\gls{EDF}, highlighting the places where tasks are scheduled differently from FPRM.
 
 \begin{figure}[h!tb]
 	\begin{center}
@@ -274,7 +278,9 @@ Priorities are assigned by examining the deadlines of each ready job; jobs with 
 \subsection{Earliest Deadline First vs. Fixed Priority Scheduling}
 
 \gls{EDF} is less popular in commercial practice than \gls{FP} for a number of reasons.  \gls{EDF}
-is considered more complex to implement and to have higher overhead-related capacity loss.  \gls{FP}
+is considered more complex to implement and to have higher overhead-related capacity loss.
+Both algorithms have different behaviour under overload, and many consider the \gls{FP} behaviour
+preferable. \gls{FP}
 is mandated by the POSIX standard, possibly due to these misconceptions. One common argument for
 \gls{FPRM} is the idea that the algorithmic capacity loss is mediated by the overhead related
 capacity loss of \gls{EDF}, and much easier to implement. 
@@ -285,18 +291,22 @@ can be considered equally complex to implement from scratch.  \gls{FP} schedulin
 overhead-related capacity loss due to an increase in the amount of preemption.  This compounds the
 algorithmic capacity loss, rendering \gls{EDF} a clear winner in from-scratch implementations.
 
-Other comparisons between \gls{EDF} and \gls{FP} are the complexity of their schedulability tests
-and how they behave under overload.  \gls{EDF} and \gls{FP} scheduling both have pseudo-polynomial
+Other comparisons between \gls{EDF} and \gls{FP} are the complexity of their schedulability tests.
+\gls{EDF} and \gls{FP} scheduling both have pseudo-polynomial
 schedulability tests under the sporadic task model, although \gls{EDF} under the periodic task
 model\footnote{The periodic task model is the same as the sporadic task model, with the restriction
 that deadlines must be equal to periods ($d = p$), while periods themselves are considered absolute,
 not minimum.} has an $O(n)$ schedulability test.  Like all pseudo-polynomial problems,
 approximations can be made to reduce the complexity, although this comes with an error factor which
-may not be suitable for \gls{HRT} systems.  Both algorithms behave differently under constant
+may not be suitable for \gls{HRT} systems.  
+
+Both algorithms behave differently under constant
 overload --- \gls{EDF} allows progress for all jobs but at a lower rate, while \gls{FP} will
 continue to meet deadlines for jobs with higher \gls{RM} priorities, completely starving other
 jobs. Whether these behaviours are desirable is subject to context.  Under
 transient overload conditions both algorithms can cause deadline misses.
+
+% TODO mention reneging?
 
 \subsection{Multiprocessors}
 
@@ -324,7 +334,7 @@ until it is unlocked. However many variants on locking protocols exist, includin
 $n$ tasks to access a section, or locks that behave differently for read and write access.
 
 Resource sharing in a real-time context is more complicated than standard resource sharing and
-synchronised, due to the problem of \emph{priority inversion}, which threatens the temporal
+synchronisation, due to the problem of \emph{priority inversion}, which threatens the temporal
 correctness of a system.  Priority inversion occurs when a low priority task prevents a high
 priority task from running.  Consider the following example: if a low priority task locks a resource
 that a high priority task requires, then the low priority task can cause the high priority task to
@@ -348,8 +358,8 @@ Using \gls{NCP}, preemption is totally disabled whilst in a critical section.  T
 all threads in the system while any client accesses a critical section.  Consequently, the bound on
 any single priority inversion is the length of the longest critical section in the system.  Although
 functional, this approach results in a lot of unnecessary blocking of higher priority threads.  The
-maximum priority inversion that a task will experience is the sum of all critical section accesses
-in the system.
+maximum bound on priority inversion that a task can experience is the sum of the length of all
+critical sections accessed by that task. 
 
 \subsection{Priority Inheritance Protocol}
 \label{sec:pip}
@@ -360,7 +370,7 @@ This approach avoids blocking any higher priority threads that do not access thi
 works for both fixed and dynamic priority scheduling.
 However it results in a large preemption overhead and as a result has poor WCET analysis.
 
-To understand this, consider a task set with $n$ tasks, $A_{1}, ... , A_{n}$, where each tasks priority
+To understand this, consider a task set with $n$ tasks, $A_{1}, ... , A_{n}$, where each task's priority
 corresponds to its index, such the priority of $A_{i} = i$. The highest priority is $n$ and the
 lowest is 1 and all tasks access the same resource. If $A_{1}$ holds the lock to that resource, then
 the worst preemption overhead occurs if $A_{2}$ wakes up, elevating of $A_{1}$ to 2. Subsequently,
@@ -390,7 +400,7 @@ excessive preemption. In addition to considering the priorities of tasks, \gls{P
 a dynamic global state referred to as the \emph{system ceiling}, which is the highest
 priority ceiling of any currently locked resource. When a task locks a resource its priority 
 is not changed until another task attempts to acquire that resource, at which point the resource
-holders priority is boosted to the resources ceiling. By delaying the priority boost the excessive 
+holders priority is boosted to the resource's ceiling. By delaying the priority boost the excessive 
 preemption of \gls{PIP} is avoided. Additionally, tasks can only lock resources
 if when priority is higher than the system ceiling, otherwise they block until this condition is
 true, thus avoiding the risk of deadlock. \gls{PCP} results in less blocking overall than \gls{HLP},
@@ -404,8 +414,9 @@ like \gls{EDF}, however analogous algorithms exist, namely the \gls{SRP}~\citep{
 
 We do not consider lock-free and wait-free algorithms in detail in this chapter, but note while
 these may be deployed in real time systems there are always resources that need true blocking in
-order to access them; in a word, stateful devices. For memory based resources, algorithms that avoid
-blocking, as long as the total blocking time is bounded and fairness is not mandated. Any approach that is 
+order to access them; in a word, stateful devices. For memory based resources, there is no need for 
+algorithms that avoid blocking, as long as the total blocking time is bounded 
+and fairness is not mandated. Any approach that is 
 transactional with no guarantee of progress is not suitable, additionally, fair algorithms are not suited to a
 real-time system, which are fundamentally not fair. 
 
@@ -456,14 +467,14 @@ do not work. While the protocols we have examined so far can be used under globa
 \citet{Brandenburg:phd} showed that partitioned approaches suffer far less cache overheads than
 global scheduling. 
 
-\gls{MPCP}~\citep{Rajkumar_90} is a modified version of \gls{PCP} for multiprocessors, which is a
+The \gls{MPCP}~\citep{Rajkumar_90} is a modified version of \gls{PCP} for multiprocessors. It is a
 suspension based protocol that works by boosting task priorities. Tasks run at the highest priority
 of any task that may access a global resource, and waiting tasks block in a priority queue. Nested
-access to global resources is disallowed. \gls{MSRP}~\citep{Gai_DL_03} is a spin-lock based
-protocol, which can be used for \gls{FP} and \gls{EDF} scheduling and uses the \gls{SRP} locally,
+access to global resources is disallowed. The \gls{MSRP}~\citep{Gai_DL_03} is a spin-lock based
+protocol, which can be used for \gls{FP} and \gls{EDF} scheduling. \gls{MSRP} uses the \gls{SRP} locally,
 combined with \gls{FIFO} spin-locks which guard global resources. 
 
-Multiprocessor real-time locking protocols are an extensive field of research alone, and 
+Multiprocessor real-time locking protocols are an extensive field of research, and 
 many more sophisticated locking protocols exist, however we do not survey them here.
 
 \section{Mixed-criticality systems}
@@ -473,6 +484,7 @@ Broadly, a mixed-criticality system is simply a system where software classified
 of criticality, according to a standard such as DO-178C (recall \Cref{tab:criticality_table}), share
 the same physical hardware. 
 
+\TODO{references in this paragraph}
 Varying definitions exist in the literature. Some consider merely
 the combination of \gls{HRT}, \gls{SRT} and best effort tasks, with criticality observed in that order.
 Others allow for \gls{QoS} specifications, which can reflect criticality. 
@@ -499,7 +511,7 @@ definitions and state that the focus of mixed-criticality research should be on 
 for error handling and proof of isolation in order to make mixed-criticality systems practical. 
 
 The focus on this thesis is for the broader definition of mixed-criticality, such that software of
-different levels of criticality can safely share hardware, and not specifically to the model
+different levels of criticality can safely share hardware, and not specifically the model
 presented by \citet{Vestal_07} and beyond~\citep{Burns_Davis_17}.
 
 \section{Operating systems}
@@ -530,15 +542,13 @@ function, leaving the rest of the policy up to the software running outside of t
 Monolithic operating systems provide scheduling, \gls{IPC}, device drivers, memory allocation, file
 systems and other services in the kernel, resulting in a large trusted computing base. While there 
 is no rule on which services and utilities are included in a microkernel, it is generally a subset
-of these. For example, \selfour~\citep{Klein_EHACDEEKNSTW_09} contains a scheduling, \gls{IPC}; 
+of these. Which services and utilities are included as part of the microkernel varies per implementation. In
+larger kernels thread scheduling, memory allocation and some device drivers are included in the kernel.
+For example, \selfour~\citep{Klein_EHACDEEKNSTW_09} contains a scheduling, \gls{IPC}; 
 \composite~\citep{Parmer:phd} does not provide a scheduler. 
 
-Which services and utilities are included as part of the microkernel varies per implementation. In
-larger kernels thread scheduling, memory allocation and some device drivers are included in the kernel.
-In others, subsets of these functionality are included and the kernel and others delegated to
-user-mode. 
-
-Microkernels are far more amenable to security domains, due to their small trusted computing base.
+Microkernels are far more amenable for deployment in areas where security is a primary concern,
+due to their small trusted computing base.
 Services on top of the microkernel can be isolated and assigned different levels of trust, unlike
 the services in a monolithic \gls{OS} which all run at the same privilege level such that a fault in
 one service can compromise the entire system. 
@@ -575,7 +585,7 @@ allocation patterns.
 %% introduce RTOSes
 \subsection{Real-Time Operating Systems}
 
-An \gls{RTOS} is an \gls{OS} that provides temporal guarantees, and can be microkernel-based or
+A \gls{RTOS} is an \gls{OS} that provides temporal guarantees, and can be microkernel-based or
 monolithic.  Whilst some real-time systems run without operating systems at all, this approach is
 generally limited to small, closed systems and is both inflexible and difficult to
 maintain~\citep{Lui_AACBBBCLM_04}.
@@ -589,7 +599,7 @@ applications.
 In an \gls{RTOS}, fairness is replaced by the need to meet deadlines. As a result, time is promoted
 to a first class resource~\citep{Stankovic_88}.
 
-Time being an integral part of the system effects every other part of the \gls{OS}.  For example, in
+Time being an integral part of the system affects every other part of the \gls{OS}.  For example, in
 an \gls{RTOS}, one application having exclusive access to a resource cannot be allowed to cause a
 deadline miss.  Similarly, the \gls{RTOS} itself cannot cause a deadline miss.  This means that all
 operations in the \gls{RTOS} must either be bounded with known {\gls{WCET}} or the \gls{RTOS} must
