@@ -533,6 +533,7 @@ latency blowout.  This result shows that our sporadic server implementation is e
 
 % Show isolation in a shared server
 \subsection{Server isolation} 
+\label{s:server-isolation}
 
 To demonstrate temporal isolation in a shared server, we use a case study of an encryption service
 using \gls{AES} to encrypt client data. We measure both the overhead of different recovery techniques, and the
@@ -846,7 +847,9 @@ utilisation for each stage respectively.}
 
 \section{Practicality}
 
-\subsubsection{User-level scheduling}\label{s:edf-impl}
+\TODO{intro}
+
+\subsection{User-level scheduling}\label{s:edf-impl}
 
 Fundamental to the microkernel philosophy is keeping policy out of the
 kernel as much as possible, and instead providing general mechanisms
@@ -902,6 +905,28 @@ implementing different policies on top of the base scheduler is quite feasible.
              kernel scheduler in \textsc{x64} LITMUS$^{RT}$.}
     \label{f:edf}
 \end{figure}
+
+\subsection{SMP}
+
+\TODO{diagrams}
+
+We use the \gls{AES} shared server from \cref{s:server-isolation} to demonstrate how our MCS
+mechanisms can be deployed in an SMP scenario with shared servers.  
+
+\TODO{describe}
+
+\begin{figure}[ht] 
+    \centering
+    \includegraphics{smp_aes}
+    \caption{Results of the AES shared server SMP case study. 1-passive shows results for a single
+        passive server thread migrating between cores to service clients while N-passive has one
+        passive thread per core. For both series, the number of clients is equal to the number of
+        cores. }
+    \label{f:evaluation-smp-aes}
+\end{figure}
+
+
+
 
 \section{Summary}
 

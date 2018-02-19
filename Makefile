@@ -565,6 +565,7 @@ define smp_stuff
 ${GEN_DIR}/smp-$1.dat: ${GEN_DIR} data/process_smp.py data/baseline-smp-$1.json data/rt-smp-$1.json
 	@echo '===> generating $1 smp data'
 	@python3 data/process_smp.py -o ${GEN_DIR} -p $1 -b ${PWD}/data/baseline-smp-$1.json -rt ${PWD}/data/rt-smp-$1.json
+${GEN_DIR}/smp-aes-$1.dat: ${GEN_DIR}/smp-$1.dat
 endef
 
 $(eval $(call smp_stuff,haswell))
@@ -574,6 +575,10 @@ $(eval $(call smp_stuff,sabre))
 imgs/smp.gnuplot: imgs/common.inc ${GEN_DIR}/smp-haswell.dat ${GEN_DIR}/smp-sabre.dat
 imgs/smp.eps: imgs/common.inc ${GEN_DIR}/smp-haswell.dat ${GEN_DIR}/smp-sabre.dat
 imgs/smp.pdf: imgs/smp.eps ${GEN_DIR}/smp-haswell.dat ${GEN_DIR}/smp-sabre.dat
+
+imgs/smp_aes.gnuplot: imgs/common.inc ${GEN_DIR}/smp-aes-haswell.dat ${GEN_DIR}/smp-aes-sabre.dat
+imgs/smp_aes.eps: imgs/common.inc ${GEN_DIR}/smp-aes-haswell.dat ${GEN_DIR}/smp-aes-sabre.dat
+imgs/smp_aes.pdf: imgs/smp.eps ${GEN_DIR}/smp-aes-haswell.dat ${GEN_DIR}/smp-aes-sabre.dat
 
 %.gnuplot: imgs/common.inc
 
