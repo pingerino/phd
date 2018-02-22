@@ -1,0 +1,81 @@
+{
+  "results": [
+    {
+      "Name": "susan",
+      "results": [
+        {
+          "stage": 0,
+          "missed": 0,
+          "jobs": 111
+        },
+        {
+          "stage": 1,
+          "missed": 0,
+          "jobs": 111
+        },
+        {
+          "stage": 2,
+          "missed": 0,
+          "jobs": 111
+        }
+      ]
+    },
+    {
+      "Name": "cjpeg",
+      "results": [
+        {
+          "stage": 0,
+          "missed": 0,
+          "jobs": 200
+        },
+        {
+          "stage": 1,
+          "missed": 0,
+          "jobs": 200
+        },
+        {
+          "stage": 2,
+          "missed": 88,
+          "jobs": 155
+        }
+      ]
+    },
+    {
+      "Name": "madplay",
+      "results": [
+        {
+          "stage": 0,
+          "missed": 0,
+          "jobs": 179
+        },
+        {
+          "stage": 1,
+          "missed": 46,
+          "jobs": 178
+        },
+        {
+          "stage": 2,
+          "missed": 3,
+          "jobs": 3
+        }
+      ]
+    }
+  ],
+  "utilisation": [
+    {
+      "stage": 0,
+      "idle": 66295467064,
+      "total": 66295467064
+    },
+    {
+      "stage": 1,
+      "idle": 12898016280,
+      "total": 12898016280
+    },
+    {
+      "stage": 2,
+      "idle": 0,
+      "total": 0
+    }
+  ]
+}

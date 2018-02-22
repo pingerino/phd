@@ -350,6 +350,7 @@ CRIT=EDF-CB
 AES=EDF-AB
 RTSMP=EDF-PSMP
 BSMP=EDF-BSMP
+MODESW=EDF-MODE
 DIR=/latestSuccessful/artifact/shared/
 RUMP_REDIS_TEST_NUMBER=30
 PERF_BASE=EDF-BPP
@@ -396,7 +397,19 @@ endef
 $(eval $(call rest_raw_data,haswell,x64-haswell3-results.json))
 $(eval $(call rest_raw_data,sabre,Sabre-sabre-results.json))
 
-rest_raw_data: haswell_rest_raw_data sabre_rest_raw_data
+
+MODE_SWITCH= 1 2 3 4 5 6 7 8 9 10
+define mode_switch_data
+.PHONY: $1_$2_mode_switch_data
+$1_$2_mode_switch_data:
+	$(foreach var, $(MODE_SWITCH), \
+	wget -O ${PWD}/data/mode-switch-$(var)-$2-$1.json ${BAMBOO}${MODESW}${DIR}$2-mode-switch-$1$(var)-results.json/results.json;)
+endef
+
+$(eval $(call mode_switch_data,haswell3,Kernel))
+$(eval $(call mode_switch_data,haswell3,User-level))
+
+rest_raw_data: haswell_rest_raw_data sabre_rest_raw_data haswell3_Kernel_mode_switch_data haswell3_User-level_mode_switch_data
 
 RUMP_REDIS_FILES = $(wildcard data/redis/*.json)
 
