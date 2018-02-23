@@ -4,7 +4,7 @@
 \label{chap:sel4}
 
 So far we have provided a general background on real-time scheduling and resource sharing.
-Finally we will present an overview of the concepts relevant to the temporal behaviour of our implementation platform, \selfour.
+Now we will present an overview of the concepts relevant to the temporal behaviour of our implementation platform, \selfour.
 
 \selfour is a microkernel that is particularly suited to safety-critical, real-time systems with one major caveat: the lack of real-time scheduling support. 
 Three main features of \selfour support this claim: it has been formally verified for correctness~\citep{Klein_EHACDEEKNSTW_09} and other properties~\citep{Sewell_WGMAK_11}; All memory management, including kernel memory, is all at user-level~\citep{Elkaduwe_Derrin_06}; Finally it is the only \gls{OS} to date with full \gls{WCET} analysis~\citep{Blackham_SCRH_11}.
@@ -32,10 +32,10 @@ signalling. \Cref{f:legend-1} shows the legend for diagrams in this section.
 \label{s:capabilities}
 
 As a capability-based \gls{OS}, access to any functionality in \selfour is via capabilities (recall
-\Cref{s:capabilities}. Capabilities to all system resources are passed to the initial task --- the first
+\Cref{s:os-capabilities}). Capabilities to all system resources are passed to the initial task --- the first
 user level thread started in the system --- which can then allocate resources as appropriate.
 Capabilities exist in a \emph{capability space} that can be configured per thread or shared between
-threads. Capabilities spaces are analogous to address spaces for virtual memory, although
+threads. Capability spaces are analogous to address spaces for virtual memory, although
 capabilities can be moved and copied between different spaces. 
 
 All capabilities can be copied, potentially changing their access rights, except \emph{control}
@@ -91,13 +91,15 @@ deleted, in order to avoid stray pointers in the kernel.
 
 \Cref{t:kernel_objects} gives an overview of basic object types in \selfour. 
 While the majority of objects in \selfour have a platform-dependant size fixed at compile time, some
-are variably sized, \eg untyped and CNodes, which can be any power of two size, as custom
+are sized dynamically at runtime, \eg untyped and CNodes, which can be any power of two size.
 
 \subsection{Thread control blocks}
 
-\Glspl{TCB} represent a unit of execution in \selfour and deviate from other object in that they
-consist of the core \gls{TCB}, and a CNode which contains a capability to that threads CNode, vspace
+\Glspl{TCB} represent a unit of execution in \selfour and 
+consist of the core \gls{TCB} elements, and a CNode which contains a capability to that thread's CNode, vspace
 and \gls{IPC} buffer.
+
+\TODO{Add TCB fields}
 
 \subsection{IPC}
 \label{s:ipc}
@@ -106,13 +108,13 @@ and \gls{IPC} buffer.
 \gls{IPC} takes place via endpoints, which represent a general communication port. Any thread with a
 capability to an endpoint can send and receive messages on that endpoint, subject to the access
 rights. Most messages sent fit into registers, however messages exceeding this platform dependent
-size are placed in the Messages sent via \gls{IPC} are stored in the \gls{IPC} buffer, a kernel-writeable frame per
+size are stored in the \gls{IPC} buffer, a kernel-writeable frame per
 thread. 
 
 IPC can be one-way, where the sender blocks until the message is sent then may continue
-(\texttt{send()} , or two-way,
-where the sender blocks until a reply message is sent (\texttt{call()}. One-way IPC may also be
-non-blocking, where the message is only sent of a receiver is already present.
+(\texttt{send()}) , or two-way,
+where the sender blocks until a reply message is sent (\texttt{call()}). One-way IPC may also be
+non-blocking, where the message is only sent if a receiver is already present.
 Multiple senders and receivers can use the same endpoint, and which act as \gls{FIFO}
 queues. 
 
@@ -139,7 +141,7 @@ Two-way IPC has two phases, as \cref{f:ipc} illustrates: rendezvous and reply.
 
 \Cref{f:ipc1} demonstrates the rendezvous phase, where regardless of the order of operations, 
 when one thread blocks (\cref{recv}) on the endpoint and another thread sends on that endpoint
-then message is sent. This occurs for both one-way and two-way \gls{IPC}.
+then a message is sent. This occurs for both one-way and two-way \gls{IPC}.
 
 The reply phase, illustrated in \Cref{f:ipc2}, only occurs if the sender used \texttt{call} to send
 the \gls{IPC}. In this case, a one-off \emph{resume} capability is generated, which the caller ($A$)
@@ -164,14 +166,12 @@ receiver with the rest of the IPC message. This provides a mechanism for identif
 
 \subsection{Fault handling}
 
-Fault handling in \selfour is based on simulating an \gls{IPC} message from the kernel to a threads
-fault handler. \glspl{TCB} can have a specific fault endpoint registered, such that when a fault
-such as a page fault occurs, the faulting thread is blocked and a message is sent by the kernel
-about the fault to the fault handler over the fault endpoint. If no fault handler is present, the
-thread is rendered inactive. 
-
-Fault handlers can reply to the fault message and indicate to the kernel that the thread should be
-resumed, if the fault is recoverable. 
+\glspl{TCB} can have a specific fault endpoint registered, on which the kernel can send simulated
+\gls{IPC} messages containing information about the fault. Fault handling threads can block on this 
+endpoint. When a fault message is delivered to the fault endpoint, the kernel blocks the faulting
+thread. The fault handling thread can then reply to this message to resume the thread and reset its
+registers. If no fault endpoint is present, the
+thread is rendered inactive and no fault message is sent. 
 
 \subsection{Signalling}
 
@@ -240,6 +240,9 @@ to be used \eg binding a \gls{TCB} and notification object.
 
 \subsection{Thread states}
 
+As depicted in \Cref{f:thread_state}, threads in \selfour can be inactive, running or blocked on a
+specific object. The thread state encodes the object which the thread is blocked on. 
+
 \begin{figure}[h!tb]
     \centering
     \includegraphics[width=1.1\textwidth]{thread_state}
@@ -252,9 +255,9 @@ to be used \eg binding a \gls{TCB} and notification object.
 
 The scheduler in \selfour is priority-based round-robin with 256 priorities (0 --- 255), implemented as an array of lists: one list of ready threads for each priority level. 
 At a scheduling decision, the kernel chooses the head of the highest-priority, non-empty list, and
-removes it from the relevant scheduler queue, which is referred to as \emph{Benno Scheduling}.
+removes it from the relevant scheduler queue, which is referred to as \emph{Benno Scheduling}, named
+after its original author.
 The kernel previously used \emph{lazy scheduling}, leaving the current thread in its run queue, however this was replaced in favour of Benno scheduling to reduce the WCET of the kernel. 
-This is different to a previous kernel implementation which left the currently running thread in its run queue, however this increased the kernels \gls{WCET} and was removed.
 
 Scheduling decision complexity is $O(1)$ as a two-level bit field tracks the highest priority with a runnable thread.
 
@@ -270,17 +273,18 @@ However, the allocation of ticks to threads is not actually that simple due to y
 
 Like any priority-based kernel without temporal isolation mechanisms, time is only guaranteed to the highest priority threads.
 Priorities in \selfour act as informal capabilities: threads cannot create threads at priorities higher than their current priority, but can create threads at the same or lower priorities.
-If threads at a higher priority levels never block, lower priority threads in the system will not run.
+If threads at higher priority levels never block, lower priority threads in the system will not run.
 As a result, a single thread running at the highest priority has access to 100\% of processing time.
 However, even this becomes unclear once there is more than one thread at a priority: if two threads are running, they can both access 50\% of processing time.
 If one of two threads blocks, the other gets 100\% of processing time and vice versa.
-There is no way to enforce a certain processor allocation and how CPU time a thread receives is up to priorities and the behavior of other threads in the system, which is impossible to guarantee.
+There is no way to enforce a certain processor allocation and how CPU time a thread receives is up
+to priorities and the behaviour of other threads in the system, which is impossible to guarantee.
 
 \subsection{Accounting}
 % I think this should move to the design section?
-Due to the tick-based nature of the \selfour scheduler, when ticks are accounted complicates the
-scheduling as the precision is reduced to the tick granularity, and described in
-\cref{s:tick-v-tickless}.
+\selfour has a tick-based scheduler, where ticks are accounted to the currently running thread,
+meaning that temporal isolation in servers is not possible and accuracy is traded for precision, as
+discussed in \Cref{s:tick-v-tickless}.
 
 Similarly, the \texttt{yield} system call will not alter the timeslice of the current thread, and
 only donates a portion of the current tick to the next thread in the round-robin scheduler. 
@@ -299,7 +303,7 @@ parameters computed-offline.
 In such a scenario each real-time task could be mapped to its own domain, and each task would run for its specified time before the domain scheduler switched to the next thread.
 Any unused time in a domain would be wasted, and spent in the idle thread.
 
-However, in such a scheduler is only suitable for closed systems and results in low system utilisation.
+Such a scheduler is only suitable for closed systems and results in low system utilisation.
 Dynamic real-time applications with shared resources and high system utilisation are not compatible
 with the domain scheduler, as they require preemption.
 
@@ -310,8 +314,9 @@ timing behaviour in the kernel: the scheduler, priorities, yield and IPC.
 In this section we will look at how real-time scheduling could be implemented with those mechanisms.
 
 There are several options for implementing a real-time scheduler in the current version of \selfour: leveraging the domain scheduler, using the priority scheduler or implementing a scheduling component to run at user-level. 
-As the previous section established, the domain scheduler offers low utilisation for strictly closed
-systems with strict temporal partitioning and no preemption, so is clearly insufficient.
+The domain scheduler offers low utilisation for strictly closed
+systems with strict temporal partitioning and no preemption, so is clearly insufficient, as
+discussed in \Cref{sec:rt-scheduling}.
 
 The priority scheduler could be leveraged to implement a rate-monotonic scheduler.
 However, this requires complete trust in every thread in the system, as there is no mechanism for temporal isolation: if one thread executes for too long, other threads will miss their deadlines.

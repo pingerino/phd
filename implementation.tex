@@ -273,6 +273,7 @@ Round-robin threads have full reservations: $T = C$, entitling them to 100\% of 
 Clearly we don't want to track replenishments for round-robin threads, so the kernel detects if round robin scheduling contexts when \texttt{seL4\_SchedControl\_Configure} is called, and sets the period to 0.
 This avoids much special casing in the replenishment code, as round-robin threads are always ready (we always add 0 to the replenishment time).
 
+\TODO{Say what head refill does}
 \begin{lstlisting}[frame=single,language=c,caption=Check budget routine.,label=list:check-budget,float=htpb]
 uint_64_t check_budget(sched_context_t *sc, uint64_t usage) {
   while (head_refill(sc).amount <= usage) {
@@ -368,7 +369,7 @@ This was sufficient for round-robin scheduling.
 Scheduling contexts for best-effort threads are assigned an equal budget and period, with the value set to the desired round-robin time slice for the thread.
 Since the budget and period of threads configured in this fashion are equal, when the budget expires it will be immediately replenished as the period has passed already.
 However, replenishment places a thread on the end of its run queue, thereby implementing round-robin scheduling, as any other thread in the queue will be scheduled first.
-This approach minimises the amount of code required and should result in a fast scheduler, with no special cases for best-effort versus real-time threads.
+This approach minimises the amount of code required and results in a fast scheduler, with no special cases for best-effort versus real-time threads.
 Of course, populating scheduling context parameters as such entitles best-effort threads to an effective 100\% share of the CPU, so it should only be used at low priorities.
 Additionally, real-time threads and best-effort threads should not run at the same priority.
 
@@ -381,7 +382,7 @@ Otherwise, the thread will be capped at the rate specified, but cannot be guaran
 
 \subsubsection{Real-time threads}
 
-Real-time threads are more complicated than rate-limited or best-effort threads, as the concept of a sporadic job, including job release time and job completion, need to be supported by the kernel API.
+The scheduling of real-time threads is more complicated than that of rate-limited or best-effort threads, as the concept of a sporadic job, including job release time and job completion, need to be supported by the kernel API.
 
 We define the initial job release as when a thread is resumed: the available budget is set to the total budget in the reservation for that thread.
 
@@ -410,9 +411,9 @@ However this approach would not enable a thread to receive a notification on job
 
 % TODO background on endpoints, endpoint binding on backgournd sel4 section to support this.
 Instead, we use asynchronous endpoints to implement sporadic jobs on seL4, which unifies jobs to be completed and release with notifications, reducing the amount of system calls required.
-Currently, asynchronous endpoints can be bound to a thread, which enforces a one-to-one relationship be  tween the bound thread and the bound endpoint.
+Currently, asynchronous endpoints can be bound to a thread, which enforces a one-to-one relationship between the bound thread and the bound endpoint.
 The current semantics of async endpoint binding allow threads to wait on a synchronous endpoint and receive notifications from their bound async endpoint at the same time.
-Due to implementation complexities, no thread but the bound thread is permitted to wait on the bound endpoint.
+To simplify implementation, no thread but the bound thread is permitted to wait on the bound endpoint.
 However, in practice, threads only ever wait on a separate synchronous endpoint, not the bound endpoint.
 As a result, we use this operation to implement job completion.
 
@@ -448,7 +449,7 @@ We then illustrate through example how reservation-per-thread, thread-migrating 
 
 \subsection{Endpoints}
 
-\gls{IPC} in seL4 is conducted through endpoints, which do not denote a specific receiving or sending thread, but act as arbitrary communication endpoints.
+\Gls{IPC} in seL4 is conducted through endpoints, which do not denote a specific receiving or sending thread, but act as arbitrary communication endpoints.
 Any thread with an endpoint capability can send or receive messages on that capability: if two threads send and receive messages on the same endpoint, then a communication rendezvous occurs and a message is send.
 
 Endpoints are either synchronous: sending a message on a synchronous endpoint blocks the sender until the message is received, and in the case of multiple messages a queue of messages to be processed forms on the endpoint.
@@ -501,13 +502,14 @@ Replies can be sent with the following two system calls:
 To implement scheduling context donation, we augment the system call API as follows:
 
 \begin{itemize}
-	\item \call (altered) between a caller that has a scheduling context and a callee that does not have a scheduling context donates the callers scheduling context to the callee. If the callee has a scheduling context then donation does not occur. The callee runs at its own priority, as per \gls{HLP}.
+	\item \call (altered) between a caller that has a scheduling context and a callee that does not
+        have a scheduling context donates the caller's scheduling context to the callee. If the callee has a scheduling context then donation does not occur. The callee runs at its own priority, as per \gls{HLP}.
 	\item \replywait (altered) to a thread without a scheduling context donates the scheduling context to subject of the reply.
     \item \sendwait (new), which allows a thread to send a message and donate a scheduling context to an endpoint or reply cap, then wait on another endpoint.
 \end{itemize}
 
 Scheduling context donation does not occur on \send, \nbsend or \reply,  as the sender cannot continue to execute without a scheduling context, and without receiving one from another thread the sender is blocked.
-These system calls are not unusable, but should should be used between threads who have their own scheduling contexts.
+These system calls are not unusable, but should be used between threads who have their own scheduling contexts.
 If a thread attempts to use \send, \reply or \nbsend to communicate to a thread without a scheduling context, the communication will block.
 
 \begin{figure}
@@ -605,11 +607,11 @@ If scheduling context donation is not used, and the server has its own schedulin
 
 \subsubsection{Revoking a server}
 
-What happens if a server is revoked while executing on a clients scheduling context?
+What happens if a server is revoked while executing on a client's scheduling context?
 Since the kernel does not track the `home' of a scheduling context, it is not possible to return the scheduling context to the calling thread.
 Currently the scheduling context will be disconnected from the server, and not returned to the caller.
 
-In real scenarios, this revocation should only occur if the sub-system is being torn down so this is not a problem.
+In real scenarios, this revocation only occurs if the sub-system is being torn down so this is not a problem.
 Otherwise, the scheduling context object is still valid: but it won't have any threads associated with it.
 A supervisor thread could be set up to reset the scheduling contexts of any threads that have lost theirs if a server goes down.
 Generally, if a server goes down in the middle of a request, action must be taken to restart the server and fix the client anyway so restoring the scheduling context must be incorporated in the protocol.
@@ -681,7 +683,7 @@ Nested budget expiry is illustrated in \Cref{fig:nested-budget-expiry}.
 
         ;
     \end{tikzpicture}
-\caption{Clients A makes a request to server S1 on endpoint E1. S1 receives A's request first, and makes a nested request to another server, S2. A's scheduling context is donated from A to S1 to S2, but the budget expires while S2 is executing.  A's budget expires while S is executing on it, blocking S from servicing other requests. Client B now makes a request, and finds S1 blocked.}
+\caption{Clients A makes a request to server S1 on endpoint E1. S1 receives A's request first, and makes a nested request to another server, S2. A's scheduling context is donated from A to S1 to S2, but the budget expires while S2 is executing. Client B now makes a request, and finds S1 blocked.}
 \label{fig:nested-budget-expiry}
 \end{figure}
 
@@ -715,7 +717,8 @@ The conditions to hit the fastpath currently are:
     \item the receiver must be blocking on the endpoint,
     \item the message must be sent via a \call or \replywait.
 \end{enumerate}
-All of these conditions are performance optimisations: if we \call to a lower priority thread the scheduler would need to be invoked to check there are no other runnable threads at a higher priority than the receiver.
+All of these conditions are performance optimisations: if we \call to a lower priority thread the
+scheduler needs to be invoked to check there are no other runnable threads at a higher priority than the receiver.
 
 The addition of scheduling contexts raises adds a new condition to the fastpath:
 \begin{enumerate}
@@ -765,10 +768,11 @@ While independent threads in this example are temporally isolated from each othe
     \label{fig:migrating-threads}
 \end{figure}
 
+\TODO{refer to thread factory design pattern}
 User-level systems can build multi-threaded servers with migrating threads in the following way: server threads run at priority $p$ and wait on the server endpoint.
 An additional thread runs at priority $p - 1$, whose purpose is to allocate stacks.
 If a client request comes in and no server thread is available to serve it, then the stack allocating thread will run, allocate a new stack and start a new server thread.
-The stack allocator will forward the clients scheduling context and request onto the new server thread, and wait on the endpoint again, using the new system call \sendwait.
+The stack allocator will forward the client's scheduling context and request onto the new server thread, and wait on the endpoint again, using the new system call \sendwait.
 This is illustrated in \Cref{fig:migrating-threads} -- SA is the stack allocator, which creates server thread S after client C makes the first request.
 
 Because the endpoint always has a thread waiting for messages (the stack allocator), the helping mechanism will not be triggered.

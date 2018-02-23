@@ -116,7 +116,7 @@ is non-trivial and would come with high overheads.
 Our approach is consistent with existing designs in Linux  and ADA\citep{Burns_Wellings:crtpa}, which
 support both scheduling algorithms, usually with \gls{EDF} at a specific priority.
 
-Therefore our model uses \gls{FP} scheduling as remain a core part of the kernel.  \gls{EDF}
+Therefore our model uses \gls{FP} scheduling as a core part of the kernel.  \gls{EDF}
 scheduling can be implemented by using a single priority for EDF's dynamic priorities, as we
 demonstrate in \cref{s:edf-impl}.
 
@@ -162,8 +162,7 @@ are first-class objects, like threads, address spaces, or
 communication endpoints (ports). An SC is represented by a capability to a
 scheduling context object (scCap).
 
-An scCap represents the privilege to access the processor, i.e.\ a
-time capability. In order to run, a thread needs an scCap, which represents the
+In order to run, a thread needs an scCap, which represents the
 maximum CPU bandwidth the thread can consume.
 In a multicore system, an SC represents the right to access a
 particular core. Core migration, e.g.\ for load balancing, is policy
@@ -204,7 +203,8 @@ orthogonal will become evident in \autoref{s:locking}.
 
 We introduce a new invariant that the currently running thread must have a scheduling context 
 with available budget. Any time executed on a processor is billed to the current threads scheduling
-context.
+context. We specifically do not cater for dynamic frequency scaling and ensure that it is turned off
+during testing -- this is out of scope and a topic for future work.
 
 We account for processing time using processor cycles, as opposed to fixed time ticks, as discussed
 in \cref{s:tick-v-tickless}. A tickless model offers less overheads and more precision to real-time 
@@ -213,9 +213,21 @@ show in \cref{s:eval-timer}, the cost of reprogramming a timer has significantly
 
 \subsection{Enforcement}
 
-Our model offers two options for enforcement: threads can have an optional timeout fault handler,
-which results in a fault being delivered should that thread exhaust its budget. Otherwise the kernel
-will not schedule threads until their budget is replenished. 
+Our model offers two options for enforcement: threads can have an optional timeout fault endpoint,
+otherwise the kernel will not permit threads to exceed their budget. 
+If a timeout fault endpoint is provided, a fault message is sent to that endpoint should that thread
+exhaust its budget, allowing the system to enact an enforcement policy.
+
+The timeout fault
+handler is separate from the existing thread fault endpoint, as the semantics are different. For the
+existing fault handler threads block if a fault occurs if no fault handling endpoint exists. In the
+case of a timeout fault handler, the thread remains runnable and is only blocked if a fault message
+is delivered to the timeout fault endpoint. Otherwise, the kernel will not block the thread but
+as it can run again once its budget is replenished.
+
+Timeout fault handling threads must have their own \gls{SC} to run on, with enough budget to handle
+the fault.
+
 
 \subsection{Admission control}
 \label{sec:model-admission}
@@ -223,7 +235,7 @@ will not schedule threads until their budget is replenished.
 Setting budgets is admission control and requires appropriate
 privilege. The total available time on a core is represented in a
 (virtual) per-core scheduling-control capability, \code{sched\_control}.
-Access to this capability, provides the admission-control
+Access to this capability provides the admission-control
 privilege. This is analogous to how \selfour controls the right
 to receive interrupts, which is controlled by the IRQ\_control
 capability as introduced in \cref{s:capabilities}. Like time, IRQ sources are non-fungible.
@@ -265,7 +277,7 @@ Full \glspl{SC} are key to maintaining policy freedom and performance; while sys
 must be able to use our mechanisms to enforce upper bounds on execution, the usage of 
 those mechanisms is policy. If a task is truly trusted, no enforcement is required,
 as in standard \gls{HRT} systems. They can also be used for best-effort threads which run in slack time.
-The \(C\) of a full \gls{SC} represents the timeslice, which once expires results in round robin
+The \(C\) of a full \gls{SC} represents the timeslice, which once expired results in round robin
 scheduling at that priority. 
 
 From a performance perspective full \glspl{SC} prevent mandatory preemption overheads 
@@ -279,8 +291,9 @@ implementation based on the algorithms presented
 by~\citet{Stanovic_BWH_10}. 
 
 The combination of full and partial \glspl{SC}  and the ability to overcommit distinguishes our
-model from that of resource kernels. However, a full resource kernel should be able to be
+model from that of resource kernels. However, a full resource kernel can be 
 constructed on top of the mechanisms our model provides.
+\TODO{describe how to implement this}
 
 \subsubsection{Sporadic servers}
 \label{s:sporadic}
@@ -362,13 +375,13 @@ runnable threads is round-robin.
 Assignment of priorities to threads is user-level policy. One approach is to simply use
 rate-monotonic scheduling: where priorities are assigned to threads based on their period, and
 threads use scheduling contexts that match their sporadic task parameters.  Each thread in the
-system will be temporally isolated as the kernel will not permit them to exceed the processing time
+system will be temporally isolated as the kernel will not permit it to exceed the processing time
 reservation that the scheduling context represents.
 
-However, the system we have designed offers far options than simple rate-monotonic fixed-priority
+However, the system we have designed offers far more options than simple rate-monotonic fixed-priority
 scheduling.  Policy freedom is retained as reservations simply grant a potential right to processing
 time, at a particular priority.  What reservations actually represent is an upper bound on
-processing time for a particular thread.  Low priorities threads are \emph{not} guaranteed to run if
+processing time for a particular thread.  Low priority threads are \emph{not} guaranteed to run if
 reservations at higher priorities use all available CPU.  However, threads with reservations at low
 priorities will run in the system slack time, which occurs when threads do not use their entire
 reservation.
@@ -386,7 +399,7 @@ criticality scheduling that provide asymmetric are slack scheduling and
 \gls{RTA}\citet{Burns_Davis_14}.
 
 Under slack scheduling, low-criticality tasks run in slack time of high criticality tasks.  Our
-model supports this easily: hi criticality tasks are given reservations to all of processing time at
+model supports this easily: high criticality tasks are given reservations to all of processing time at
 high priorities, and low criticality tasks given reservations at a lower priority band.
 
 \gls{RTA} relies on suspending low criticality tasks if a high criticality task runs for longer than
@@ -447,7 +460,9 @@ bypass, in a principled way through \emph{scheduling context
 donation}: A client invoking a server can pass its SC along, so the
 server executes on the client's SC, until it replies to the
 request. This ensures that the time consumed by the server is billed
-to the client on whose behalf the server's work is done.
+to the client on whose behalf the server's work is done. If the scheduling context 
+expires, the enforcement mechanism of timeout exceptions can be used to recover the server according 
+to server specific policy.
 
 \begin{figure}
     \centering
@@ -514,11 +529,11 @@ if the server is passive or active. \emph{Passive} servers do not have a schedul
 and receive them over \gls{IPC} whereas \emph{active} servers have their own scheduling context. 
 Passive servers, as illustrated in \cref{f:passive}, effectively provide a migrating-thread
 model~\citep{Ford_Lepreau_94, Gabber_SBBS_99}, but without requiring
-the kernel to manage stacks. \cref{f:active} shows active servers, which allow system designers to
+the kernel to manage stacks. \Cref{f:active} shows active servers, which allow system designers to
 build systems without temporal isolation, as it is not suitable
 for all systems.
 
-Charging for time executed in a server becomes simply with this model: always charge the scheduling
+Charging for time executed in a server becomes simple with this model: always charge the scheduling
 context the server is executing on. The mechanism does not change regardless of the server being passive or
 active. 
 
@@ -536,7 +551,7 @@ active.
         \caption{Phase 2}
         \label{f:ipc2}
     \end{subfigure}
-    \label{f:passive}
+    \label{f:active}
     \caption{IPC phases between an active client and server: (a) shows the initial IPC rendezvous, (b) shows the
     reply phase. Both client and server have their own SC. See \Cref{f:legend-2} for the legend.}
 \end{figure}
@@ -582,7 +597,7 @@ inheritance,
 make the waiting client pay for
 another client's contract violation. This not only weakens temporal isolation,
 it also implies that the size of the required reserve budget
-must be server's full WCET. This places a restriction on the server
+must be a server's full WCET. This places a restriction on the server
 that no client request exceed a blocking time that can be tolerated by
 all clients, or that all clients must budget for the full server WCET in
 addition to the time the server needs for serving their own request.
@@ -606,7 +621,7 @@ isolation --- and describe how they can be implemented
 with our mechanisms of scheduling contexts, scheduling context donation and timeout exceptions.
 
 \TODO{A diagram of each of these policies}
-
+\TODO{Finish this section}
 \subsubsection{Best effort}
 \label{sec:best-effort}
 
@@ -635,11 +650,13 @@ While our model does not require this, it is possible to create a server which a
 contexts should the existing server threads all be busy. Server threads would wait on an endpoint,
 and a stack spawning thread would wait on the same endpoint with low-priority. The stack spawning
 thread is only woken if all the server threads are busy, and otherwise does not run. An
-alternative policy is to build systems with a fixed amount of server threads. 
+alternative policy is to build systems with a fixed number of server threads. 
 
 Like the best-effort policy, our model supports this approach but it is not required.
 
-\subsubsection{Shared server isolation}
+\subsubsection{Server isolation}
+\TODO{Address peters comment: This is essentially an illustration for the preceding section, so
+title it as such}
 
 In a mixed criticality system, clients of different criticalities may share a server such as an
 encryption service. Consider such a service which encrypts data in blocks. Clients can request
@@ -649,6 +666,7 @@ occurs, because a clients scheduling context has expired, the timeout exception 
 to the last clean state and reply to the client with the amount of data encrypted. The rollback has
 a known complexity, so any pending requests need only to be able to cope with the cost of the
 rollback, assuming the scheduling contexts are configured with a schedulable time allocation.
+
 
 \section{Summary}
 

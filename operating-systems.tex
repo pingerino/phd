@@ -324,6 +324,8 @@ the \gls{FIFO} scheduling queue for the appropriate priority with a refilled tim
 extended the idea with variable time slices, which represented an amount of time that a thread could
 execute at a priority before preemption.
 
+\TODO{Rephrase - address peters comment Surely even if time is a first class resource, it can be
+exchanged... A task can transfer some of its time to another task}
 In a system where time is treated as a first-class resource, time cannot be treated as fungible and
 as such the timeslice/meter is not an appropriate mechanism alone for building mixed-criticality
 systems with temporal isolation guarantees.
@@ -361,7 +363,7 @@ proper accounting of the server's execution, and no temporal isolation.
 \subsubsection{Resource sharing with scheduling contexts}
 \label{s:sc-intro}
 
-Many kernels distinguish between a threads execution context (the registers, stack \etc) and
+Many kernels distinguish between a thread's execution context (the registers, stack \etc) and
 \emph{scheduling context} (access to processing time) in order to allow the scheduling context to
 transfer between threads over \gls{IPC} for accounting purposes.  This is a more explicit form of
 timeslice donation: when the scheduling context is passed between client and server, the scheduling
@@ -399,7 +401,7 @@ policy-freedom goal of a microkernel; out claim is \gls{PIP} does not belong in 
 \subsection{Accounting}
 \label{s:tick-v-tickless}
 
-There are ways to account for time in a kernel:  
+There are two ways to account for time in a kernel:  
 \begin{description}
     \item[tick-based] in fixed time quanta, referred to as \emph{ticks},
     \item[tickless] in cycles between specific events. 
@@ -433,6 +435,7 @@ scheduled after at minimum of 5 ticks (if one of the
 ticks), as $C$ is only scheduled when one of the IPC partners has fully exhausted its timeslice.
 This example is illustrated in \cref{fig:non-determinism}.
 
+\TODO{this diagram sucks}
 \begin{figure}
       \centering
       \begin{tikzpicture}[x=1cm]
@@ -471,7 +474,7 @@ such that C is scheduled after 9 ticks.} \label{fig:non-determinism}
   \end{figure}
 
 \subsection{Capabilities to time}
-\label{s:capabilities}
+\label{s:os-capabilities}
 
 Capabilities~\citep{Dennis_VanHorn_66} are an established mechanism for
 fine-grained access control to spatial resources. The  \selfour

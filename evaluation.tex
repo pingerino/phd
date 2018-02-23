@@ -16,15 +16,16 @@ operations.
 \section{Hardware}
 
 % describe benchmark setup, details of each hardware platform
-We run microbenchmarks on a variety of hardware to show the overheads of the model compared to
+We ran microbenchmarks on a variety of hardware to show the overheads of the model compared to
 baseline \selfour. \Cref{t:evaluation-hardware} summarises the hardware platforms. \textsc{Sabre} is
 the verified platform for \selfour, although at the time of writing verification for \textsc{x64} is
 ongoing. Currently, the only platforms that support more than one core are \textsc{Sabre},
 \textsc{ia32} and \textsc{x64}.
 
 Additionally, we use several load generators running Linux on an isolated network for several
-benchmarks which require a network.
+benchmarks that require a network.
 
+\TODO{Appendix listing exact hardware details}
 \begin{table}[ht]
 \rowcolors{2}{gray!25}{white}
 \begin{tabular}{*7l}\toprule
@@ -50,7 +51,8 @@ same platform in 32 and 64 bit mode respectively.}
 
 We first present a suite of microbenchmarks to evaluate any performance overheads against baseline
 \selfour.
-For each benchmark we ensure \gls{FPU} context switching is off by performing the required number of
+For each benchmark we ensure \gls{FPU} context switching is off by performing the required number of 
+system calls 
 without activating it such that the kernel will cease switching the FPU context. We present
 overheads on IPC operations, signalling and interrupts, and finally scheduling. 
 
@@ -80,7 +82,7 @@ hardware used on the specific platform.
     \bottomrule\hline
 \end{tabular}
 \caption{Latency of timer operations per platform in cycles. Standard deviations shown
-in brackets.}
+in parenthesis.}
 \label{t:evaluation-timer}
 \end{table}
 
