@@ -470,6 +470,9 @@ endef
 $(eval $(call process_crit_data,haswell))
 $(eval $(call process_crit_data,sabre))
 
+data/generated/mode_switch.inc: data/process_mode_switch.py ${GEN_DIR} $(wildcard data/mode-switch-*.json)
+	python3 $^ -o ${GEN_DIR}
+
 ${GEN_DIR}:
 	mkdir ${GEN_DIR}
 

@@ -35,8 +35,8 @@
         },
         {
           "stage": 2,
-          "missed": 89,
-          "jobs": 154
+          "missed": 88,
+          "jobs": 155
         }
       ]
     },
@@ -50,13 +50,13 @@
         },
         {
           "stage": 1,
-          "missed": 51,
+          "missed": 48,
           "jobs": 178
         },
         {
           "stage": 2,
-          "missed": 5,
-          "jobs": 5
+          "missed": 6,
+          "jobs": 6
         }
       ]
     }
@@ -64,18 +64,18 @@
   "utilisation": [
     {
       "stage": 0,
-      "idle": 66504418890,
-      "total": 66504418890
+      "idle": 33157037220,
+      "total": 68670090840
     },
     {
       "stage": 1,
-      "idle": 13027046362,
-      "total": 13027046362
+      "idle": 6519591996,
+      "total": 68670071044
     },
     {
       "stage": 2,
       "idle": 0,
-      "total": 0
+      "total": 68670066024
     }
   ]
 }
