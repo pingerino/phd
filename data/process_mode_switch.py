@@ -122,9 +122,9 @@ def output_rows(output, name, results, ulresults):
     output.write('\\rowcolor{gray!25}\n')
     output.write(desc)
     output.write('& \t& ')
-    output_row(output, 1, crit, wcet[0], period, result, ulresult)
+    output_row(output, 1, crit, wcet[1], period, result, ulresult)
     output.write('& \t &')
-    output_row(output, 2, crit, wcet[0], period, result, ulresult)
+    output_row(output, 2, crit, wcet[2], period, result, ulresult)
 
 
 def main():
