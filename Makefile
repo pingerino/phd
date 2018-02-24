@@ -59,7 +59,7 @@ ModeSwRoot=all up
 ModeSwFigs=$(patsubst %,imgs/mode-switch-%.pdf,$(ModeSwRoot))
 ExtraFigRoot= edf ipbench smp
 ExtraFigs= $(patsubst %,imgs/%.pdf,$(ExtraFigRoot)) $(ModeSwFigs)
-TexIncludes= $(wildcard data/generated/*.inc) $(wildcard *.tex) crit_includes micro_includes aes_includes
+TexIncludes= $(wildcard data/generated/*.inc) $(wildcard *.tex) crit_includes micro_includes aes_includes ${GEN_DIR}/mode_switch.inc
 # For ACM SIG camera ready submission. This will only work if Target
 # is a single identifier. You should then be able to use the "camera" target,
 # after setting CamRoot appropriately. Answer "no" for re-making references.bib
@@ -471,7 +471,7 @@ $(eval $(call process_crit_data,haswell))
 $(eval $(call process_crit_data,sabre))
 
 data/generated/mode_switch.inc: data/process_mode_switch.py ${GEN_DIR} $(wildcard data/mode-switch-*.json)
-	python3 $^ -o ${GEN_DIR}
+	python3 $< -o ${GEN_DIR}
 
 ${GEN_DIR}:
 	mkdir ${GEN_DIR}

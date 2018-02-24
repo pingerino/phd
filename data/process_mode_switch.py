@@ -69,16 +69,16 @@ def process_switch(outdir, benchmark):
     return results 
 
 def output_result(output, result, ulresult, key):
-    output.write('{:0.0f}'.format(result[key][0]))
+    output.write('{:0.0f} '.format(result[key][0]))
     if result[key][0] != ulresult[key][0]:
-        output.write('\\textbf{[')
+        output.write('\\textbf{')
         output.write('{:0.0f}'.format(ulresult[key][0] - result[key][0]))
-        output.write(']}')
-    output.write(' ({:1.1f}'.format(result[key][1]))
+        output.write('}')
+    output.write('& ({:1.1f}'.format(result[key][1]))
     if result[key][1] != ulresult[key][1]:
-        output.write('\\textbf{[')
-        output.write('{:1.1f}\t'.format(ulresult[key][1] - result[key][1]))
-        output.write(']}')
+        output.write('\\textbf{')
+        output.write(' {:0.1f}\t'.format(ulresult[key][1] - result[key][1]))
+        output.write('}')
     output.write(')\t') 
 
 def output_row(output, stage, crit, wcet, period, result, ulresult):
@@ -91,6 +91,7 @@ def output_row(output, stage, crit, wcet, period, result, ulresult):
     output.write('{:0.2f}'.format(wcet / period))
     output.write(' &\t')
     output_result(output, result[stage], ulresult[stage], 'jobs')
+    output.write(' &\t')
     output_result(output, result[stage], ulresult[stage], 'missed')
     output.write('\\\\ \n')
 
@@ -104,7 +105,7 @@ def output_rows(output, name, results, ulresults):
         wcet = {0: 25, 1: 51, 2: 127}
     elif name == "cjpeg":
         name = "jpeg"
-        desc = "JPEG encode/decode}"
+        desc = "JPEG encode/decode"
         crit = 1
         period = 100
         wcet = {0: 15, 1: 41, 2:41}
@@ -136,16 +137,12 @@ def main():
     user_level = process_switch(args.outdir, 'User-level')
 
     # now convert the results that we have into the output table. Put difference in bold. 
-    print(kernel)
-    print(user_level)
-
     with open(os.path.join(args.outdir, 'mode_switch.inc'), 'w') as output:
         output_rows(output, 'susan', kernel, user_level)
         output.write('\\midrule \n')
         output_rows(output, 'cjpeg', kernel, user_level)
         output.write('\\midrule \n')
         output_rows(output, 'madplay', kernel, user_level)
-
 
 if __name__ == '__main__':
     sys.exit(main())
