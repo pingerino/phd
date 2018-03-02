@@ -67,14 +67,15 @@ in autonomous vehicles. In such tasks, a minimum allocation of time to the task 
 while further allocations are \gls{SRT}.
 
 Various models exist to quantify permissible deadline misses in \gls{SRT} systems.  One measure is
-to consider the upper bound on how late a deadline miss may occur, referred to as
+to consider the upper bound of how much the deadline is missed, referred to as
 \emph{tardiness}~\citep{Devi:phd}.  Another is to express an upper bound on the percentage of
-deadline misses, which is easier to measure but less meaningful, as this allows for unbounded
-execution time.  Some \gls{SRT} systems allow deadlines to be skipped
+deadline misses permitted for the system to be considered correct, which is easier to measure but
+less meaningful. Some \gls{SRT} systems allow deadlines to be skipped
 completely~\citep{Koren_Shasha_95} while others allow deadlines to be postponed. Systems that allow
-deadlines to be skipped are often referred to as firm real-time.
+deadlines to be skipped are often referred to as firm real-time \eg media processing, where some
+frames can be dropped. 
 
-\emph{Best effort} tasks do not have temporal requirements that generally execute in the
+\emph{Best effort} tasks do not have temporal requirements, and generally execute in the
 background of a real-time system. Examples include logging services and standard applications, but
 may be far more complicated. Of course, any task must be scheduled at some point for system success,
 so there must be some timing guarantee. 
@@ -120,12 +121,13 @@ tasks, the arrival time can be at or beyond the release time.
     $A_{i}$           & A specific task in a task set \\
     $A_{ij}$          & A specific job of a specific task set. \\
     $T_{i}$           & The minimum period of a task, the minimum time between job releases. \\
-    $C_{i}$           & The execution requirement of a task ($C_{i} \leq T_{i}$). \\
+        $C_{i}$       & The \gls{WCET} of a task ($C_{i} \leq T_{i}$). \\
     $U_{i}$           & The maximum utilisation of task $i$, which is $\frac{C}{T}$ \\
     $D_{i}$           & The relative deadline of task $i$ \\
     $t_{ij}$          & The release time of the $j$th job of task $i$ \\
     $d_{ij}$          & The deadline for the $j$th job of task $i$. \\
     $a_{ij}$          & The arrival time of the $j$th job of task $i$, $a_{ij} \geq t_{ij}$ \\
+    $n$               & The number of tasks in a task set\\
     \bottomrule
     \end {tabular}
     \caption{Parameters and notation for the sporadic task model as used in this document.}
@@ -190,11 +192,12 @@ There is an absolute limit on task sets that are feasible which can be derived f
 utilisation. 
 The \emph{total utilisation} of a task set is the sum of all of the rates and must be less than the
 total processing capacity of a system for all deadlines to be met.
-For each processor in a system, this amounts to
-\begin{equation*}
-	\sum\limits_{i=0}^n \dfrac{e_{i}}{p_{i}} \leq 1
-\end{equation*}
-however if the inequality does not hold, the system is considered \emph{overloaded}. Overload
+For each processor in a system, this amounts to \cref{eq:1}.
+\begin{equation}
+    \label{eq:1}
+	\sum\limits_{i=0}^n \dfrac{C_{i}}{T_{i}} \leq 1
+\end{equation}
+If the inequality does not hold, the system is considered \emph{overloaded}. Overload
 can be \emph{constant}, in that it is all the time, or \emph{transient}, where the overload may be
 temporary due to exceptional circumstances.
 
@@ -227,12 +230,13 @@ also occurs for \gls{SRT} tasks as they may be variable in length. Slack also oc
 tasks where the actual arrival time varies from the minimum inter-arrival time. Many scheduling algorithms
 attempt to gain performance by reclaiming or stealing slack.
 
-Scheduling algorithms are referred to as either dynamic or fixed priority. A scheduling algorithm 
+Scheduling algorithms are classed as either dynamic or fixed priority. A scheduling algorithm 
 is \emph{fixed priority} if all the jobs in each task run at the same priority, which never changes. 
 \emph{Dynamic priority} scheduling algorithms assign priorities to jobs not tasked, based on some criteria. 
-Of the two definitive scheduling algorithms \acrlong{FP} \acrlong{RM} and \acrlong{EDF}, the former
-is fixed and the latter is dynamic. Both algorithms are defined along with
-schedulability tests for the periodic task model in the seminal paper by \citet{Liu_Layland_73}.
+There are two definitive scheduling algorithms: \gls{FPRM}, which has fixed priorities, and
+\gls{EDF}, which has dynamic priorities. Each is optimal for its respective scheduling class,  and both algorithms are defined along with
+schedulability tests for the periodic task model in the seminal paper by \citet{Liu_Layland_73}. We
+describe them briefly here. 
 
 % survey of scheduling algorithms (FP, EDF, PFAIR)
 \subsection{Fixed priority scheduling}
@@ -242,23 +246,39 @@ As the name implies, \gls{FP} scheduling involves assigning fixed priorities to 
 The scheduler is invoked when a job is released or a job ends.
 The job with the highest priority is always scheduled.
 
-Priority assignment such that all tasks meet their deadlines is the challenge present in \gls{FP} scheduling.
-Two well established techniques are rate monotonic and deadline monotonic, both of which are optimal with respect to \gls{FP} scheduling.
-\Gls{RM} priority assignment~\citep{Liu_Layland_73} allocates higher priorities to tasks with higher rates.
+Priority assignment such that all tasks meet their deadlines is the core challenge of \gls{FP} scheduling.
+Two well established techniques are \gls{RM} and deadline monotonic, both of which are optimal with respect to \gls{FP} scheduling.
+\Gls{RM} priority assignment~\citep{Liu_Layland_73} allocates higher priorities to tasks with higher
+rates---where \emph{rate} is determined by the period, as shown in \cref{eq:2}.
+\begin{equation}
+    \label{eq:2}
+	\dfrac{1}{T_{i}}
+\end{equation}
 
 Schedulability analysis for \gls{RM} priority assignment requires that deadlines are equal to periods.
 \Gls{DM} priority assignment~\citep{Leung_Whitehead_82} allocates higher priorities to tasks with shorter deadlines and relaxes this requirement.
 In both cases, ties are broken arbitrarily.
 The \gls{FP} scheduling technique itself is not optimal, as it results in algorithmic capacity loss
-and may leave up to 30\% of the processor idle.
-\cref{f:fp-schedule} shows an example \gls{FP}\gls{RM} schedule.
+and may leave up to 30\% of the processor idle. \cref{eq:3} shows the schedulability test for
+\gls{FPRM}, and \cref{eq:4} shows that the limit as the number of tasks in the task set ($n$) tends
+towards infinity.
+\cref{f:fp-schedule} shows an example \gls{FPRM} schedule.
 
-\begin{figure}[h!tb]
+\begin{equation}
+    \label{eq:3}
+    \sum\limits_{i=0}^n \dfrac{C_{i}}{T_{i}} \leq n(2^{\frac{1}{n}}-1)
+\end{equation}
+\begin{equation}
+    \label{eq:4}
+    \lim_{n \to \infty}n(\sqrt[n]{2}-1) = \ln_{} 2 \approx 0.693147...
+\end{equation}
+
+\begin{figure}
 	\begin{center}
 		\leavevmode
 		\includegraphics[width=\textwidth]{fpschedule}
 		\caption{An example FPRM schedule using the task set from Table \ref{tab:example_task_set}.}
-		\label{fig:fp-schedule}
+		\label{f:fp-schedule}
 	\end{center}
 \end{figure}
 
@@ -271,7 +291,7 @@ Priorities are assigned by examining the deadlines of each ready job; jobs with 
 \Cref{f:edf-schedule} illustrates how the task set in \cref{tab:example_task_set} is scheduled by
 \gls{EDF}, highlighting the places where tasks are scheduled differently from FPRM.
 
-\begin{figure}[h!tb]
+\begin{figure}
 	\begin{center}
 		\leavevmode
 		\includegraphics[width=\textwidth]{edfschedule}
