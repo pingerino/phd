@@ -17,7 +17,7 @@
 
 In this section we provide the background required to motivate and understand our research.
 We introduce real-time theory, including scheduling algorithms and resource sharing protocols.
-Finally we define operating systems, microkernels and introduce the concept of a resource kernel.
+In addition we define operating systems, microkernels and introduce the concept of a resource kernel.
 This thesis draws on all of these fields in order to support real-time and mixed-criticality systems.
 
 \section{Real-time theory}
@@ -28,18 +28,19 @@ on the results of computations, but on the time at which those results
 arrive~\citep{Stankovic_88}.  Essentially all software is real-time: if the software never gets
 access to processing time, no results will ever be obtained.  However, for a system
 to be considered real-time it must be sensitive to timing behaviour---how much processing time is
-allocated and when it is allocated. For basic software, time is
-fungible: it does not matter when the software is run, as long as it does get run.
+allocated and when it is allocated. For much software, time is
+fungible: it does not matter when the software is run, as long as it does get run. For 
+real-time software this is not the case.
 
 There are many ways to model real-time systems, which we touch on in the coming chapters. 
 
-\subsection{Types of real-time task}
+\subsection{Types of real-time tasks}
 
 The term \emph{task} in real-time theory is used to refer to a single instruction stream.  How tasks
 are realised by an operating system---as a processes or threads---is specific to the
 implementation.  Computations by tasks in real-time systems have deadlines which determine the
 correctness of the system. How those deadlines effect correctness depends on the category of the
-system, which can is generally referred to as \gls{HRT}, \gls{SRT}, or \emph{best effort}.
+system, which is generally referred to as \gls{HRT}, \gls{SRT}, or \emph{best effort}.
 
 \emph{Hard Real-Time} tasks have absolute deadlines; if a deadline is missed,
 the task is considered incorrect. \gls{HRT} tasks are most common in safety-critical systems, where
@@ -49,6 +50,10 @@ an airbag to be deployed too late.  In the latter, the autonomous vehicle could 
 that a \gls{HRT} task can meet deadlines, the code must be subject to {\gls{WCET}} analysis. State
 of the art {\gls{WCET}} analysis is generally pessimistic by several orders of magnitude, which
 means that allocated time will not generally be used completely, although it must be available.
+WCET is pessimistic for multiple reasons: firstly, much behaviour like interrupt arrival times, 
+cannot be predicted but only
+bounded, so the WCET includes the worst possible execution case. Secondly, accurate models of modern
+hardware are few, so often the WCET must assume caches are not primed and possibly conflicting. 
 Further detail about {\gls{WCET}} analysis can be found in \citet{Lv_GZDYZ_09}.
 
 \emph{Soft Real-Time} tasks, as opposed to \gls{HRT}, can be
