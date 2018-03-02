@@ -27,8 +27,8 @@ Real-time systems have timing constraints, where the correctness of the system i
 on the results of computations, but on the time at which those results
 arrive~\citep{Stankovic_88}.  Essentially all software is real-time: if the software never gets
 access to processing time, no results will ever be obtained.  However, for a system
-to be considered real-time it must be sensitive to timing behaviour -- how much processing time is
-allocated, and when it is allocated. For basic software, time is
+to be considered real-time it must be sensitive to timing behaviour---how much processing time is
+allocated and when it is allocated. For basic software, time is
 fungible: it does not matter when the software is run, as long as it does get run.
 
 There are many ways to model real-time systems, which we touch on in the coming chapters. 
@@ -36,7 +36,7 @@ There are many ways to model real-time systems, which we touch on in the coming 
 \subsection{Types of real-time task}
 
 The term \emph{task} in real-time theory is used to refer to a single instruction stream.  How tasks
-are realised by an operating system --- as a processes or threads --- is specific to the
+are realised by an operating system---as a processes or threads---is specific to the
 implementation.  Computations by tasks in real-time systems have deadlines which determine the
 correctness of the system. How those deadlines effect correctness depends on the category of the
 system, which can is generally referred to as \gls{HRT}, \gls{SRT}, or \emph{best effort}.
@@ -209,7 +209,7 @@ temporary due to exceptional circumstances.
 
 Ideally, task sets are scheduled such that the total utilisation is equal to the number of
 processors.  In practice, scheduling algorithms are subject to two different types of \emph{capacity
-loss} which render 100\% utilisation impossible --- algorithmic and overhead-related.
+loss} which render 100\% utilisation impossible---algorithmic and overhead-related.
 \emph{Algorithmic} capacity loss refers to processing time that is wasted due to the schedule used,
 due to a non-optimal scheduling algorithm.  \emph{Overhead-related} capacity loss refers to time
 spent due to hardware effects (such as cache misses, cache contention, and context switches) and
@@ -302,7 +302,7 @@ approximations can be made to reduce the complexity, although this comes with an
 may not be suitable for \gls{HRT} systems.  
 
 Both algorithms behave differently under constant
-overload --- \gls{EDF} allows progress for all jobs but at a lower rate, while \gls{FP} will
+overload. \gls{EDF} allows progress for all jobs but at a lower rate, while \gls{FP} will
 continue to meet deadlines for jobs with higher \gls{RM} priorities, completely starving other
 jobs. Whether these behaviours are desirable is subject to context.  Under
 transient overload conditions both algorithms can cause deadline misses.
@@ -579,8 +579,8 @@ secure communications must be used between distributed components.  This is curr
 general case, which has led to researchers demonstrating attacks on
 cars~\citep{Checkoway_MKASSKCRK_11}.
 
-Open systems are generally \emph{dynamic} -- where resource allocations are configured at run-time
-and can change, as opposed to closed systems which have \emph{fixed} or \emph{static} resource
+Open systems are generally \emph{dynamic}---where resource allocations are configured at run-time
+and can change---as opposed to closed systems which have \emph{fixed} or \emph{static} resource
 allocation patterns.
 
 %% introduce RTOSes

@@ -9,7 +9,7 @@ This section provides the details of the implementation in seL4.
 % TODO should the seL4 background section go here?
 
 Kernel changes include additions to the scheduler to support temporal isolation, scheduling contexts
-objects, system call API changes and a new mechanism -- scheduling context donation -- which supports bandwidth inheritance.
+objects, system call API changes and a new mechanism---scheduling context donation---which supports bandwidth inheritance.
 
 These changes allow user-level to construct systems with combinations of best-effort and real-time threads.
 We illustrate through example how threads can achieve resource sharing through reservation-per-thread, migrating threads or scheduling context donation policies.
@@ -115,7 +115,7 @@ Sporadic threads are more complex; the amount of replenishments is limited by bo
 
 Now we discuss changes to the kernel scheduler and how the new \glspl{SCO} interact which the
 scheduling algorithm to provide temporal isolation and asymmetric protection.
-We show how best-effort and real-time threads are supported by these changes, and consider \emph{rate-based} threads -- which are essentially best-effort threads with a kernel-enforced bound on maximum rate.
+We show how best-effort and real-time threads are supported by these changes, and consider \emph{rate-based} threads---which are essentially best-effort threads with a kernel-enforced bound on maximum rate.
 
 
 \tikzstyle{decision} = [diamond, draw,
@@ -656,7 +656,7 @@ Both faults are optional and no fault message will be delivered if the respectiv
 
 \subsection{Helping}
 
-We introduce a new mechanism to the kernel -- helping -- which implements bandwidth inheritance as discussed in \Cref{sec:bandwidth-inheritance}.
+We introduce a new mechanism to the kernel---helping---which implements bandwidth inheritance as discussed in \Cref{sec:bandwidth-inheritance}.
 Helping only occurs if a scheduling context runs out of budget, no temporal fault handler is registered for the current thread, and another thread has attempted to contact the stuck server.
 Bandwidth inheritance is supported to allow shared servers and phases to remain single threaded.
 
@@ -719,7 +719,7 @@ Nested budget expiry is illustrated in \Cref{fig:nested-budget-expiry}.
 
 This problem can also be solved through helping by following the chain of help-target TCBs and passing the scheduling context through the chain.
 This requires the addition of preemption points as it introduces a long-running operation.
-If the operation is preempted, the chain search will be abandoned until the thread is scheduled again, at which point the \call will be restarted (since anything could happen during the preemption -- the scheduling context for the server may be replenished).
+If the operation is preempted, the chain search will be abandoned until the thread is scheduled again, at which point the \call will be restarted (since anything could happen during the preemption---the scheduling context for the server may be replenished).
 
 \subsection{Server and activity initialisation}
 
@@ -803,7 +803,7 @@ User-level systems can build multi-threaded servers with migrating threads in th
 An additional thread runs at priority $p - 1$, whose purpose is to allocate stacks.
 If a client request comes in and no server thread is available to serve it, then the stack allocating thread will run, allocate a new stack and start a new server thread.
 The stack allocator will forward the client's scheduling context and request onto the new server thread, and wait on the endpoint again, using the new system call \sendwait.
-This is illustrated in \Cref{fig:migrating-threads} -- SA is the stack allocator, which creates server thread S after client C makes the first request.
+This is illustrated in \Cref{fig:migrating-threads}---SA is the stack allocator, which creates server thread S after client C makes the first request.
 
 Because the endpoint always has a thread waiting for messages (the stack allocator), the helping mechanism will not be triggered.
 This scenario relies on priority ordered \gls{IPC}, and the correct ceiling priorities assigned to servers.
