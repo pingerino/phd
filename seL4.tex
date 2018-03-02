@@ -33,26 +33,96 @@ signalling. \Cref{f:legend-1} shows the legend for diagrams in this section.
 
 As a capability-based \gls{OS}, access to any functionality in \selfour is via capabilities (recall
 \Cref{s:os-capabilities}). Capabilities to all system resources are passed to the initial task --- the first
-user level thread started in the system --- which can then allocate resources as appropriate.
+user-level thread started in the system --- which can then allocate resources as appropriate.
 Capabilities exist in a \emph{capability space} that can be configured per thread or shared between
-threads. Capability spaces are analogous to address spaces for virtual memory, although
-capabilities can be moved and copied between different spaces. 
+threads. 
 
-All capabilities can be copied, potentially changing their access rights, except \emph{control}
-capabilities, which can only be moved and not copied. Control capabilities provide the rights to do
-specific operations, \eg the \emph{interrupt control} capability is used to obtain a capability
-to a specific interrupt number.
+Capability spaces are analogous to address spaces for virtual memory, and are formed of
+\emph{CNodes} which contain capabilities. Where address spaces map virtual addresses to physical
+addresses, capability spaces map object ids to access rights.  CNodes are analogous to page tables
+in virtual memory, and can contain capabilities to further CNodes. A capability space address refers
+to an individual entry in some CNode in the capability space, and may be empty or contain a
+capability to a specific kernel resource. For brevity, a capability space address is referred to as
+a slot. 
 
+% access rights
+Each capability has three potential access rights: read, right and grant. How those rights affect
+the resource the capability provides access to depends on the type of resource, and is explained in
+the next section.
+
+% badges and operations
+Various operations can be done on capabilities, which are summarised in \cref{t:capability_ops}.
+When a capability is copied or minted, it is said to be \emph{derived} from the original capability.
+All derived capabilities can be deleted by using \code{revoke}.
+There are restrictions on which capabilities can be derived and under what conditions, depending on
+what the capability provides access to. 
+\emph{Badging} is a special type of derivation which allows specific capability types to be copied
+with an unforgeable identifier. We discuss derivation restrictions and the use of badges further
+in this chapter.
 Any individual capability can be deleted, or revoked. The former simply removes a specific
 capability from a capability space, the latter removes all child capabilities.
+
+\begin{table}
+    \centering
+    \rowcolors{2}{gray!25}{}
+    \begin{tabular}{l p{0.8\textwidth}}\toprule
+    \emph{Operation}    & \emph{Description}\\\midrule
+    \code{Copy}         & Create a new capability in a specified CNode slot, which is an exact copy
+                         of the other capability and refers to the same resource. \\
+    \code{Mint}         & Like copy, except the new capability may have diminished rights and/or be
+                          badged. \\
+    \code{Move}         & Move a capability from one slot to another slot, leaving the previous slot
+                          empty. \\
+    \code{Mutate}       & Like move, except the new capability may have diminished rights and/or be
+                          badged. \\
+    \code{Rotate}        & Atomically move two capabilities between three specified slots. \\
+    \code{Delete}        & Remove a capability from a slot. \\
+    \code{Revoke}        & Delete any capabilities derived from this capability. \\
+    \code{SaveCaller}    & Saves the kernel generated resume capability into the designated slot. \\
+    \bottomrule 
+    \end{tabular}
+    \caption{Summary of operations on capabilities provided by baseline \selfour~\citep{seL417}}.
+     \label{t:capability_ops}
+\end{table}
+
+
+\subsection{Kernel Resources}
+
+Capabilities provide access to specific objects, a brief summary of which is shown in
+\cref{t:kernel_objects}. While the majority of objects in \selfour have a platform-dependant size fixed at compile time, some
+are sized dynamically at runtime, \eg untyped and CNodes, which can be any power of two size.
+
+% table of object types 
+\begin{table}
+    \centering
+    \rowcolors{2}{gray!25}{}
+    \begin{tabular}{l p{0.6\textwidth}}\toprule
+    \emph{Object}    & \emph{Description}\\\midrule
+    CNode            & A fixed size table of capabilities. \\
+    \Gls{TCB}        & A thread of execution in \selfour.\\
+    Endpoint  & Ports which facilitate \gls{IPC}. \\
+    Notification object & Arrays of binary semaphores.\\
+    Vspace     & Top level paging structure. \\
+    PageTable  & Page table structures and address space IDs.\\
+    Page       & Mappable physical memory. \\
+    Interrupt & Allow access to specific hardware interrupts.\\
+    Untyped    & Memory that can be retyped into other types of memory, including untyped.\\
+    \bottomrule
+    \end{tabular}
+    \caption{Major object types in \selfour, excluding platform specific objects. For further detail
+    consult the \selfour manual~\citep{seL417}}.
+     \label{t:kernel_objects}
+\end{table}
+
+
 
 % control caps, normal caps
 % operations
 
 \subsection{Kernel memory management}
 
-All kernel memory in \selfour is managed at user-level and accessed via capabilities (recall
-\Cref{s:capabilities}, which is key to \selfour's isolation and security, but also essential for
+All kernel memory in \selfour is managed at user-level and accessed via capabilities
+which is key to \selfour's isolation and security, but also essential for
 understanding the complexity of kernel design.
 
 Capabilities to objects can be copied, which creates another capability to the same object,
@@ -68,40 +138,42 @@ types of memory, including further untyped, with an operation known as \emph{ret
 any object with a pointer to another object must have a back pointer to update should that object be
 deleted, in order to avoid stray pointers in the kernel. 
 
-% table of object types 
-\begin{table}
-    \centering
-    \rowcolors{2}{gray!25}{}
-    \begin{tabular}{l p{0.6\textwidth}}\toprule
-    \emph{Object}    & \emph{Description}\\\midrule
-    CNode            & A fixed size table of capabilities, analogous to a page table in a virtual
-                      memory system. \\
-    \Gls{TCB}        & A thread of execution in \selfour.\\
-    Endpoint  & Objects which facilitate \gls{IPC} between threads. \\
-    Notification object & Objects which provide a signalling mechanism.\\
-    VSpace     & A top level page table structure \\
-    Interrupt & Allow access to specific hardware interrupts.\\
-    Untyped    & Memory that can be retyped into other types of memory, including untyped.\\
-    \bottomrule
-    \end{tabular}
-    \caption{Major object types in \selfour, excluding platform specific objects. For further detail
-    consult the \selfour manual~\citep{seL417}}.
-     \label{t:kernel_objects}
-\end{table}
+\subsection{Untyped}
 
-\Cref{t:kernel_objects} gives an overview of basic object types in \selfour. 
-While the majority of objects in \selfour have a platform-dependant size fixed at compile time, some
-are sized dynamically at runtime, \eg untyped and CNodes, which can be any power of two size.
 
 \subsection{Thread control blocks}
 
-\Glspl{TCB} represent a unit of execution in \selfour and 
-consist of the core \gls{TCB} elements, and a CNode which contains a capability to that thread's CNode, vspace
-and \gls{IPC} buffer.
+\Glspl{TCB} represent an execution context and manage processor time in \selfour. Each \gls{TCB} is
+associated with a cspace and a top level virtual memory object, specified by capabilities, which may
+be shared with other threads. 
+Additionally threads have an IPC buffer, which is a page shared between the kernel and the thread
+for messages. 
+Threads have a timeslice attribute, which specifies the amount of milliseconds until that thread is
+preempted, and a priority for the fixed priority scheduler.
 
-\TODO{Add TCB fields}
+% table of tcb invocations
+\begin{table}
+    \centering
+    \rowcolors{2}{gray!25}{}
+    \begin{tabular}{l p{0.8\textwidth}}\toprule
+    \emph{Operation}    & \emph{Description}\\\midrule
+        \code{Resume}               & Place a thread in the scheduler.\\ 
+        \code{Suspend}              & Remove a thread from the scheduler.\\
+        \code{WriteRegisters}       & Configure a threads execution context.\\
+        \code{ReadRegisters}        & Read a threads execution context.\\
+        \code{SetAffinity}          & Set the CPU on which this thread should run.\\
+        \code{SetIPCBuffer}         & Set the page to use for the IPC buffer.\\
+        \code{SetPriority}          & Set the priority of this TCB.\\
+        \code{BindNotification}     & TODO \\
+    \bottomrule 
+    \end{tabular}
+    \caption{Summary of operations on TCBs. Further operations are available that batch several
+    setters to reduce thread configuration overheads.}.
+     \label{t:tcb_ops}
+\end{table}
 
-\subsection{IPC}
+
+\subsection{Endpoints}
 \label{s:ipc}
 
 \gls{IPC} is the microkernel mechanism for synchronous transmission of data and capabilities. In the \selfour model,
