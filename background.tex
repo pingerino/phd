@@ -523,13 +523,15 @@ common interface to applications.  The \emph{kernel} is the part of the operatin
 operates with privileged access to the processor(s) in order to safely perform tasks that allow
 applications to run independently of each other.
 
-Common \glspl{OS}, such as Windows, Mac OS X and Linux, are \emph{monolithic} operating systems,
+Common \glspl{OS}, such as Windows, MacOS and Linux, are \emph{monolithic} operating systems,
 which means that many services required to run applications are inside the kernel.  A \emph{microkernel}
 attempts to minimise the amount of code running in the kernel in order to reduce the amount of
 trusted code.  Figure \ref{fig:os-microkernel} illustrates the difference between monolithic
 \glspl{OS} and microkernels.  Modern microkernel implementation is guided by the minimality
 principle~\citep{Liedtke_95} which aims to provide minimal mechanisms to allow resource servers to
-function, leaving the rest of the policy up to the software running outside of the kernel.
+function, leaving the rest of the policy up to the software running outside of the kernel. According
+to the minimality principle, if a service does not need to be in the kernel to achieve its'
+functionality, it should not be in the kernel.
 
 \begin{figure}[tb]
 	\begin{center}
@@ -541,9 +543,9 @@ function, leaving the rest of the policy up to the software running outside of t
 \end{figure}
 
 Monolithic operating systems provide scheduling, \gls{IPC}, device drivers, memory allocation, file
-systems and other services in the kernel, resulting in a large trusted computing base. While there 
-is no rule on which services and utilities are included in a microkernel, it is generally a subset
-of these. Which services and utilities are included as part of the microkernel varies per implementation. In
+systems and other services in the kernel, resulting in a large \emph{trusted computing base}.
+Interpretations of the minimality principle varies, 
+consequently which services and utilities are included in the privileged kernel varies. In
 larger kernels thread scheduling, memory allocation and some device drivers are included in the kernel.
 For example, \selfour~\citep{Klein_EHACDEEKNSTW_09} contains a scheduling, \gls{IPC}; 
 \composite~\citep{Parmer:phd} does not provide a scheduler. 
@@ -554,11 +556,29 @@ Services on top of the microkernel can be isolated and assigned different levels
 the services in a monolithic \gls{OS} which all run at the same privilege level such that a fault in
 one service can compromise the entire system. 
 
-Many security focused microkernels make use of \emph{capabilities}~\citep{Dennis_VanHorn_66}, an
+\subsection{Capabilities}
+
+Many security-focused microkernels make use of \emph{capabilities}~\citep{Dennis_VanHorn_66}, an
 established mechanism for fine-grained access control to spatial resources which allow for spatial
-isolation. A capability is a unique, unforgeable token that gives the possessor permission to access
+    isolation. A capability is a unique, unforgeable token that gives the possessor permission to access
 an entity or object in system. Capabilities can have different levels of access rights, e.g. read,
-write, execute etc.
+write, execute etc. 
+
+By combining access rights with object identifiers capabilities avoid the
+confused deputy problem, a form of privilege escalation where a deputy program
+acting on behalf of a client is  tricked into using
+its own rights to manipulate a resource that the client would not normally have access
+to~\citep{Hardy_88}. 
+
+\subsection{IPC}
+
+\gls{IPC} is the microkernel mechanism for synchronous transmission of data and capabilities between
+processes. Because the microkernel model provides services encapsulated into user-level servers,
+\gls{IPC} is key to microkernel performance, as it is used for more predominantly than in monolithic
+\glspl{OS}. Originally, microkernels were criticised as impractical due to inefficient IPC
+implementations, however this was demonstrated to be false~\citep{Hartig_HLSW_97} with the
+development of very fast microkernels with optimised code paths for IPC, referred to as \emph{fastpaths}. 
+
 
 \subsection{Open vs. Closed Systems}
 
@@ -605,7 +625,7 @@ an \gls{RTOS}, one application having exclusive access to a resource cannot be a
 deadline miss.  Similarly, the \gls{RTOS} itself cannot cause a deadline miss.  This means that all
 operations in the \gls{RTOS} must either be bounded with known {\gls{WCET}} or the \gls{RTOS} must
 be fully preemptible.  However, it must be noted that a fully preemptible \gls{OS} is completely
-non-deterministic, making correctness impossible to guarantee~\citep{Blackham_TH_12}.  The overheads
+non-deterministic, making correctness impractical to guarantee~\citep{Blackham_TH_12}.  The overheads
 of \gls{RTOS} operations like interrupt handling and context switching must also be considered when
 determining whether deadlines can be met.
 

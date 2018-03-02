@@ -176,7 +176,7 @@ preempted, and a priority for the fixed priority scheduler.
 \subsection{Endpoints}
 \label{s:ipc}
 
-\gls{IPC} is the microkernel mechanism for synchronous transmission of data and capabilities. In the \selfour model,
+In the \selfour model,
 \gls{IPC} takes place via endpoints, which represent a general communication port. Any thread with a
 capability to an endpoint can send and receive messages on that endpoint, subject to the access
 rights. Most messages sent fit into registers, however messages exceeding this platform dependent
