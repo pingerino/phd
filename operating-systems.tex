@@ -281,7 +281,7 @@ provide static partitioning.
 \centering
 \rowcolors{2}{}{gray!25}
 \begin{tabular}{lll}\toprule
-  \emph{OS} & \emph{Scheduler}  & \emph{Isolation} \\\midrule
+  \emph{OS} & \emph{Scheduler}  & \emph{Temporal Isolation} \\\midrule
 Linux       & \gls{FP} + \gls{EDF} & \gls{CBS} \\
 RTEMS       & \gls{FP} + \gls{EDF} & \gls{CBS} \\
 FreeRTOS    & \gls{FP}             & \no       \\
@@ -404,79 +404,9 @@ forces the use of \gls{PIP}, which has high preemption overhead. This conflicts 
 policy-freedom goal of a microkernel; out claim is \gls{PIP} does not belong in the kernel. 
 
 \subsection{Accounting}
-\label{s:tick-v-tickless}
 
-There are two ways to account for time in a kernel:  
-\begin{description}
-    \item[tick-based] in fixed time quanta, referred to as \emph{ticks},
-    \item[tickless] in cycles between specific events. 
-\end{description}
-
-In a tick-based kernel, timer interrupts are set for a periodic tick and are handled even if no
-kernel operation is required.
-This approach has advantages: the timer in the kernel is stateless and never has to be
-reprogrammed, rendering it very simple, fast and easy to verify.
-However, such simplicity comes with a cost of reduced precision and greater preemption
-overhead.
-The greater the desired precision in a tick-based kernel, the smaller the size of the tick quanta,
-and the higher the preemption overhead, and vice-versa.
-
-Tickless kernels set timer interrupts for the exact time of the next event.  This approach affords
-greater precision and results in no more preemption overhead than is required by the workload.
-
-The imprecision inherent in tick-based kernels is further complicated by the accounting requirements
-needed to implement temporal isolation. For example, signals and other
-preemptions bill the partially consumed tick to the preempting thread, which will suffer a shorter timeslice.
-Similarly on \gls{IPC},  which we demonstrate in the following example. 
-
-Consider the case where threads $A$ and $B$, both at the same priority, and are
-exchanging IPC messages constantly.  Another thread $C$ is running at the same
-priority, and all threads have 5 ticks left in their timeslice.  $C$ will be scheduled
-when one threads timeslice is exhausted, \ie when either $A$ or $B$ has been
-preempted 5 times.  As a result $C$ could be
-scheduled after at minimum of 5 ticks (if one of the
-\gls{IPC} partners is preempted for every tick, or at maximum of 9
- ticks (if both partners are preempted for
-ticks), as $C$ is only scheduled when one of the IPC partners has fully exhausted its timeslice.
-This example is illustrated in \cref{fig:non-determinism}.
-
-\TODO{this diagram sucks}
-\begin{figure}
-      \centering
-      \begin{tikzpicture}[x=1cm]
-
-          \draw[->,thick,>=latex] (0,0) -- (10,0) node[below right] {$time$};
-          \draw[thick] (0,0) -- ++(0,5pt) node[above] {A};
-          \draw[thick] (1,0) -- ++(0,5pt) node[above] {B};
-          \draw[thick] (2,0) -- ++(0,5pt) node[above] {\textbf{A}};
-          \draw[thick] (3,0) -- ++(0,5pt) node[above] {B};
-          \draw[thick] (4,0) -- ++(0,5pt) node[above] {A};
-          \draw[thick] (5,0) -- ++(0,5pt) node[above] {\textbf{B}};
-          \draw[thick] (6,0) -- ++(0,5pt) node[above] {A};
-          \draw[thick] (7,0) -- ++(0,5pt) node[above] {B};
-          \draw[thick] (8,0) -- ++(0,5pt) node[above] {\textbf{A}};
-          \draw[thick] (9,0) -- ++(0,5pt) node[above] {C};
-
-          \node[below,align=left,anchor=north,inner xsep=0pt] at (5,0)
-              {Worst case - C scheduled after 3 ticks};
-
-          \draw[->,thick,>=latex] (0,2) -- (10,2) node[below right] {$time$};
-          \draw[thick] (0,2) -- ++(0,5pt) node[above] {A};
-          \draw[thick] (2,2) -- ++(0,5pt) node[above] {\textbf{B}};
-          \draw[thick] (3.5,2) -- ++(0,5pt) node[above] {A};
-          \draw[thick] (5,2) -- ++(0,5pt) node[above] {\textbf{B}};
-          \draw[thick] (6,2) -- ++(0,5pt) node[above] {C};
-
-          \node[below,align=left,anchor=north,inner xsep=0pt] at (5,2)
-              {Best case - C scheduled after 2 ticks};
-      \end{tikzpicture}
-      \caption{Scheduling in the case of IPC and variable execution times. A
-and B are IPC partners, C is a third thread. A, B and C run at the same
-priority. All threads have a timeslice of 5. Bold indicates the thread that is
-preempted by the timer tick. In the best case, B takes both timer ticks and C
-is scheduled after 5 ticks. In the worst case, A takes 4 ticks and B takes 5,
-such that C is scheduled after 9 ticks.} \label{fig:non-determinism}
-  \end{figure}
+\TODO{Rewrite, describe where time is accounted to: the client or server, and explain the
+difference}.
 
 \subsection{Capabilities to time}
 \label{s:os-capabilities}

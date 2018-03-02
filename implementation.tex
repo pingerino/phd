@@ -158,11 +158,37 @@ scheduling.
 
 \subsection{Tickless}
 
-We convert \selfour from a tick-based to a tickless kernel in order to reduce preemptions and
+There are two ways to account for time in a kernel:
+\begin{description}
+    \item[tick-based] in fixed time quanta, referred to as \emph{ticks},
+    \item[tickless] in cycles between specific events.
+\end{description}
+
+In a tick-based kernel, timer interrupts are set for a periodic tick and are
+handled even if no kernel operation is required.  This approach has advantages:
+the timer in the kernel is stateless and never has to be reprogrammed,
+rendering it very simple, fast and easy to verify.  However, such simplicity
+comes with a cost of reduced precision and greater preemption overhead.  The
+greater the desired precision in a tick-based kernel, the smaller the size of
+the tick quanta, and the higher the preemption overhead, and vice-versa.
+Additionally,
+
+Tickless kernels set timer interrupts for the exact time of the next event.
+This approach affords greater precision and results in no more preemption
+overhead than is required by the workload.  A tickless model offers less
+overheads and more precision to real-time tasks, which suffer \gls{WCET}
+penalties for every preemption.  Additionally, we show in show in
+\cref{s:eval-timer}, that the cost of reprogramming a timer has significantly
+decreased on modern hardware.
+
+Therefore, to increase precision and reduce interrupt overhead, we convert \selfour from a tick-based
+ to a tickless kernel in order to reduce preemptions and
 improve scheduling precision, as discussed in \Cref{sec:tick-v-tickless}.
-As \selfour is non-preemtible (save for explicit preemption points in a few long-running
+As \selfour is non-preemptible (save for explicit preemption points in a few long-running
 operations), tickless kernel design is non-trivial, as preemption interrupts cannot interrupt the
 kernel itself.
+
+\subsection{Algorithm}
 
 The main change required to the existing scheduler is the addition of a \emph{release queue} per
 processing core. If a

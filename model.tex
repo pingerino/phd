@@ -199,24 +199,21 @@ orthogonal will become evident in \cref{s:locking}.
 \subsection{Accounting}
 
 We introduce a new invariant that the currently running thread must have a scheduling context 
-with available budget. Any time executed on a processor is billed to the current threads scheduling
+with available budget, as all time consumed is billed to the current scheduling context.
+Any time executed on a processor is billed to the current threads scheduling
 context. We specifically do not cater for dynamic frequency scaling and ensure that it is turned off
-during testing -- this is out of scope and a topic for future work.
-
-We account for processing time using processor cycles, as opposed to fixed time ticks, as discussed
-in \cref{s:tick-v-tickless}. A tickless model offers less overheads and more precision to real-time 
-tasks, which suffer \gls{WCET} penalties for every preemption. Additionally, the evaluation will
-show in \cref{s:eval-timer}, the cost of reprogramming a timer has significantly decreased on modern hardware. 
+during testing --- this is out of scope and a topic for future work. 
 
 \subsection{Enforcement}
 
-Our model offers two options for enforcement: threads can have an optional timeout fault endpoint,
-otherwise the kernel will not permit threads to exceed their budget. 
+Our model offers a single mechanism for enforcement: threads can have an optional timeout fault
+endpoint.
 If a timeout fault endpoint is provided, a fault message is sent to that endpoint should that thread
 exhaust its budget, allowing the system to enact an enforcement policy.
+Threads without a timeout fault endpoint are not schedulable until their budget is replenished.
 
 The timeout fault
-handler is separate from the existing thread fault endpoint, as the semantics are different. For the
+endpoint is separate from the existing thread fault endpoint, as the semantics are different. For the
 existing fault handler threads block if a fault occurs if no fault handling endpoint exists. In the
 case of a timeout fault handler, the thread remains runnable and is only blocked if a fault message
 is delivered to the timeout fault endpoint. Otherwise, the kernel will not block the thread but
