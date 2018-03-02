@@ -268,10 +268,15 @@ applications is limited to the ARINC653 approach discussed in \cref{p:arinc}.
 
 \subsection{Summary}
 
-The vast majority of \glspl{OS} provide fixed-priority scheduling. Resource reservations and
-\gls{EDF} are more common in research OSes, whilst commercial and open source products are heavily
-influenced by ARINC 653 and provide static partitioning. 
-
+While real-time literature is divided between which real-time scheduling algorithm should be
+deployed as the core of real-time systems (\gls{EDF} or \gls{FP}), no such divide exists in industry
+where the vast majority of \glspl{OS} provide \gls{FP}.  \gls{FP} is far more dominant due to its
+inclusion in \gls{POSIX} and its compatibility with existing, priority-based best effort systems and
+its predictable behaviour on overload.  Except in a pure research sense, kernels that provide
+\gls{EDF} do so in addition to \gls{FP}.  Resource reservations and \gls{EDF} are more common in
+research OSes, whilst commercial and open source products are heavily influenced by ARINC 653 and
+provide static partitioning. 
+    
 \begin{table}
 \centering
 \rowcolors{2}{}{gray!25}

@@ -66,7 +66,10 @@ contain the following:
 
 \glspl{SCO} are variable sized objects that represent access to a certain amount of time and
 consist of a core amount of fields, and a circular buffer to track the consumption of time.
-Each \gls{SCO} is 256 bytes in size, at minimum, and the core fields are as follows:
+Each \gls{SCO} is minimum $2^{8}$ bytes in size, which can hold eight or ten replenishments for 32
+and 64-bit processors respectively. This is sufficient for most uses, but more replenishments can
+be supported by larger sizes, allowing system designers to trade
+
 
 \TODO{diagram of scheduling context layout}
 
@@ -449,6 +452,7 @@ We then illustrate through example how reservation-per-thread, thread-migrating 
 
 \subsection{Endpoints}
 
+\TODO{Partially repeats section 5.1.4}
 \Gls{IPC} in seL4 is conducted through endpoints, which do not denote a specific receiving or sending thread, but act as arbitrary communication endpoints.
 Any thread with an endpoint capability can send or receive messages on that capability: if two threads send and receive messages on the same endpoint, then a communication rendezvous occurs and a message is send.
 

@@ -96,7 +96,7 @@ All platforms excluding \textsc{KZM} have a 64-bit timer available, making \text
 timer overflow interrupts, which are not measured as \textsc{KZM} is a deprecated platform provided for comparison
 with modern ARM versions.
 
-\textsc{Sabre} and \textsc{KZM} both use memory mapped timers, the 32-bit general purpose time for the former and
+\textsc{Sabre} and \textsc{KZM} both use memory mapped timers, the 32-bit general purpose timer for the former and
 64-bit ARM global timer for the latter. \textsc{Sabre} has four cores and the timer registers are banked,
 making access fast for each core. Timer access on \textsc{Sabre} is significantly faster than the
 \textsc{KZM}. 
@@ -104,11 +104,12 @@ making access fast for each core. Timer access on \textsc{Sabre} is significantl
 For all other ARM platforms, the ARM generic timers are available, which are accessed via the
 coprocessor. The vast majority of new ARM platforms support the generic timers. 
 
-On \textsc{x64} we use the \gls{TSC} with \gls{TSC}-deadline mode~\citep{Intel_64_IA-32:asdmspg_325384}, an architectural \gls{MSR} available since
+On \textsc{x64} we use the \gls{TSC} with \gls{TSC}-deadline
+mode~\citep{Intel_64_IA-32:asdmspg_325384}, an architectural \gls{MSR} available since
 Intel SandyBridge by which a local-APIC timer interrupt is triggered when the \gls{TSC} matches the
 programmed value. 
 
-While \Cref{t:evaluation-timer} shows the instruction latency of each timer operation, in practice, especially
+While \Cref{t:evaluation-timer} shows the instruction latency of each timer operation. In practice, especially
 for \textsc{x64}, these operations are subject to pipeline parallelism and out-of-order execution, which
 reduces the overhead.
 
@@ -154,7 +155,7 @@ active threads.
 % TODO atom
 % TODO ia32
 \end{tabular}
-\caption{Microbenchmarks of \selfour fastpath \gls{IPC}.}
+\caption{Time in cycles for \selfour fastpath \gls{IPC}.}
 \label{t:fastpath-ipc-micro}
 \end{table}
 
@@ -206,7 +207,7 @@ the resume capability, the ordered IPC checks, and accessing the \gls{SCO} and r
 % TODO atom
 % TODO ia32
 \end{tabular}
-\caption{Microbenchmarks of \selfour slowpath \gls{IPC} between passive threads.}
+\caption{Time in cycles \selfour slowpath \gls{IPC} between passive threads.}
 \label{t:slowpath-ipc-micro}
 \end{table}
 
@@ -216,7 +217,7 @@ Finally we show the cost of slowpath IPC between two active threads, where both 
 callee have a scheduling context. In addition to the
 overheads of \cref{eval:slowpath}, we must bill and change the scheduling context and reprogram the
 timer. On \textsc{x64}, reprogramming the timer uses \gls{TSC}-deadline mode, which is programmed via the
-model specific registers and is also very fast. On ARM, we evaluate the cost of reading the timer
+model specific registers and is also very fast. On ARM, we evaluate the cost of reprogramming the timer
 with a hot cache as 36 cycles. 
 %TODO what the hell is the rest of the overhead
 % get instruction counts
@@ -239,7 +240,7 @@ with a hot cache as 36 cycles.
 % TODO atom
 % TODO ia32
 \end{tabular}
-\caption{Microbenchmarks of \selfour slowpath \gls{IPC} between active threads.}
+\caption{Time in cycles for \selfour slowpath \gls{IPC} between active threads.}
 \label{t:slowpath-ipc-active-micro}
 \end{table}
 
@@ -252,7 +253,7 @@ endpoint, which a fault handling thread blocks on, waiting for any fault message
 To measure the fault handling cost, we run two threads in the same address space: a fault handler
 and a faulting thread, with the same priority.
 We trigger a fault by executing an undefined instruction in a loop on the faulting thread's
-side. The fault handler then increments the instruction pointer by the side of of the undefined
+side. The fault handler then increments the instruction pointer past the undefined
 instruction, and the benchmark continues. The fault handler is passive, so no scheduling context
 switch occurs. 
 
@@ -275,7 +276,7 @@ and the extra lookup of the resume object add overhead.
     \faultmicro{ia32}{ia32}
     \bottomrule
 \end{tabular}
-\caption{Microbenchmarks of \selfour fault \gls{IPC} between passive threads.}
+\caption{Time in cycles of \selfour fault \gls{IPC} between passive threads.}
 \label{t:slowpath-fault-micro}
 \end{table}
 
@@ -305,7 +306,7 @@ is to a higher priority thread.
     \irqmicro{ia32}{ia32}
     \bottomrule
 \end{tabular}
-\caption{Microbenchmarks of \selfour signal and IRQ latency on \selfour baseline vs. MCS kernels. Standard deviations
+\caption{Time in cycles of \selfour signal and IRQ latency on \selfour baseline vs. MCS kernels. Standard deviations
 shown in brackets.}
 \label{t:micro-irq}
 \end{table}
@@ -313,7 +314,7 @@ shown in brackets.}
 The \code{signal()} operation signals a Notification object (semaphore). This microbenchmark
 evaluates the cost of signalling a lower priority thread, a common operation for interrupt service
 routines. We have added an experimental fastpath to both the base and \gls{MCS} kernels, which shows
-that when the scheduler is used and a thread switch does not occur, there is no overhead at all.
+that when the scheduler is not used and a thread switch does not occur, there is no overhead at all.
 
 \subsection{Scheduling}
 
@@ -334,7 +335,7 @@ that when the scheduler is used and a thread switch does not occur, there is no 
     \schedulemicro{ia32}{ia32}
     \bottomrule
 \end{tabular}
-\caption{Microbenchmarks of \selfour IPC scheduling costs.}
+\caption{Time in cycles of \selfour IPC scheduling costs.}
 \label{t:micro-schedule}
 \end{table}
 
@@ -349,25 +350,25 @@ undisciplined timeslice donation), is designed to minimise the need for
 invoking the scheduler, therefore this increase is unlikely to have
 a noticeable effect in practice. In fact, the \(O(1)\) scheduler is a
 recent addition to \selfour: scheduling used to be far more expensive.
+\TODO{mention this in the seL4 chapter}. 
 
 
+\subsection{Multicore}
 
-\subsection{SMP}
-
-We run two SMP benchmarks, the first evaluating SMP throughput of the MCS kernel vs. the
+We run two multicore benchmarks, the first evaluating multicore throughput of the MCS kernel vs. the
 baseline kernel, the second based on our shared server \gls{AES} case study to demonstrate the
 multicore model. 
 
 \subsubsection{Throughput}
 
-We run an SMP throughput benchmark to show that our MCS model
+We run an multicore throughput benchmark to show that our MCS model
 avoids introducing scalability problems on multiple cores compared to the baseline kernel.
 We modify the
-existing SMP IPC throughput benchmark for \selfour to run on the MCS kernel. 
+existing multicore IPC throughput benchmark for \selfour to run on the MCS kernel. 
 At time of writing, only \textsc{x64} and \textsc{sabre} have \selfour multiprocessor support, 
 consequently these are the platforms used for the benchmark.
 
-The existing SMP benchmark measures IPC throughput of a client and server, both 
+The existing multicore benchmark measures IPC throughput of a client and server, both 
 pinned to the same processor, sending fastpath, 0 length IPC messages of via \call
 and \replyrecv. One pair of client and server is set up per core. Both threads are
 the same priority and the messages are 0 length. Each thread spins for a random amount
@@ -384,7 +385,7 @@ per-core state, with no extra shared state between cores.
 \begin{figure}[ht] 
     \centering
     \includegraphics{smp}
-    \caption{Results of the SMP IPC throughput benchmark, baseline \selfour vs MCS. 
+    \caption{Results of the multicore IPC throughput benchmark, baseline \selfour vs MCS. 
         Each series is named \textit{name-N}, where \textit{name} is \textit{base} and \textit{mcs} for 
         the baseline and MCS kernel respectively, and \textit{N} is the upper
         bound on the number of cycles between each IPC for that series.}
@@ -647,7 +648,7 @@ An example emergency protocol follows:
 
 \begin{enumerate}\label{e:emergency}
     \item Fault is received by timeout handler.
-    \item Unbind client scheduling context from server.
+    \item Unbind client scheduling context from server. \TODO{clarify who does what}
     \item Bind server with emergency budget.
     \item Reply to the timeout fault, which restarts the server.
     \item Enqueue the timeout handler itself, with an empty sized request, in the servers
@@ -717,7 +718,7 @@ We next demonstrate temporal isolation in the server by using the rollback
 technique and measuring the time taken to encrypt 10 requests of 4\,MiB of
 data. \autoref{f:aes} shows the result with both clients having the same
 period, which we vary between 10\,ms and 1000\,ms.
-In each graph  we vary the clients' budget between 0 and the
+In each graph we vary the clients' budgets between 0 and the
 period. The extreme ends are special, as one of the clients has a full
 budget and keeps invoking the server without ever getting rolled back,
 thus monopolising the processor. In all other cases, each client
@@ -905,14 +906,15 @@ implementing different policies on top of the base scheduler is quite feasible.
     \label{f:edf}
 \end{figure}
 
-\subsection{SMP}
+\subsection{multicore}
 
 \TODO{diagrams}
 
 We use the \gls{AES} shared server from \cref{s:server-isolation} to demonstrate how our MCS
-mechanisms can be deployed in an SMP scenario with shared servers with each client requesting 1MB of 
+mechanisms can be deployed in an multicore scenario with shared servers with each client requesting 1MB of 
 data to be encrypted. We set up the following case studies:
 
+\TODO{update to multi and single}
 \begin{description}
     \item[1-passive] the AES server has a single passive thread, which waits on a single endpoint
         and migrates to the core of the active client over IPC, effectively serialising access to the server.
@@ -928,7 +930,7 @@ not involve synchronisation.
 \begin{figure}[ht] 
     \centering
     \includegraphics{smp_aes}
-    \caption{Results of the AES shared server SMP case study. 1-passive shows results for a single
+    \caption{Results of the AES shared server multicore case study. 1-passive shows results for a single
         passive server thread migrating between cores to service clients while N-passive has one
         passive thread per core. For both series, the number of clients is equal to the number of
         cores. }

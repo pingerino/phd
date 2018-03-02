@@ -32,14 +32,21 @@ Our design goals are as follows:
         into a particular resource-management policy. In particular, it
         should support a wide range of scheduling policies and
         resource-sharing models, such as locking protocols.
-i%    \item[Explicit notion of criticality] that is separate from priority /
+%    \item[Explicit notion of criticality] that is separate from priority /
  %                   time sensitivity.
     \item[Efficient:] The model should add minimal overhead over the best
                       existing implementations. In particular, it should be compatible
                         with fast IPC implementations in high-performance microkernels.
 
-    \item[Asymmetric Protection:] The model should allow for asymmetric protection, where high
+    \item[Temporal isolation:] The model must allow system designers to create systems where a
+        temporal failure in one component cannot cause a temporal failure in another part of the
+        system, even in the case of shared resources.
+
+    \item[Overcommitment:] The model must allow systems to be specified that are not necessarily
+        schedulable: as the degree and nature of overcommitment is a core policy of a particular
+        system. Overcommitment is also key to providing  asymmetric protection, where high
         criticality tasks can disrupt low criticality tasks.
+
     \item[Safe resource sharing:] mechanisms for sharing between applications of time sensitivity
         and criticality.
 \end{description}
@@ -61,22 +68,21 @@ divided as to whether resource kernel mechanisms should be provided by the kerne
 
 The goals of resource kernels do not directly align with that of microkernels in general.  This is
 because microkernels do not directly manage all resources in the system, but provide mechanisms for
-the system designer to implement custom resource management policies.  In fact, in the context of a
-microvisor, the resource managers may actually be OS guests.
+the system designer to implement custom resource management policies.  
 
 In \selfour, mechanisms for physical memory, device memory, interrupt and \IO port management are
 exposed to the user via the capability system, as outlined in \cref{chap:sel4}. As a result, the
 only resource that the kernel needs to provide reservations for is processing time.  We now examine
 how each of the four resource kernel mechanisms are implemented in our model.
 
-\subsection{Scheduling algorithm}
+\subsection{Scheduling}
 
-Our model retains a scheduler in the kernel, and that scheduler is fixed-priority, as per previous
-incarnations of L4. 
-The kernel will not adjust priorities on its own, but they can be changed with a
-system call. 
-The scheduling algorithm also remains with priority determining what is scheduled next, \ie the
-highest-priority runnable (not blocked) thread.
+There are two design choices relevant to scheduling:
+
+\begin{itemize} 
+    \item Should a scheduler be provided in the kernel at all? 
+    \item Should the scheduling algorithm be fixed (\gls{FP}) or dynamic (\gls{EDF}) priority?
+\end{itemize}
 
 \subsubsection{Kernel scheduling}
 
@@ -100,33 +106,24 @@ However we maintain this is not the case, which comes down to our choice of fixe
 
 \subsubsection{Fixed priorities}
 
+Our model uses \gls{FP} scheduling as a core part of the kernel, with the addition of mechanisms
+that allow for the efficient implementation of user-level schedulers.
 We choose \gls{FP} over \gls{EDF} for three reasons; 
 fixed-priority is dominant in industry
 as shown in \cref{chap:operating-systems} and maps well to \gls{FP} with \gls{RM} priority assignment; and dynamic scheduling policies like
 \gls{EDF} can be implemented at user level; and \gls{FP} has defined behaviour on overcommitted
 systems.
 
-Real-time literature is utterly divided between which real-time scheduling algorithm should be
-deployed as the core of real-time systems, \gls{EDF} or \gls{FP}.  In the systems community,
-\gls{FP} is far more dominant due to its inclusion in \gls{POSIX} and its compatibility with
-existing, priority-based best effort systems.  Support for \gls{FP} is important as it is most
-prevalent in industry.  
+\gls{EDF} scheduling can be implemented by using a single priority for EDF's dynamic priorities, as we
+will demonstrate in \cref{s:edf-impl}.
 However the opposite is not true: mapping the dynamic priorities of EDF to a fixed-priority
 is non-trivial and would come with high overheads. 
-Our approach is consistent with existing designs in Linux  and ADA\citep{Burns_Wellings:crtpa}, which
+Our approach is consistent with existing designs in Linux  and ADA~\citep{Burns_Wellings:crtpa}, which
 support both scheduling algorithms, usually with \gls{EDF} at a specific priority.
-
-Therefore our model uses \gls{FP} scheduling as a core part of the kernel.  \gls{EDF}
-scheduling can be implemented by using a single priority for EDF's dynamic priorities, as we
-demonstrate in \cref{s:edf-impl}.
 
 We do not consider Pfair scheduling (recall \cref{s:pfair}) an option, as its high interrupt
 overheads and fairness properties are not suitable for hard real-time systems.  Again however, it is
 possible to implement a Pfair scheduler at user level.
-
-Our approach is a hybrid of that taken by \composite compared to resource kernels. We provide
-mechanisms for user-level scheduling, but also provide a basic scheduler suitable for many
-applications. 
 
 The final reason to base the approach on fixed priorities is the ability
 to reason about the behaviour of an
@@ -141,7 +138,7 @@ and the degree of overcommitment may depend on the mix of hard RT,
 soft RT and best-effort threads. Such policy should be defined and
 implemented at user level rather than in the kernel.
 
-As indicated in \autoref{s:theory}, the result of overcommitting in an
+As discussed in \autoref{s:overload}, the result of overload in an
 EDF-based system is hard to predict, and such a system is hard to
 analyse. In contrast, with fixed priority the result is easy to
 understand: If the sum of utilisations of threads at priority \(\geq
@@ -156,9 +153,9 @@ criticality changes.
 At the core of the model is the \emph{\gls{SC}} as the
 fundamental abstraction for time allocation, and the basis of 
 the enforcement and accounting mechanisms in our model.
-An \gls{SC} is a representation
+A \gls{SC} is a representation
 of a reservation in the object-capability system, which means that 
-are first-class objects, like threads, address spaces, or
+they are first-class objects, like threads, address spaces, or
 communication endpoints (ports). An SC is represented by a capability to a
 scheduling context object (scCap).
 
@@ -170,7 +167,7 @@ that should not be imposed by the kernel but implemented at user
 level. A thread is migrated by replacing its SC with one tied to a
 different core. This renders the kernel scheduler a partitioned scheduler, 
 which aligns with our efficiency goal; partitioned schedulers outperform global
-schedulers~\citep{Brandenburg_PHD}.
+schedulers~\citep{Brandenburg:phd}.
 
 The unfungible nature of time in real-time systems requires that the
 bandwidth limit must be enforced within a certain time window. We
@@ -197,7 +194,7 @@ attribute rather than making them part of SCs.\footnote{Fiasco's scheduling
 contexts were developed for an old API version that was not
 capability-based, and it is not obvious how they would integrate
 with the capability system of present Fiasco.OC.} The advantage of keeping the two
-orthogonal will become evident in \autoref{s:locking}.
+orthogonal will become evident in \cref{s:locking}.
 
 \subsection{Accounting}
 
