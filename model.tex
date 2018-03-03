@@ -472,26 +472,26 @@ order to support resource sharing. Additionally, unlike previous microkernel des
 remains an attribute of the execution context. Decoupling priority and scheduling context avoids
 prior patterns where \gls{PIP} is enforced by the kernel. 
 
-\gls{HLP} maps neatly to this model: if server threads are assigned the ceiling protocol of all of
+\gls{IPCP} maps neatly to this model: if server threads are assigned the ceiling protocol of all of
 their clients, then when the \gls{IPC} rendezvous occurs and we switch from client to server, the
 servers priority is used.
 
-The main drawback of \gls{HLP}, namely the requirement that all
+The main drawback of \gls{IPCP}, namely the requirement that all
 lockers' priorities are known \emph{a priori}, is easy to enforce in a
 capability-based system: The server can only be accessed through an
 appropriate invocation capability, and it is up to the system designer
 to ensure that such a capability can only go to a thread whose
 priority is known or appropriately controlled.
 
-The choice of \gls{HLP} is intentional: if the scheduling context holds the priority, then \gls{PIP}
+The choice of \gls{IPCP} is intentional: if the scheduling context holds the priority, then \gls{PIP}
 is forced by the mechanism. Since \gls{PIP} has a known high preemption overhead, this would violate
 our criteria of policy freedom and efficiency.  
-Although \gls{PCP} offers greater processor utilisation than \gls{HLP}, we consider its use impractical as it requires too much system state to be drawn into the kernel: the kernel must track a system ceiling and implement priority inheritance.
+Although \gls{OPCP} offers greater processor utilisation than \gls{IPCP}, we consider its use impractical as it requires too much system state to be drawn into the kernel: the kernel must track a system ceiling and implement priority inheritance.
 
-However \gls{PIP} and \gls{PCP} can used with this mechanism albeit in a more complex fashion, by
+However \gls{PIP} and \gls{OPCP} can used with this mechanism albeit in a more complex fashion, by
 proxying requests to shared resources via a scheduling server which manipulates the priorities
 appropriately. For \gls{PIP}, only one server per resource would be required and could exist in the
-same address space as the resource. Since \gls{PCP} requires global state, an implementation would
+same address space as the resource. Since \gls{OPCP} requires global state, an implementation would
 require a shared service for all threads sharing a set of resources.
 
 \subsection{Charging}
