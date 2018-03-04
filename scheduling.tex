@@ -2,18 +2,18 @@
 \label{chap:scheduling}
 
 Mixed-criticality systems at their core require isolation: isolation as strong as that provided by
-physically isolated systems, meaning if one system fails it cannot affect another system.  Isolation
-can be divided into two categories of resources; physical and temporal. Physical resources include 
+physically isolated systems, meaning if one sub-system fails it cannot affect other sub-systems.  Isolation
+can be divided into two categories of resources: spatial and temporal. \emph{Spatial} resources include 
 devices and memory, where isolation can be achieved using the \gls{MMU} and \IO\glspl{MMU}.
-Temporal isolation of resources more complicated, and is our focus in this chapter, where
+\emph{Temporal} isolation of resources is more complicated, and forms the focus of this chapter, where
 we survey the relevant literature.
-A system is said to provide \emph{temporal isolation} if temporal faults in one task cannot cause
+A system is said to provide \emph{temporal isolation} if temporal behaviour of one task cannot cause
 temporal faults in another, independent task. 
 
-However, what does isolation mean in a fully or over-committed system, where there is no slack time 
-to schedule? What if there simply is not enough time? One might argue that the method of
-over-provisioning systems in order to never face such a scenario is sufficient and should not be
-changed. However, in the presence of \gls{SRT} and best-effort tasks which may be low in
+What does isolation mean in a fully- or over-committed system, where there is no slack time 
+to schedule? What if there simply is not enough time? One could argue that systems should be
+over-provisioned to avoid such a scenarios.
+However, in the presence of \gls{SRT} and best-effort tasks which may be low in
 criticality, this requirement is too strong. Instead we must explore mechanisms for \emph{asymmetric
 protection}, where high criticality tasks can cause a failure in low criticality tasks, but not vice
 versa.
@@ -35,7 +35,7 @@ Tasks can be untrusted for many reasons including:
     \item the task may be low criticality and therefore not certified to a high level.
 \end{itemize}
 
-The issue of trust in real-time literature has not been greatly addressed: real time tasks are often
+The issue of trust in real-time literature has not been greatly addressed: real-time tasks are often
 assumed to perform correctly and safely.  However, much research has looked into the scheduling of
 aperiodic tasks, which by definition do cannot be trusted to follow a specific schedule, or abide by
 their estimated minimum inter-arrival time. Further applicable research examines the scheduling of
@@ -58,14 +58,14 @@ isolation.
 
 % TODO intro here
 
-\subsection{Proportional share schedulers}
+\subsection{Proportional-share schedulers}
 \label{s:pfair}
 
 Proportional share schedulers provide temporal isolation, as long as the system is not overloaded,
 although this class of schedulers is based on achieving scheduling fairness between tasks, rather
 than running untrusted tasks which may exceed their execution requirement. 
 
-Recall that fairness is not a central property of scheduling in an \gls{RTOS}. However, one approach
+Recall that fairness is not a central property of scheduling in a \acrlong{RTOS}. However, one approach
 for real-time scheduling is to specify a set of constraints that attempt to provide fairness and
 also satisfy temporal constraints.  These are referred to as \emph{proportional share} algorithms,
 which allocate time to tasks in discrete sized quanta. Tasks in proportional share schedulers are assigned 
@@ -113,27 +113,36 @@ tasks will degrade. Pfair schedulers by definition do not support asymmetric pro
 Temporal isolation in \gls{EDF} scheduling has been explored thoroughly in the real-time discipline.
 We outline the most dominant approaches in this section.
 
-\paragraph{Robust earliest deadline scheduling}
+\subsubsection{Robust earliest deadline scheduling}
+
 One early approach to temporal isolation with \gls{EDF} scheduling attempts to extend the 
 algorithm to allow overload conditions to be handled with respect to a value. Robust earliest deadline
 scheduling~\citep{Buttazzo_Stankovic_93} assigns a value to each task set, and drop jobs from
 low-value tasks under overload. If the system returns to non-overload conditions those tasks are
 scheduled again. This is a very early version of asymmetric protection
 The algorithm is optimal, however this is only the case if
-scheduler overhead is excluded.  Since the algorithm is has O($n$) complexity in the number of
+scheduler overhead is excluded.  Since the algorithm has O($n$) complexity in the number of
 tasks, the authors recommend using a dedicated scheduling processor such that overhead will not
 effect the timing behaviour -- but this is not suitable for embedded systems, where the goal is to
 minimise the number of processors, not increase them.
 
-\paragraph{\Gls{CBS}} \citet{Abeni_Buttazzo_04} introduce a technique for scheduling \gls{HRT} and
+\subsubsection{Constant-bandwidth servers}
+
+In the real-time community, the term \emph{server} is used it describe virtual time sources, where
+an intermediate algorithm monitors task execution and, using that information, prevents task(s)
+guarded by the server from exceeding specified temporal behaviour. These algorithms are integrated
+into the scheduler.
+
+\Gls{CBS}~\citep{Abeni_Buttazzo_04} introduce a technique for scheduling \gls{HRT} and
 \gls{SRT} tasks and providing temporal isolation.  \gls{HRT} tasks are scheduled using an \gls{EDF}
-scheduler, but \gls{SRT} tasks are treated differently as \gls{EDF} does not handle overload.
+scheduler, but \gls{SRT} tasks are treated differently as \gls{EDF} does not handle overload
+reasonably.
 Instead, a \gls{CBS} is assigned to each \gls{SRT} task.  Each \gls{CBS} has a bandwidth assigned to
 it, and breaks down \gls{SRT} jobs into sub-jobs such that the utilisation rate of the task does not
 exceed the assigned bandwidth.  Any sub-job that will cause the bandwidth to be exceeded is
 postponed, but still executed.
 
-\gls{CBS} stands out from previous server based approaches~\citep{Spuri_Buttazzo_96,
+\gls{CBS} stands out from previous server-based approaches~\citep{Spuri_Buttazzo_96,
 Ghazalie_Baker_95, Spuri_Buttazzo_94, Deng_Liu_97} as it does not require a \gls{WCET} or a minimum
 bound on job inter-arrival time, making it much more suitable for \gls{SRT} tasks.  Implementation
 wise, \gls{CBS} has fewer hardware overheads than Pfair schedulers.
@@ -144,7 +153,9 @@ implement \emph{slack donation}, where any unused bandwidth is given to other jo
 \citet{Lamastra_LA_01} introduce bandwidth inheritance across CBS servers applied to different
 resources, providing temporal isolation for additional resources other than processing time.
 
-\paragraph{\Gls{RBED}} schedulers explicitly separate the resource allocation and dispatching
+\subsubsection{Rate-based EDF}
+
+\Gls{RBED} schedulers explicitly separate the resource allocation and dispatching
 (choosing which thread to run) in order to provide flexibility in timeliness requirements supported
 by the scheduler.  \Gls{RBED} ~\citep{Brandt_BLB_03} is an algorithm that implements such a
 scheduler.  In \gls{RBED}, tasks are considered as either \gls{HRT}, \gls{SRT}, best effort or
@@ -172,14 +183,20 @@ with rate-monotonic schedulability tests.  Like \gls{CBS}, tasks are constrained
 one or more tasks in a server which prevents the task(s) from overrunning their assigned scheduling
 parameters.
 
-\paragraph{Polling servers}\label{p:polling-servers}~\citep{Lehoczky_LS_87} wake every period,
+\subsubsection{Polling servers}
+\label{p:polling-servers}
+
+Polling servers~\citep{Lehoczky_LS_87} wake every period,
 to check if there are any pending tasks, then runs them for maximum their budget time. If there is no
 task to run, the polling server will go back to sleep. That is, at time $t_{i}$, if there are no
-tasks ready to execute, the server will sleep until $t_{i+1}$. This has the limitation task latency
+tasks ready to execute, the server will sleep until $t_{i+1}$. This has the limitation that task latency
 is a function of the period $T$.
 
-\paragraph{Deferrable Servers}\label{p:ds} Unlike polling servers, \emph{deferrable
-servers}\citep{Lehoczky_LS_87, Strosnider_LS_95} preserve any unused budget across periods, although
+\subsubsection{Deferrable Servers}
+\label{p:ds} 
+
+Unlike polling servers, \emph{deferrable
+servers}~\citep{Lehoczky_LS_87, Strosnider_LS_95} preserve any unused budget across periods, although
 the budget can never be exceeded.  This removes latency problems with polling servers, but
 unfortunately breaks rate-monotonic schedulability analysis, as this policy can result in servers
 executing back-to-back and exceeding their allocated scheduling bandwidth for any specific occurrence of
@@ -196,7 +213,10 @@ task, from $a_11$ to $d_{11} + C_{1}$, then the task has exceeded its permitted 
 ($\frac{C_{1}}{T_{1}})$. As a result deadline misses can be caused in other
 tasks, violating temporal isolation.
 
-\paragraph{Sporadic servers}~\citep{Sprunt_SL_89a}\label{p:sporadic} address the problems of
+\subsubsection{Sporadic servers}
+\label{p:sporadic} 
+
+Sporadic servers~\citep{Sprunt_SL_89a} address the problems of
 deferrable servers by scheduling multiple replenishment times, in order to preserve the property
 that for all possible points in time $U_{i} \leq \frac{C_{i}}{T_{i}}$, known as the \emph{sliding window} constraint, which
 is the condition that deferrable servers violate.  Each time a task is preempted, or blocks, a
@@ -208,12 +228,16 @@ is potentially unbounded.  It is also subject to capacity loss as tasks that use
 of budget at a time increase the interrupt load.  The bigger the bound on replenishments the less
 accurate the sporadic server, but the more memory used resulting in degraded performance.
 
-\paragraph{Priority exchange servers}~\citep{Sprunt_SL_89a} swap the priority of an inactive
+\subsubsection{Priority exchange servers}
+
+Priority exchange servers~\citep{Sprunt_SL_89a} swap the priority of an inactive
 aperiodic task with a periodic task, such that server capacity is not lost but used at a lower
 priority.  Implementations of priority exchange require control and access to priorities across an
 entire system.
 
-\paragraph{Slack stealing}~\citep{Ramos_Thuel_Lehoczky_93} is an approach that runs a scheduling
+\subsubsection{Slack stealing}
+
+Slack stealing~\citep{Ramos_Thuel_Lehoczky_93} is an approach that runs a scheduling
 task at the lowest priority and tracks the amount of slack per task in the system.  As aperiodic
 tasks arrive, the slack stealer calculates whether they can be scheduled or not based on the slack
 in the system and current load of periodic tasks.  This method does not provide guarantees at all
@@ -254,7 +278,7 @@ scheduled at all.
 Schedulers in this class are distinguished by a mode-switch between two or more criticality levels,
 which may result in low criticality tasks being dropped or de-prioritised in some way. 
 Schedulers for this model of mixed-criticality have been developed and extensively studied for
-\gls{FP}~\citet{Vestal_07, Pathan:phd}, \gls{EDF}~\citet{Baruah_BDMVS_11},
+\gls{FP}~\citep{Vestal_07, Pathan:phd} and \gls{EDF}~\citep{Baruah_BDMVS_11},
 
 \subsection{Zero Slack Scheduling}
 
@@ -268,20 +292,20 @@ tasks steal utilization from lower criticality tasks.  This involves calculating
 such that they cannot be preempted by lower criticality tasks.
 
 Implementations of \gls{ZS} scheduling can be built using any priority-based scheduling technique,
-however in the initial work \gls{FP} with \gls{RM} priority assignment is used.  The
-\gls{ZS}\gls{RM} scheduler is proven to be able to schedule anything that standard \gls{RM}
+however in the initial work, \gls{FP} with \gls{RM} priority assignment is used.  The
+\gls{ZS}\gls{RM} scheduler is proved to be able to schedule anything that standard \gls{RM}
 scheduling can, whilst maintaining the asymmetric protection property.  \gls{ZS} scheduling can be
 combined with temporal isolation via bandwidth servers.
 
 % TODO possible rewrite
 \gls{ZS} scheduling has been adapted to use a \gls{QoS} based resource allocation
-model~\citep{deNiz_WSRR_12}, in the context of \glspl{UAV}.  Many models of real-time systems assume
-that \glspl{WCET} for real-time tasks are stable and can be calculated.  However, \glspl{UAV} have
+model~\citep{deNiz_WSRR_12}, in the context of \glspl{AAV}. Many models of real-time systems assume
+that \glspl{WCET} for real-time tasks are stable and can be calculated.  However, \glspl{AAV} have
 complicated visual object tracking algorithms where \gls{WCET} is difficult to calculate, and
 execution time varies with the number of objects to track.  In practice, \Citet{deNiz_WSRR_12} found
 that \gls{ZS}\gls{RM} scheduling resulted in \emph{utility inversion} --- where lower utility tasks
 prevent the execution of higher utility tasks.  Although assuring no criticality inversion occurred
-with a criticality based approach, under overload, some tasks offer more utility than others with
+with a criticality-based approach, under overload, some tasks offer more utility than others with
 increased execution time.  As a result, the authors replace criticality in the algorithm with a
 utility function.  Two execution time estimates are used for real-time tasks --- \gls{NCET} and
 \gls{OCET}, each having their own utility.  The goal of the scheduler is to maximise utility, under

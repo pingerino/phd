@@ -9,15 +9,16 @@ the scheduling and resource sharing policies and mechanisms available, with a fo
 asymmetric protection, and resource sharing. 
 
 % TODO update
-First, we look at the \gls{POSIX} standard which impacts many commercial and open source operating
+First, we look at the \emph{\gls{POSIX}} standard which underlies many commercial and open source operating
 systems. Then we examine what is available in Linux and survey existing relevant operating systems
-from the open source community, research and commercial \glspl{OS}. We then examine deeper isolation
+from the open source community, research and commercial operating systems. We then examine deeper isolation
 and resource sharing techniques and how they interact with capability systems.
 
 \section{POSIX}
 
-The \gls{POSIX} standard specifies \gls{RTOS} interfaces~\citep{Harbour_93} which
-influence a large amount of \gls{OS} design.  Scheduling policies specified by \gls{POSIX} are shown in
+The \gls{POSIX} standard specifies \gls{RTOS} interfaces~\citep{Harbour_93} for scheduling and
+resource sharing, which
+influence much \gls{OS} design.  Scheduling policies specified by \gls{POSIX} are shown in
 \Cref{tab:posix-sched}. 
 
 \begin{table}
@@ -38,7 +39,7 @@ influence a large amount of \gls{OS} design.  Scheduling policies specified by \
 \citet{Faggioli_08} provides an implementation of \schedsporadic, which \citet{Stanovic_BWH_10}
 use to show that the POSIX definition of the sporadic server is incorrect and can allow tasks to
 exceed their utilisation bound.  The authors provide a modified algorithm for merging and abandoning
-replenishments which fixes these problems, of which corrections to the pseudo code were published in
+replenishments which fixes these problems, of which corrections to the pseudo code were published by
 \citet{Danish_LW_11}.  In further work \citet{Stanovic_BW_11} show that while sporadic servers
 provide better response times than polling servers under average load, under high load the overhead
 of preemptions due to fine-grained replenishments causes worse response times when compared to
@@ -92,7 +93,7 @@ apart from a bound on total execution time for real-time threads which guarantee
 threads are scheduled (referred to as real-time throttling~\citep{Corbet_08}), individual temporal
 isolation is not possible.
 
-Linux version 3.14 saw the introduction of an \gls{EDF} scheduling class to Linux~\citep{Corbet_09},
+Linux version 3.14 saw the introduction of an \gls{EDF} scheduling class~\citep{Corbet_09},
 which is between the fair and the fixed priority scheduling classes.  The \gls{EDF} implementation
 allows threads to be temporally isolated using \gls{CBS}.
 
@@ -104,7 +105,7 @@ Linux does not provide any mechanisms for asymmetric protection beyond priority.
 On the resource sharing side Linux provides real-time locking via the \gls{POSIX} API as per
 \Cref{tab:posix-mutex}.
 
-A large number of projects exist that attempt to retrofit more extensive real-time features onto
+A large number of projects attempt to retrofit more extensive real-time features onto
 Linux.  We briefly summarise major and relevant works here.  One of the original
 works~\citep{Yodaiken_Barabanov_97} runs Linux as a fully preemptable task via virtualisation and
 kernel modifications.  Interrupts are handled by the virtualisation layer, and only directed to
@@ -122,7 +123,7 @@ tested using Linux/RK.
 Whilst Linux implementations are suitable for implementing algorithms, being used as test-beds and
 even being deployed for non-critical \gls{SRT} applications, ultimately Linux is not a suitable
 \gls{RTOS} for running safety-critical \gls{HRT} applications. The large amount of source code
-results in a colossal trusted computing base,where it is impossible to guarantee correctness through
+results in a colossal trusted computing base, where it is impossible to guarantee correctness through
 formal verification or timeliness through {\gls{WCET}} analysis.  Major reasons for adapting Linux
 to real-time are the existing applications and wide array of device and platform support. For
 mixed-criticality systems these advantages can be leveraged by virtualising Linux to run \gls{SRT}
@@ -143,13 +144,13 @@ FreeRTOS can be configured to be tickless or not.
 \subsection{Research OSes}
 
 \paragraph{Real-time Mach}~\citep{Mercer_RZ_94, Mercer_ST_93} first introduced the concept of
-processor capacity reserves which implemented \gls{DS}. Mach used a fixed-priority, two level 
-scheduler where threads with reserves would execute first, then threads without reserves and with
+processor capacity reserves which implemented \gls{DS}. Mach used a fixed-priority, two-level 
+scheduler, where threads with reserves would execute first, then threads without reserves and with
 depleted reserves would be scheduled using a second level time-sharing scheduler.
 An admission test was conducted in the kernel when reservations were created. 
 Finally, Real-time Mach provided \gls{PIP} to avoid priority inversion~\citep{Tokuda_NR_90}.
 
-\paragraph{EROS}~\citep{Shapiro_SF_99} is a capability based operating system designed to
+\paragraph{EROS}~\citep{Shapiro_SF_99} is a capability-based operating system designed to
 demonstrate the viability of capability-based systems in terms of performance.  EROS introduced the
 idea of a single-use reply capability, termed a \emph{resume} capability, which when invoked would
 be consumed and allows the receiver to reply to the sender.  EROS also used what is known as an
@@ -233,7 +234,7 @@ Barrelfish schedules dispatchers, which are roughly equivalent to processes.
 Execution context and scheduling context are not split.
 When messages are sent between dispatchers on Barrelfish the sender can choose to yield to the receiver or not by flags on the message.
 
-\paragraph{Quest-V}~\citep{Danish_LW_11} is a separation kernel / hypervisor with fixed priority
+\paragraph{Quest-V}~\citep{Danish_LW_11} is a separation kernel / hypervisor with fixed-priority
 scheduling.  Temporal isolation is provided by sporadic servers, however \IO and normal processes
 are distinguished statically: \IO processes use polling servers and normal processes use sporadic
 servers, with a maximum replenishment length of 32. In Quest-V, separate partitions are assigned to
@@ -305,7 +306,7 @@ Composite   & user level           & user level         \\
 
 \section{Microkernel mechanisms}
 
-Microkernels, as introduced in \cref{sec:background-operating-systems} are small operating systems
+Microkernels, as introduced in \cref{sec:background-operating-systems}, are small operating systems
 kernels which contain the minimum amount of software to implement an OS. Real-time and resource
 kernel concepts are not
 new microkernels. In this section we present several existing mechanisms that exist in microkernels
@@ -322,7 +323,7 @@ defined length of processing time. Threads required meters to execute, and once 
 a higher authority was required to replenish the meter. Meters treat time as fungible: the mechanism
 only quantifies the amount of time to be consumed, not when it must be consumed by.
 
-L4~\citep{Elphinstone_Heiser_13} kernels extended this with time slices, although in different ways.
+L4 kernels~\citep{Elphinstone_Heiser_13} extended this with time slices, although in different ways.
 Kernels like \selfour provide a timeslice which like meters is consumed as threads execute, but no
 authority is invoked the replenish the meter: the thread is simply preempted and placed at the end of
 the \gls{FIFO} scheduling queue for the appropriate priority with a refilled timeslice. NOVA
@@ -385,7 +386,7 @@ priority.
 Real-time Mach's processor capacity reserves were the first form of scheduling context, and along
 with \gls{DS} parameters contained a priority, which would transfer over \gls{IPC} from
 client to server. This maps directly on to bandwidth inheritance with \gls{PIP} with all the
-downsides presented in \cref{p:pip}. Scheduling context donation was compulsory with processor
+downsides presented in \cref{sec:pip}. Scheduling context donation was compulsory with processor
 capacity reserves being transferred across \gls{IPC}.
 
 If a server exhausted the
@@ -420,7 +421,7 @@ policy-free
 kernel~\citep{Elkaduwe_DE_08,Heiser_Elphinstone_16}.
 However, the capability system in \selfour does not presently apply to time.
 
-Many existing and research \glspl{OS} use capabilities for a variety of things. \composite, NOVA,
+Many existing and research \glspl{OS} use capabilities for a principled access to spatial resources. \composite, NOVA,
 KeyKOS, EROS, Fiasco O.C and Barrelfish all provide capability systems. 
 
 Prior uses of capabilities for controlling time include
@@ -456,7 +457,7 @@ capabilities, the access is to processor time.
 (tCaps)~\citep{Gadepalli_GBKP_17} reminiscent of
 the meters of KeyKOS in that they represent a scalar unit of time.
 Unlike KeyKOS, tCaps integrate with user-level scheduling, decoupling access control
-from scheduling. An initial capability \emph{chronos} provides authority to all of time, and this capability
+from scheduling. An initial capability \emph{Chronos} provides authority to all of time, and this capability
 can used to replenish tCaps by a top level scheduler. The kernel up calls user-level schedulers 
 which must then provide a tCap and a thread to execute. A tCap is always active in the system with
 any time billed to it. The top level scheduler delegates fixed amounts of time from the initial,
