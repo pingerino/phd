@@ -470,9 +470,9 @@ to server specific policy.
 We indicated in \Cref{s:scs} that scheduling contexts are separate from thread control blocks in
 order to support resource sharing. Additionally, unlike previous microkernel designs for \glspl{SC}, priority
 remains an attribute of the execution context. Decoupling priority and scheduling context avoids
-prior patterns where \gls{PIP} is enforced by the kernel. 
+prior patterns where the \gls{PIP} is enforced by the kernel. 
 
-\gls{IPCP} maps neatly to this model: if server threads are assigned the ceiling protocol of all of
+\Gls{IPCP} maps neatly to this model: if server threads are assigned the ceiling protocol of all of
 their clients, then when the \gls{IPC} rendezvous occurs and we switch from client to server, the
 servers priority is used.
 
@@ -546,7 +546,7 @@ active.
         \label{f:active2}
     \end{subfigure}
     \label{f:active}
-    \caption{IPC phases between an active client and server: (a) shows the initial IPC rendezvous, (b) shows the
+    \caption{IPC phases between an active client and active server: (a) shows the initial IPC rendezvous, (b) shows the
     reply phase. Both client and server have their own SC. See \Cref{f:legend-2} for the legend.}
 \end{figure}
 
@@ -558,7 +558,7 @@ not only has to trust its server, but all the server's other
 clients. This would rule out sharing a server between clients of
 different criticality.
 
-In a \gls{HRT} system, we can assume that a client reservations are sufficient to complete
+In a \gls{HRT} system, we can assume that a client's reservations are sufficient to complete
 requests to servers.  However, in systems with best-effort and soft real-time tasks, no such
 assumption can be made and client budgets may expire during a server request.  This leaves the
 server in a state where it cannot take new requests as it is stuck without an active reservation to
@@ -604,7 +604,7 @@ cleanup time).
 
 \TODO{diagram of cross core IPC}
 
-Scheduling context donation extends naturally to IPC and allows users to specify active servers on
+Scheduling-context donation extends naturally to IPC and allows users to specify active servers on
 remote cores, or passive servers which migrate to the local core. The mechanism is simple: if a
 server is passive, it migrates to the core that the donated scheduling context is on. 
 
@@ -612,7 +612,7 @@ server is passive, it migrates to the core that the donated scheduling context i
 
 We now describe three policies for resource sharing over \gls{IPC} --- best-effort, helping and
 isolation --- and describe how they can be implemented 
-with our mechanisms of scheduling contexts, scheduling context donation and timeout exceptions.
+with our mechanisms of scheduling contexts, scheduling-context donation and timeout exceptions.
 
 \TODO{A diagram of each of these policies}
 \TODO{Finish this section}
@@ -652,10 +652,10 @@ Like the best-effort policy, our model supports this approach but it is not requ
 \TODO{Address peters comment: This is essentially an illustration for the preceding section, so
 title it as such}
 
-In a mixed criticality system, clients of different criticalities may share a server such as an
+In a mixed-criticality system, clients of different criticalities may share a server such as an
 encryption service. Consider such a service which encrypts data in blocks. Clients can request
 arbitrary length blocks to be encrypted. Using a passive server, the server can work in blocks, and
-use a transaction based approach to alter between clean and dirty state. If a timeout exception
+use a transaction-based approach to alter between clean and dirty state. If a timeout exception
 occurs, because a clients scheduling context has expired, the timeout exception handler can rollback
 to the last clean state and reply to the client with the amount of data encrypted. The rollback has
 a known complexity, so any pending requests need only to be able to cope with the cost of the
@@ -672,7 +672,7 @@ avoiding the requirement of \gls{PIP}, and by differentiating between passive an
 maintain policy freedom.
 
 Finally, we outlined existing models for integrating real-time resource policies over \gls{IPC} and
-show how scheduling context donation combined with passive servers can be used to create trusted
+show how scheduling-context donation combined with passive servers can be used to create trusted
 servers with untrusted clients. 
 Our model supports best-effort, migrating threads, or temporal isolation policies for resource sharing.
 
