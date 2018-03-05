@@ -821,34 +821,36 @@ Of course, servers then must be thread safe such that the fault handling thread 
 Bandwidth inheritance will occur if no temporal fault endpoint is registered and a blocked server encounters contention.
 This allows user systems to have temporally contained servers without the requirement that those servers be thread safe.
 
-\subsection{Summary}
+
+\section{API}
+\label{s:new-api}
+
+\begin{table}
+    \centering
+    \rowcolors{2}{gray!25}{}
+    \begin{tabular}{>{\texttt\bgroup}p{0.2\textwidth}<{\egroup}  p{0.8\textwidth} } \toprule
+        \textnormal{\emph{Invocation}} & \emph{Description} \\\midrule
+        bind    & Bind an object (TCB or Notification) to a SC. \\
+        unbind  & Unbind all objects from a SC. \\
+        unbindObject & Unbind a specific object from a SC.\\
+        consumed & Return the amount of time since the last timeout fault, \code{consumed} or
+        \code{yieldTo} was
+        called.\\ 
+        yieldTo  & Place the thread bound to this SC at the front of its priority queue and return
+        any time consumed.\\
+        \bottomrule
+    \end{tabular}
+    \caption{Scheduling context capability invocations. Further detail is available in \cref{api:sc}.}
+    \label{tab:sched_context_api}
+\end{table}
+
+
+
+\section{Summary}
 
 This section has outlined the details of integrating resource kernel concepts of enforcement, admission and scheduling into \selfour.
 We also outlined our approach to resource sharing, using scheduling context donation over IPC, and showed how this supports servers using reservation-per-thread, migrating-threads, temporal exceptions or bandwidth inheritance.
 
 The status of the implementation so far is as follows:
-
-\subsubsection{Implemented}
-
-\begin{itemize}
-\item Scheduling contexts.
-\item EDF scheduling.
-\item User-level admission control.
-\item Fast-path changes.
-\item Task completion when a thread waits on its bound asynchronous endpoint.
-\item Temporal isolation for fixed-priority threads.
-\item Scheduling context donation.
-\item Converted kernel to tickless.
-\end{itemize}
-
-\subsubsection{To be implemented}
-
-\begin{itemize}
-\item \sendwait
-\item Ordered \gls{IPC} endpoint queues.
-\item Temporal exceptions.
-\item Helping.
-\item Nested Helping.
-\end{itemize}
 
 

@@ -1,31 +1,116 @@
+
+\chapter{Modified API}
+
 \newcommand{\apidoc}[6]
 {
-    \subsection{\label{api:#1}#2}
-
-    \texttt{#4}
-    \vspace*{6pt}
-
-    #3
-
-    \begin{tabular}{lll} \toprule
-    \textbf{Type} & \textbf{Name} & \textbf{Description} \\
-    \midrule
-    #5
-    \bottomrule
+    \subsubsection{\label{api:#1}#2}
+    \texttt{#4}\\
+    \vspace{3pt}\\
+    \noindent
+    #3\\
+    \begin{table}[h!]
+    \rowcolors{2}{gray!25}{white}
+    \begin{tabular}{p{0.2\textwidth} p{0.2\textwidth} p{0.6\textwidth}}\toprule
+        \emph{Type} & \emph{Parameter} & \emph{Description} \\\midrule
+         #5
+        \bottomrule
     \end{tabular}
-        
-    \textit{Return value:} #6 \par
+    \end{table}\\
+    \noindent
+    \textit{Return value:} #6 
+}
 
-    \vfill
+\newcommand{\param}[3]
+{
+\texttt{#1} & \texttt{#2} & #3 \\
 }
 
 \section{New Invocations}
-
+\subsection{Scheduling context}
+\label{api:sc}
 \apidoc
 {schedcontext_bind}
 {SchedContext - Bind}
-{ Bind an SC}
+{ Bind a scheduling context to a provided TCB or Notification object. None of the objects (SC, TCB
+or Notification) can be already bound to other objects. If the TCB is in a runnable state and the
+scheduling context has available budget, this operation will place the TCB in the scheduler at the
+TCB's priority.}
 {seL4\_Error seL4\_SchedContext\_Bind}
-{x & y & z\\}
-{error}
+{
+    \param{seL4\_CPtr}{sc}{Capability to the SC to bind an object to.}
+    \param{seL4\_CPtr}{cap}{Capability to a TCB or Notification object to bind to this SC.}
+}
+{0 on success, seL4\_Error code on error.}
+
+\apidoc
+{schedcontext_unbind}
+{SchedContext - Unbind}
+{ Remove any objects bound to a specific scheduling context.}
+{seL4\_Error seL4\_SchedContext\_Unbind}
+{
+    \param{seL4\_CPtr}{sc}{Capability to the SC to unbind an object to.}
+}
+{0 on success, seL4\_Error code on error.}
+
+\pagebreak
+\apidoc
+{schedcontext_unbind_object}
+{SchedContext - UnbindObject}
+{ Remove a specific object bound to a specific scheduling context.}
+{seL4\_Error seL4\_SchedContext\_UnbindObject}
+{
+    \param{seL4\_CPtr}{sc}{Capability to the SC to unbind an object to.}
+    \param{seL4\_CPtr}{cap}{Capability to a TCB or Notification object to unbind from this SC.}
+}
+{0 on success, seL4\_Error code on error.}
+
+\apidoc
+{schedcontext_consumed}
+{SchedContext - Consumed}
+{ Return the amount of time used by this scheduling context since this function
+    was last called or a timeout fault triggered.}
+{seL4\_Error seL4\_SchedContext\_Consumed}
+{
+    \param{seL4\_CPtr}{sc}{Capability to the SC to act on.}
+}
+{An error code and a \code{uint64\_t} consumed value.}
+
+\apidoc
+{schedcontext_yieldto}
+{SchedContext - YieldTo}
+{ 
+   If a thread is currently runnable and running on this scheduling context and the scheduling context has available budget, place it at the head of the scheduling queue.
+              If the caller is at an equal priority to the thread this will result in the thread being scheduled.
+              If the caller is at a higher priority the thread will not run until the threads priority is the highest priority in the system.
+              The caller must have a maximum control priority greater than or equal to the threads priority.
+}
+{seL4\_Error seL4\_SchedContext\_Consumed}
+{
+    \param{seL4\_CPtr}{sc}{Capability to the SC to act on.}
+}
+{An error code and a \code{uint64\_t} consumed value.}
+
+
+
+\subsection{Sched\_control}
+\apidoc
+{schedcontrol_configure}
+{SchedControl - Configure}
+{ Configure a scheduling context by invoking a \code{sched\_control} capability. The scheduling
+context will inherit the affinity of the provided \code{sched\_control}.}
+{seL4\_Error seL4\_SchedControl\_Configure}
+{
+    \param{seL4\_CPtr}{sched\_control}{\code{sched\_control} capability to invoke to configure
+    the SC.}
+    \param{seL4\_CPtr}{sc}{Capability to the SC to configure.}
+    \param{uint64\_t}{budget}{Timeslice in microseconds.}
+    \param{uint64\_t}{period}{Period in microseconds, if equal to budget, this thread will be
+        treated as a round-robin thread. Otherwise, sporadic servers will be used to assure the
+    scheduling context does not exceed the budget over the specified period.}
+    \param{seL4\_Word}{extra\_refills}{Number of extra sporadic replenishments this scheduling
+    context should use. Ignored for round-robin threads. The maximum value is determined by the size
+of the SC that is being configured.}
+    \param{seL4\_Word}{badge}{Badge value that is delivered to timeout fault handlers}
+}
+{0 on success, seL4\_Error code on error.}
 

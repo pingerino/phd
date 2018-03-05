@@ -315,18 +315,16 @@
 \cleardoublepage
 \bibliographystyle{plainnat}
 \bibliography{references}
-\clearpage
 
 %}
 \appendix
-\addappheadtotoc
-\chapter{Fastpath Performance Analysis}
+\appendixpage
+\chapter{Fastpath Performance}
 \input{data/generated/kzm-ipc-perf.inc}
 \input{data/generated/sabre-ipc-perf.inc}
 \input{data/generated/hikey32-ipc-perf.inc}
 \input{data/generated/hikey64-ipc-perf.inc}
 \input{data/generated/tx1-ipc-perf.inc}
 \input{data/generated/haswell-ipc-perf.inc}
-\chapter{Modified API}
 \input{api.tex}
 \end{document}
