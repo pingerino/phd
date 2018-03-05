@@ -63,7 +63,6 @@
 \usepackage{pifont}
 \usepackage{textcomp}
 \usepackage{gensymb}
-%\usepackage[page]{appendix}
 \usepackage{mathptmx}
 \hypersetup{
     pdfborder = {0 0 0.75 [1.5 3]},
@@ -153,6 +152,8 @@
 \usepackage{palatino}
 \usepackage{inconsolata}
 \usepackage[T1]{fontenc}
+\renewcommand\cftappendixname{\appendixname~}
+
 %\usepackage{libertine}
 %\renewcommand{\rmdefault}{ppl}
 %\renewcommand{\ttdefault}{pcr}
@@ -273,8 +274,19 @@
 %Abstract
 
 \input{abstract}
+\clearpage
 \input{acknowledgements}
+\clearpage
 \input{publications}
+%\clearpage
+%\listoffigures
+%\clearpage
+%\listoftables
+%\clearpage
+%\input{glossary}
+%\printglossary[type=\acronymtype]
+%\clearpage
+
 
 \tableofcontents
 \cleardoublepage
@@ -285,7 +297,6 @@
 
 \sloppy
 % glossary
-\input{glossary}
 \pagebreak
 
 \input{introduction}
@@ -299,28 +310,23 @@
 \input{evaluation}
 \input{conclusion}
 
-\backmatter
-\cleardoublepage
-\listoffigures
-\clearpage
-%\listoftables
-%\listofalgorithms
-%\addcontentsline{toc}{chapter}{List of algorithms}
-\printglossary[type=\acronymtype]
+%{
+%\backmatter
 \cleardoublepage
 \bibliographystyle{plainnat}
-%\bibliographystyle{my-abbrvnat}
-%\bibliographystyle{apalike}
 \bibliography{references}
 \clearpage
+
+%}
 \appendix
 \addappheadtotoc
-\section{Fastpath Performance Analysis}
+\chapter{Fastpath Performance Analysis}
 \input{data/generated/kzm-ipc-perf.inc}
 \input{data/generated/sabre-ipc-perf.inc}
 \input{data/generated/hikey32-ipc-perf.inc}
 \input{data/generated/hikey64-ipc-perf.inc}
 \input{data/generated/tx1-ipc-perf.inc}
 \input{data/generated/haswell-ipc-perf.inc}
-
+\chapter{Modified API}
+\input{api.tex}
 \end{document}

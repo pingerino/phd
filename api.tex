@@ -1,0 +1,31 @@
+\newcommand{\apidoc}[6]
+{
+    \subsection{\label{api:#1}#2}
+
+    \texttt{#4}
+    \vspace*{6pt}
+
+    #3
+
+    \begin{tabular}{lll} \toprule
+    \textbf{Type} & \textbf{Name} & \textbf{Description} \\
+    \midrule
+    #5
+    \bottomrule
+    \end{tabular}
+        
+    \textit{Return value:} #6 \par
+
+    \vfill
+}
+
+\section{New Invocations}
+
+\apidoc
+{schedcontext_bind}
+{SchedContext - Bind}
+{ Bind an SC}
+{seL4\_Error seL4\_SchedContext\_Bind}
+{x & y & z\\}
+{error}
+
