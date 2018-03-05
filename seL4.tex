@@ -183,32 +183,10 @@ Any capability to memory---untyped or not---is a capability to a specific object
 containing a pointer to that object. When retype is used to create sub-objects in an untyped, those
 subsets of memory will not become available for retyping again until every capability to that object has been deleted, somewhat like reference counting pointers.
 
-\subsection{Control capabilities}
+\subsection{Virtual Memory}
 
-Not all capabilities refer to memory-based resources, such as interrupts and \IO ports.
-In order to obtain capabilities to specific interrupts or ranges of \IO ports, the root task is
-provided with non-derivable control capabilities which can be invoked to place specific hardware
-resource capabilities in empty \code{cslot}s.
-
-
-% control caps, normal caps
-% operations
-
-
-\subsection{Untyped}
-
-Object capabilities are 
-object is deleted will the object itself be deleted. Object capabilities contain a pointer to the
-actual kernel object. 
-
-
-
-All memory in \selfour starts as \emph{untyped} memory, capabilities to which is granted to the
-initial task in the system as part of the boot process. The initial task can then create all
-types of memory, including further untyped, with an operation known as \emph{retyping}. As a result,
-any object with a pointer to another object must have a back pointer to update should that object be
-deleted, in order to avoid stray pointers in the kernel. 
-
+Page tables, intermediate paging structures and physical frames are all created by retyping
+untyped objects. Page tables and frames have a set of architectural invocations including mapping, unmapping, and cache flushing operations.
 
 \subsection{Thread control blocks}
 
@@ -241,6 +219,15 @@ preempted, and a priority for the fixed priority scheduler.
      \label{t:tcb_ops}
 \end{table}
 
+
+
+% control caps, normal caps
+% operations
+
+
+
+As a result, any object with a pointer to another object must have a back pointer to update should that object be
+deleted, in order to avoid stray pointers in the kernel. 
 
 \subsection{Endpoints}
 \label{s:endpoints}
@@ -352,6 +339,14 @@ receiver.
 Signals can also be received by threads waiting on \gls{IPC}, as shown in \Cref{f:signal2}. A
 \gls{TCB} object is bound to a notification object, establishing a link between them. Badges can be
 used to determine whether a message was received from the endpoint or a signal on the notification object.
+
+\section{Control capabilities}
+
+Not all capabilities refer to memory-based resources, such as interrupts and \IO ports.
+In order to obtain capabilities to specific interrupts or ranges of \IO ports, the root task is
+provided with non-derivable control capabilities which can be invoked to place specific hardware
+resource capabilities in empty \code{cslot}s.
+
 
 \subsection{System calls}
 
