@@ -12,12 +12,9 @@ Three main features of \selfour support this claim: it has been formally verifie
 The scheduler in \selfour has been left intentionally underspecified~\citep{Petters_EH_12} for later work and as a result has a very informal notion of time.
 The current implementation is a placeholder, and follows the traditional L4 scheduling model~\citep{Ruocco_06} --- a fixed-priority, round-robin scheduler with 256 priorities.
 
-Systems can currently choose between a restrictive implementation of temporal isolation or a system that presents timing behaviour that is impossible to analyse beyond trivial examples\footnote{Whether analysis is possible in a trivial example beyond one thread is questionable.}.
 In this section we will present the current state of relevant \selfour features in order to highlight deficiencies and motivate our changes.
 We will outline the existing scheduler, the API curiosity that is \yield, and how \gls{IPC} interacts with scheduling, followed by an analysis of how the current mechanisms can be used in real-time systems.
 
-
-\section{\selfour concepts}
 
 First we introduce the basics of \selfour: kernel memory management, capabilities, \gls{IPC} and
 signalling. \Cref{f:legend-1} shows the legend for diagrams in this section. 
@@ -29,21 +26,22 @@ signalling. \Cref{f:legend-1} shows the legend for diagrams in this section.
     \label{f:legend-1}
 \end{figure}
 
-\subsection{Capabilities}
+\section{Capabilities}
 \label{s:capabilities}
 
-As a capability-based \gls{OS}, access to any functionality in \selfour is via capabilities (recall
-\Cref{s:os-capabilities}). Capabilities to all system resources are passed to the initial task --- the first
-user-level thread started in the system --- which can then allocate resources as appropriate.
+As a capability-based \gls{OS}, access to any resource in \selfour is via capabilities (recall
+\Cref{s:os-capabilities}). Capabilities to all system resources are passed to the initial task---the first
+user-level thread started in the system---which can then allocate resources as appropriate.
 Capabilities exist in a \emph{capability space} that can be configured per thread or shared between
 threads. 
 
-Capability spaces are analogous to address spaces for virtual memory, and are formed of
-\emph{CNodes} which contain capabilities. Where address spaces map virtual addresses to physical
-addresses, capability spaces map object ids to access rights.  CNodes are analogous to page tables
-in virtual memory, and can contain capabilities to further CNodes. A capability space address refers
+Capability spaces (\code{cspace}s) are analogous to address spaces for virtual memory: where address spaces map
+virtual addresses to physical addresses, capability spaces map object identifiers to access rights.
+Cspaces are formed of \emph{capability nodes} \code{cnode}s which contain capabilities, analogous to page tables
+in virtual memory, and can contain capabilities to further \code{cnode}s, which allows for multi-level
+cspace structure. A cspace address refers
 to an individual entry in some CNode in the capability space, and may be empty or contain a
-capability to a specific kernel resource. For brevity, a capability space address is referred to as
+capability to a specific kernel resource. For brevity, a cspace address is referred to as
 a slot. 
 
 % access rights
@@ -86,12 +84,52 @@ capability from a capability space, the latter removes all child capabilities.
      \label{t:capability_ops}
 \end{table}
 
+\section{System calls and invocations}
 
-\subsection{Kernel Resources}
+\selfour has a two-level system call structure, based on capabilities. The first level of system calls
+are distinguishable by system call number, as listed in \cref{t:system-calls}. The majority of
+system calls are for communication; \code{send}, \code{nbsend}, \code{call}, \code{reply} are for
+sending messages; \code{recv}, \code{nbrecv} for receiving messages; and \code{yield} for
+interacting with the scheduler.
 
-Capabilities provide access to specific objects, a brief summary of which is shown in
-\cref{t:kernel_objects}. While the majority of objects in \selfour have a platform-dependent size fixed at compile time, some
-are sized dynamically at runtime, \eg untyped and CNodes, which can be any power of two size.
+The second level of system calls are called \emph{invocations} and are modelled as sending a message
+to the kernel. All invocations are conducted by a sending system call. The kernel is modelled as if
+it is waiting for a message and receives one every time a system call is made. 
+To determine the operation, the rest of the arguments to an invocation are encoded as a message to
+the kernel. Each capability type has a different set of invocations available, and on a send to the
+kernel the capability is decoded to determine the action the kernel should take. 
+
+\begin{table} 
+    \centering
+    \rowcolors{2}{gray!25}{}
+    \begin{tabular}{l}\toprule
+        \emph{System call} \\\midrule
+        \texttt{send} 
+        \texttt{nbsend}    \\
+        \texttt{call}      \\
+        \texttt{recv}      \\
+        \texttt{nbrecv}    \\
+        \texttt{reply}     \\
+        \texttt{replyrecv} \\
+        \texttt{yield}     \\
+        \bottomrule
+    \end{tabular}
+    \caption{\selfour system call summary.}
+    \label{t:system-calls}
+\end{table}
+
+All of the operations on capabilities are that are listed in \cref{t:capability_ops} are invocations
+on \code{cnode} capability addresses. For example, to copy a capability, one uses \code{call} on a
+\code{cnode}, and provides the invocation code for copy, as well as the arguments. In the case of
+copy, one provides the slot of the capability being copied, in addition to the destination
+\code{cnode} and
+slot. 
+
+\section{Kernel Resources}
+
+Capabilities provide access to specific kernel resources, a brief summary of which is shown in
+\cref{t:kernel_objects}. 
+
 
 % table of object types 
 \begin{table}
@@ -115,31 +153,61 @@ are sized dynamically at runtime, \eg untyped and CNodes, which can be any power
      \label{t:kernel_objects}
 \end{table}
 
+All kernel memory in \selfour is managed at user-level and accessed via capabilities
+which is key to \selfour's isolation and security, but also essential for
+understanding the complexity of kernel design. Additionally, this allows for the ultimate in policy
+freedom: all resource allocation is done from user-level by those holding the appropriate
+capabilities.
+
+In the initial system state, capabilities to all resources are given to the first task started by
+the system, the \emph{root task}. Then according to system policy the root task can divide up and
+delegate system resources.  This includes capabilities to all memory, apart from the small section
+of static memory used by the kernel. The kernel itself has a large, static \emph{kernel window}
+initialised at boot time, which
+consists of memory mapped such that it is directly writeable by the kernel. The kernel window size
+is platform specific, but is 500MiB on all 32-bit platforms.  
+
+\subsection{Untyped}
+
+All memory starts as \emph{untyped} memory, and capabilities to all available untyped memory are placed in the
+cspace of the root task on boot. Each untyped consists of a start address, a size, and a flag
+indicating whether the untyped is writeable by the kernel or not. Memory reserved for devices and
+memory outside the kernel window is not readable or writeable by the kernel. 
+
+Untyped objects have only one invocation: \emph{retype}, which allows for large untyped objects to
+split into smaller objects of a different size and type, including frames, page tables, cnodes, etc. 
+While the majority of objects in \selfour have a platform-dependent size fixed at compile time, some
+are sized dynamically at runtime, \eg untyped and CNodes, which can be any power of two size.
+
+Any capability to memory---untyped or not---is a capability to a specific object in memory,
+containing a pointer to that object. When retype is used to create sub-objects in an untyped, those
+subsets of memory will not become available for retyping again until every capability to that object has been deleted, somewhat like reference counting pointers.
+
+\subsection{Control capabilities}
+
+Not all capabilities refer to memory-based resources, such as interrupts and \IO ports.
+In order to obtain capabilities to specific interrupts or ranges of \IO ports, the root task is
+provided with non-derivable control capabilities which can be invoked to place specific hardware
+resource capabilities in empty \code{cslot}s.
 
 
 % control caps, normal caps
 % operations
 
-\subsection{Kernel memory management}
 
-All kernel memory in \selfour is managed at user-level and accessed via capabilities
-which is key to \selfour's isolation and security, but also essential for
-understanding the complexity of kernel design.
+\subsection{Untyped}
 
-Capabilities to objects can be copied, which creates another capability to the same object,
-potentially with different access rights, but not
-a copy of the object itself. 
-Similarly capabilities to objects can also be deleted, but only when the last capability to an
+Object capabilities are 
 object is deleted will the object itself be deleted. Object capabilities contain a pointer to the
 actual kernel object. 
+
+
 
 All memory in \selfour starts as \emph{untyped} memory, capabilities to which is granted to the
 initial task in the system as part of the boot process. The initial task can then create all
 types of memory, including further untyped, with an operation known as \emph{retyping}. As a result,
 any object with a pointer to another object must have a back pointer to update should that object be
 deleted, in order to avoid stray pointers in the kernel. 
-
-\subsection{Untyped}
 
 
 \subsection{Thread control blocks}
@@ -292,25 +360,6 @@ signalling. \Cref{t:system-calls} shows all the system calls available in \selfo
 with the kernel itself is modelled as \gls{IPC} by using \texttt{call()} on kernel object
 capabilities. Each capability has a set of \emph{invocations} which allow for methods on that object
 to be used \eg binding a \gls{TCB} and notification object.
-
-\begin{table} 
-    \centering
-    \rowcolors{2}{gray!25}{}
-    \begin{tabular}{lp{0.6\textwidth}}\toprule
-        \emph{System call} & \emph{Description} \\\midrule
-        \texttt{send}      & One-way blocking \gls{IPC} or non-blocking signal.\\
-        \texttt{nbsend}    & One-way non-blocking \gls{IPC} or non-blocking signal.\\
-        \texttt{recv}      & Block waiting for a message or signal. \\
-        \texttt{nbrecv}    & Poll for a message or signal. \\
-        \texttt{call}      & Send an IPC and wait for a reply, or invoke the kernel. \\
-        \texttt{reply}     & Send a message to the resume capability in the TCB CNode.\\
-        \texttt{replyrecv} & \texttt{reply} and \texttt{recv} combined in one system call.\\
-        \texttt{yield}     & Surrender current timeslice. \\
-        \bottomrule
-    \end{tabular}
-    \caption{\selfour system call summary.}
-    \label{t:system-calls}
-\end{table}
 
 \subsection{Thread states}
 
