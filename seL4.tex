@@ -338,7 +338,7 @@ threads.
 
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{endpoint}
+    \includegraphics[width=0.8\textwidth]{endpoint}
     \caption{IPC rendezvous with respect to a single endpoint, circles show the endpoint state.}
     \label{f:endpoint}
 \end{figure}
@@ -431,51 +431,60 @@ thread is rendered inactive and no fault message is sent.
 \subsection{Notifications}
 \label{p:sel4_notifications}
 
-Notification objects provide the mechanism for semaphores in \selfour. 
-
-The signals are non-blocking, as the badge of the notification capability is simply
-bitwise ORed with a data word stored in the notification object itself. When a receiver blocks on a
-notification object (\texttt{recv()}), if the badge has already been set it the receiver will
-receive it immediately, otherwise the receiver will block immediately. Receivers can also poll a
-notification object with \texttt{nbrecv()}.
-
+Notification objects provide the mechanism for semaphores in \selfour, and consist of a word of
+data. Sending on a notification either sends the badge of the invoked notification capability to a 
+thread waiting on that notification object, or if no threads are waiting stores the badge in the
+data word of the notifications. Future invocations continue to bitwise OR the badge and data word
+until a thread receives the signal and clears the word. 
 
 \begin{table} 
     \centering
     \rowcolors{2}{gray!25}{}
     \begin{tabular}{p{0.2\textwidth}p{0.8\textwidth}}\toprule
         \emph{System call} & Action \\\midrule
-        \texttt{send}   & Send a message, bitwise ORING blocking until it is consumed. \\ 
-        \texttt{nbsend} & Send a message, but only if it is consumed immediately (\ie a thread is
-        already waiting on this endpoint for a message).  \\
-        \texttt{recv}   & Block until a message is available to be consumed from this endpoint.  \\
-        \texttt{nbrecv} & Poll for a message---consume a message from this endpoint, but only if it is available
-        immediately.   \\
-        \texttt{call}   & Send a message, and block until a reply message is received. \\
-        \texttt{reply}  & Send a reply message to a \code{call}.   \\
-        \texttt{replyrecv} & Send a reply message to a \code{call} and then \code{recv}. \\
+        \texttt{send}   & Send a notification, transmitting the badge, do not block. \\ 
+        \texttt{nbsend} & As above. \\
+        \texttt{recv}   & Wait until a notification is available then receive the data word.  \\
+        \texttt{nbrecv} & Poll for a notification, do not block, receive the data word if available. \\
         \bottomrule
     \end{tabular}
     \caption{System calls and their effects when used on endpoints.}
-    \label{t:endpoint-system-calls}
+    \label{t:notification-system-calls}
 \end{table}
+
+\Cref{t-notification-system-calls} shows the operations that occur when notification objects are
+invoked with relevant system calls. \cref{f:notification} depicts changes in the notification object
+state that occur when threads notify and block on notifications. 
 
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{notification}
-    \caption{Notification object state transitions based on invocations.}
-    \label{f:endpoint}
+    \includegraphics[width=0.8\textwidth]{notification}
+    \caption{Notification object state transitions based on invocations. \code{send} and
+    \code{nbsend} correspond to notify in the diagram, want wait corresponds to a \code{recv}.}
+    \label{f:notification}
 \end{figure}
 
+\subsubsection{Interrupts}
 
+In addition to providing a mechanism for threads to notify each other, notification objects are also
+used to allow threads to poll for and wait for interrupts. IRQ handler objects have an invocation
+\code{set\_notification} which results in the kernel issuing a notification when an interrupt
+occurs. The badge of the notification capability given to the IRQ handler determines what is set in
+the data word when the interrupt is triggered. Further notifications are not issued by the kernel
+until the interrupt is acknowledged.
 
-\TODO{A diagram of the notification word}
-Notification objects are an array of binary semaphores used to facilitate asynchronous communication in \selfour, either from other threads via \texttt{send()} or from
-interrupts.  The signals are non-blocking, as the badge of the notification capability is simply
-bitwise ORed with a data word stored in the notification object itself. When a receiver blocks on a
-notification object (\texttt{recv()}), if the badge has already been set it the receiver will
-receive it immediately, otherwise the receiver will block immediately. Receivers can also poll a
-notification object with \texttt{nbrecv()}.
+\subsubsection{Notification binding}
+\label{s:notification-binding}
+Threads can register a specific notification object to receive notifications from while blocked on
+an endpoint with a mechanism called \emph{notification binding}. This is done by invoking the TCB
+with the \code{bind\_notification} invocation, which establishes a link between a TCB and
+notification object. Subsequently, if a notification is sent on that object and the TCB receives
+on any endpoint, that TCB will receive the notification. 
+
+% cover this under notification binding
+As a result, any object with a pointer to another object must have a back pointer to update should that object be
+deleted, in order to avoid stray pointers in the kernel. 
+
 
 % notifications, interrupts, aep-binding
 \begin{figure}
@@ -506,20 +515,14 @@ Signals can also be received by threads waiting on \gls{IPC}, as shown in \Cref{
 \gls{TCB} object is bound to a notification object, establishing a link between them. Badges can be
 used to determine whether a message was received from the endpoint or a signal on the notification object.
 
-% cover this under notification binding
-As a result, any object with a pointer to another object must have a back pointer to update should that object be
-deleted, in order to avoid stray pointers in the kernel. 
+\section{Scheduling}
 
+% scheduler
 
+% domains
 
+% thread states
 
-\subsection{System calls}
-
-Over the last few sections we have indirectly presented several system calls for \gls{IPC} and
-signalling. \Cref{t:system-calls} shows all the system calls available in \selfour. Communication
-with the kernel itself is modelled as \gls{IPC} by using \texttt{call()} on kernel object
-capabilities. Each capability has a set of \emph{invocations} which allow for methods on that object
-to be used \eg binding a \gls{TCB} and notification object.
 
 \subsection{Thread states}
 
