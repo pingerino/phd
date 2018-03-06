@@ -42,7 +42,7 @@ in virtual memory, and can contain capabilities to further \code{cnode}s, which 
 cspace structure. A cspace address refers
 to an individual entry in some CNode in the capability space, and may be empty or contain a
 capability to a specific kernel resource. For brevity, a cspace address is referred to as
-a slot. 
+a \emph{slot}. 
 
 % access rights
 Each capability has three potential access rights: read, right and grant. How those rights affect
@@ -125,11 +125,15 @@ copy, one provides the slot of the capability being copied, in addition to the d
 \code{cnode} and
 slot. 
 
-\section{Kernel Resources}
+\section{Physical memory management}
 
-Capabilities provide access to specific kernel resources, a brief summary of which is shown in
+All kernel memory in \selfour is managed at user-level and accessed via capabilities
+which is key to \selfour's isolation and security, but also essential for
+understanding the complexity of kernel design. Additionally, this allows for the ultimate in policy
+freedom: all resource allocation is done from user-level by those holding the appropriate
+capabilities. Capabilities to kernel memory contain a physical address and a type which indicates
+what type of memory is at that physical address. Options for different types are shown in
 \cref{t:kernel_objects}. 
-
 
 % table of object types 
 \begin{table}
@@ -137,27 +141,20 @@ Capabilities provide access to specific kernel resources, a brief summary of whi
     \rowcolors{2}{gray!25}{}
     \begin{tabular}{l p{0.6\textwidth}}\toprule
     \emph{Object}    & \emph{Description}\\\midrule
+    Untyped    & Memory that can be retyped into other types of memory, including untyped.\\
     CNode            & A fixed size table of capabilities. \\
     \Gls{TCB}        & A thread of execution in \selfour.\\
     Endpoint  & Ports which facilitate \gls{IPC}. \\
     Notification object & Arrays of binary semaphores.\\
-    Vspace     & Top level paging structure. \\
-    PageTable  & Page table structures and address space IDs.\\
-    Page       & Mappable physical memory. \\
-    Interrupt & Allow access to specific hardware interrupts.\\
-    Untyped    & Memory that can be retyped into other types of memory, including untyped.\\
+    Page Directories     & Top level paging structure. \\
+    Page Tables  & Intermediate paging structures.\\
+    Frames       & Mappable physical memory. \\
     \bottomrule
     \end{tabular}
-    \caption{Major object types in \selfour, excluding platform specific objects. For further detail
+    \caption{Major memory object types in \selfour, excluding platform specific objects. For further detail
     consult the \selfour manual~\citep{seL417}}.
      \label{t:kernel_objects}
 \end{table}
-
-All kernel memory in \selfour is managed at user-level and accessed via capabilities
-which is key to \selfour's isolation and security, but also essential for
-understanding the complexity of kernel design. Additionally, this allows for the ultimate in policy
-freedom: all resource allocation is done from user-level by those holding the appropriate
-capabilities.
 
 In the initial system state, capabilities to all resources are given to the first task started by
 the system, the \emph{root task}. Then according to system policy the root task can divide up and
@@ -172,7 +169,8 @@ is platform specific, but is 500MiB on all 32-bit platforms.
 All memory starts as \emph{untyped} memory, and capabilities to all available untyped memory are placed in the
 cspace of the root task on boot. Each untyped consists of a start address, a size, and a flag
 indicating whether the untyped is writeable by the kernel or not. Memory reserved for devices and
-memory outside the kernel window is not readable or writeable by the kernel. 
+memory outside the kernel window is not readable or writeable by the kernel: the rest is untyped
+memory, free for use by the system. 
 
 Untyped objects have only one invocation: \emph{retype}, which allows for large untyped objects to
 split into smaller objects of a different size and type, including frames, page tables, cnodes, etc. 
@@ -183,20 +181,47 @@ Any capability to memory---untyped or not---is a capability to a specific object
 containing a pointer to that object. When retype is used to create sub-objects in an untyped, those
 subsets of memory will not become available for retyping again until every capability to that object has been deleted, somewhat like reference counting pointers.
 
+\Cref{t:untyped} shows an example initial memory layout for the \textsc{Sabre} platform, which has a
+500MiB kernel window. Physical memory on this platform starts at 0x10000000, which is mapped into
+the kernel address space at 0xe0000000. Physical addresses outside of this range are devices and
+are not writeable by the kernel.
+Capabilities to all of the available memory and devices are set up as untyped in the initial root task's
+\code{cnode}. 
+
+\begin{table} 
+    \centering
+    \rowcolors{2}{gray!25}{}
+    \begin{tabular}{lll} \toprule
+        \emph{Start physical address} & \emph{End physical address} & \emph{Kernel virtual address} \\\midrule
+    0x100000   & 0x2c00000   & \no \\
+    0x10000000 & 0x10010000 & 0xe0000000 \\
+    0x105c3000 & 0x2f000000 & 0xe105c3000 \\
+    0x2f106400 & 0x2fdfc200 & 0xff106400 \\
+    \bottomrule
+    \end{tabular}
+    \caption{Initial memory ranges on at boot time on the \textsc{Sabre} platform.}
+    \label{t:untyped}
+\end{table}
+
+
 \subsection{Virtual Memory}
 
 Page tables, intermediate paging structures and physical frames are all created by retyping
-untyped objects. Page tables and frames have a set of architectural invocations including mapping, unmapping, and cache flushing operations.
+untyped objects. Page tables and frames have a set of architectural invocations including mapping, 
+unmapping, and cache flushing operations.
 
 \subsection{Thread control blocks}
 
-\Glspl{TCB} represent an execution context and manage processor time in \selfour. Each \gls{TCB} is
-associated with a cspace and a top level virtual memory object, specified by capabilities, which may
-be shared with other threads. 
-Additionally threads have an IPC buffer, which is a page shared between the kernel and the thread
-for messages. 
-Threads have a timeslice attribute, which specifies the amount of milliseconds until that thread is
-preempted, and a priority for the fixed priority scheduler.
+\Glspl{TCB} represent an execution context and manage processor time in \selfour, and consist of a
+base TCB structure and a \code{cnode}. 
+The base TCB structure contains accounting information for scheduling and IPC in addition to the
+register set and floating point context. 
+The \code{cnode} contains capabilities that should not be
+deleted while a thread is running
+leveraging the fact that an object cannot be truly deleted until all capabilities to it are removed.
+These capabilities include the top-level \code{cnode}, top-level page directory, and three
+capabilities for \gls{IPC} which we cover in the \cref{s:endpoint} section. 
+\cref{t:tcb_ops} shows the main invocations possible on TCB capabilities.
 
 % table of tcb invocations
 \begin{table}
@@ -211,7 +236,8 @@ preempted, and a priority for the fixed priority scheduler.
         \code{SetAffinity}          & Set the CPU on which this thread should run.\\
         \code{SetIPCBuffer}         & Set the page to use for the IPC buffer.\\
         \code{SetPriority}          & Set the priority of this TCB.\\
-        \code{BindNotification}     & TODO \\
+        \code{BindNotification}     & Bind this TCB with a notification object (see
+        \cref{s:notification-binding}. \\
     \bottomrule 
     \end{tabular}
     \caption{Summary of operations on TCBs. Further operations are available that batch several
@@ -219,62 +245,160 @@ preempted, and a priority for the fixed priority scheduler.
      \label{t:tcb_ops}
 \end{table}
 
-
-
-% control caps, normal caps
-% operations
-
-
-
-As a result, any object with a pointer to another object must have a back pointer to update should that object be
-deleted, in order to avoid stray pointers in the kernel. 
-
 \subsection{Endpoints}
 \label{s:endpoints}
 
-In the \selfour model,
-\gls{IPC} takes place via endpoints, which represent a general communication port. Any thread with a
+Endpoints are the general communication port used by \selfour for \gls{IPC}.
+Any thread with a
 capability to an endpoint can send and receive messages on that endpoint, subject to the access
-rights. Most messages sent fit into registers, however messages exceeding this platform-dependent
-size are stored in the \gls{IPC} buffer, a kernel-writeable frame per
-thread. 
+rights. Endpoints are small, and consist of the endpoint badge, some state information and a queue
+of threads blocked on the endpoint. We cover how endpoints interact with IPC in the upcoming
+\cref{p:sel4_ipc}. 
 
-IPC can be one-way, where the sender blocks until the message is sent then may continue
-(\texttt{send()}) , or two-way,
-where the sender blocks until a reply message is sent (\texttt{call()}). One-way IPC may also be
-non-blocking, where the message is only sent if a receiver is already present.
-Multiple senders and receivers can use the same endpoint, and which act as \gls{FIFO}
-queues. 
+\subsection{Notifications}
+
+Notification objects are an array of binary semaphores used to facilitate asynchronous communication in \selfour, either from other threads via \texttt{send()} or from
+interrupts. Notification objects consist of a queue of blocked threads and a word of information,
+which contains the semaphore state. Further information on notifications is presented in
+\cref{p:sel4_notifications}. 
+
+\section{Control capabilities}
+\label{s:control-capabilities}
+
+Not all capabilities refer to memory-based resources, such as interrupts and \IO ports.
+In order to obtain capabilities to specific interrupts or ranges of \IO ports, the root task is
+provided with non-derivable control capabilities which can be invoked to place specific hardware
+resource capabilities in empty slots.
+
+\begin{table}
+	\centering
+    \rowcolors{2}{gray!25}{}
+	\begin{tabular}{lll} 
+        \toprule
+        \emph{Start}  & \emph{End} & \emph{Contents} \\\midrule
+        0                &               & empty \\
+        1                &       & initial thread's TCB \\
+        2                &       & this \code{cnode} \\
+        3                &        & initial thread's page directory \\
+        4                &        & \code{irq\_control} \\
+        5                &        & \code{ASID\_control} \\
+        6                &        & initial thread's ASID pool \\
+        7                &        & \code{IO\_port\_control} \\
+        8                &        & \code{IO\_space\_control} \\
+        9                &        & initial thread start-up information frame \\
+        10                &        & initial thread's IPC buffer frame \\
+        11               &        & \code{domain\_control} \\
+        12               & 18       & initial thread's paging structures \\
+        19               & 1431     & initial thread's frames \\
+        1431             & 1591     & untyped \\
+        1592             & $2^{16}-1$ & empty \\
+        \bottomrule
+	\end{tabular}
+    \caption{Slot layout in the initial \code{cnode} set up by the kernel for the root task on the
+\textsc{Sabre}.}
+	\label{t:initial_cnode}
+\end{table}
+
+\cref{t:initial_cnode} shows the root tasks initial cspace layout as set up by the kernel for the
+\textsc{Sabre} platform. Apart from capabilities to memory objects for the root task and the
+remaining untyped, the initial \code{cnode} contains five control capabilities for managing
+interrupts, \glspl{ASID}, \IO Ports, \IO Spaces and domains.
+
+We take interrupts as an example to explain how control capabilities function. The
+\code{irq\_control} capability is the control capability for obtaining capabilities to specific
+interrupt numbers, which is achieved by invoking the \code{irq\_control} capability.
+Users provide an interrupt number and an empty slot and on success a IRQHandler capability to
+that interrupt number is placed in that slot. Once this authority is granted, the IRQHandler can then be
+invoked to manage that specific interrupt. On x86, \code{irq\_control} is also used to provide
+capabilities to model specific registers and \IO interrupts.
+
+\section{Communication}
+
+\selfour provides communication through synchronous IPC via endpoints, or asynchronous notifications
+via notification objects. All of the communication system calls introduced in \cref{t:system-calls},
+when used on endpoints and notifications, are used to communicate between TCBs. There are no kernel
+invocations that can take place via endpoints or notification capabilities. 
+
+\subsection{IPC}
+\label{p:sel4_ipc}
+
+IPC in \selfour consists of threads sending and receiving messages in a blocking or non-blocking
+fashion over endpoints, which act as
+message ports. Each thread has a buffer (referred to as the \emph{IPC buffer}), which contains the payload of the message, consisting
+of data and capabilities. Senders specify a message length and the kernel copies this (bounded)
+amount between the sender and receiver IPC buffer. Small messages are sent in registers and do not
+require a copy operation. 
+Along with the message the kernel additionally delivers the badge of the endpoint capability that the sender 
+invoked to send the message.
+
+IPC can be one-way, where a single message is sent between a sender and receiver, or two-way in an
+RPC fashion where the sender sends a message and expects a reply. \emph{IPC rendezvous} refers to
+when the IPC takes place, specifically when the kernel transfers data and capabilities between two
+threads. 
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{endpoint}
+    \caption{IPC rendezvous with respect to a single endpoint, circles show the endpoint state.}
+    \label{f:endpoint}
+\end{figure}
+
+Table \cref{t:endpoint-system-calls} summarises \selfour system calls when used on endpoint
+capabilities. Essentially, \code{send()} is used to send a message and \code{recv()} used to
+receive one, both having blocking and non-blocking variants. \code{call()} is of particular interest as it represents the caller side of an RPC
+operation critical to microkernel performance, distinguished from a basic pair of \code{send()} and
+\code{recv()} by \emph{resume} capabilities. Pioneered in EROS~\citep{Shapiro_SF_99}, resume
+capabilities are generated once the message sent by \code{call()} is consumed, and consist of the
+thread waiting for a reply message. In \selfour, the resume capability is stored in the \gls{TCB}
+\code{cnode}, and \code{reply()} is the operation used to invoke this capability and send the reply
+message back.
+
+\begin{table} 
+    \centering
+    \rowcolors{2}{gray!25}{}
+    \begin{tabular}{p{0.2\textwidth}p{0.8\textwidth}}\toprule
+        \emph{System call} & Action \\\midrule
+        \texttt{send}   & Send a message, blocking until it is consumed. \\ 
+        \texttt{nbsend} & Send a message, but only if it is consumed immediately (\ie a thread is
+        already waiting on this endpoint for a message).  \\
+        \texttt{recv}   & Block until a message is available to be consumed from this endpoint.  \\
+        \texttt{nbrecv} & Poll for a message---consume a message from this endpoint, but only if it is available
+        immediately.   \\
+        \texttt{call}   & Send a message, and block until a reply message is received. \\
+        \texttt{reply}  & Send a reply message to a \code{call}.   \\
+        \texttt{replyrecv} & Send a reply message to a \code{call} and then \code{recv}. \\
+        \bottomrule
+    \end{tabular}
+    \caption{System calls and their effects when used on endpoints.}
+    \label{t:endpoint-system-calls}
+\end{table}
 
 \begin{figure}
     \centering
     \begin{subfigure}[h]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{ipc1}
-        \caption{Phase 1}
+        \caption{Initial IPC rendezvous}
         \label{f:ipc1}
     \end{subfigure}%
     \begin{subfigure}[h]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{ipc2}
-        \caption{Phase 2}
+        \caption{Reply phase}
         \label{f:ipc2}
     \end{subfigure}
-    \caption{IPC phases: (a) shows the initial IPC rendezvous, (b) shows the
-    reply phase. See \Cref{f:legend-1} for the legend.}
+    \caption{IPC phases: a TCB, $A$ sends a message to endpoint $E$ using \code{call()}. Another
+        TCB, $S$, blocks on $E$ using \code{recv()}. At this point the message is transferred from 
+        $A$ to $S$ and $A$ is blocked the reply capability. (b) shows the
+    reply phase, where $S$ uses \code{reply()} to send a reply message to $A$, waking $A$. See \Cref{f:legend-1} for the legend.}
     \label{f:ipc}
 \end{figure}
 
-Two-way IPC has two phases, as \cref{f:ipc} illustrates: rendezvous and reply.
-
 \Cref{f:ipc1} demonstrates the rendezvous phase, where regardless of the order of operations, 
 when one thread blocks (\code{recv()}) on the endpoint and another thread sends on that endpoint
-then a message is sent. This occurs for both one-way and two-way \gls{IPC}.
-
-The reply phase, illustrated in \Cref{f:ipc2}, only occurs if the sender used \texttt{call} to send
-the \gls{IPC}. In this case, a one-off \emph{resume} capability is generated, which the caller ($A$)
-blocks on, and the receiver ($S$) sends a reply message to, waking the caller. Receivers can save
-the \emph{resume} capability to send a reply to later, but otherwise the resume capability is
+then the message is consumed by the receiver. This occurs for both one-way and two-way \gls{IPC}.
+Receivers can save
+the \emph{resume} capability into their \code{cspace} to send a reply to later, but otherwise the resume capability is
 installed in the \gls{TCB} CNode. The \emph{reply} system call directly invokes the resume
 capability in this slot. 
 
@@ -289,19 +413,61 @@ contains two \gls{IPC} fastpaths which is used when the following, common-case c
     \item and the message fits in registers.
 \end{enumerate}
 
-Endpoint capabilities can be minted with unique, unforgeable badges which are delivered to the
-receiver with the rest of the IPC message. This provides a mechanism for identifying senders.
+Multiple senders and receivers can use the same endpoint, and which act as \gls{FIFO}
+queues. In order to distinguish senders, receivers can use endpoint badges, which are unforgeable as
+they are copied by the kernel directly. 
 
 \subsection{Fault handling}
 
+Fault handling in \selfour is modelled as IPC messages between the kernel and receivers. 
 \glspl{TCB} can have a specific fault endpoint registered, on which the kernel can send simulated
-\gls{IPC} messages containing information about the fault. Fault handling threads can block on this 
-endpoint. When a fault message is delivered to the fault endpoint, the kernel blocks the faulting
-thread. The fault handling thread can then reply to this message to resume the thread and reset its
+\gls{IPC} messages containing information about the fault. Fault handling threads receive messages
+on this endpoint as if the kernel had conducted a \code{call()}: the kernel blocks the faulting
+thread on a resume capability.  The fault handling thread can subsequently reply to this message to
+resume the thread and reset its
 registers. If no fault endpoint is present, the
 thread is rendered inactive and no fault message is sent. 
 
 \subsection{Notifications}
+\label{p:sel4_notifications}
+
+Notification objects provide the mechanism for semaphores in \selfour. 
+
+The signals are non-blocking, as the badge of the notification capability is simply
+bitwise ORed with a data word stored in the notification object itself. When a receiver blocks on a
+notification object (\texttt{recv()}), if the badge has already been set it the receiver will
+receive it immediately, otherwise the receiver will block immediately. Receivers can also poll a
+notification object with \texttt{nbrecv()}.
+
+
+\begin{table} 
+    \centering
+    \rowcolors{2}{gray!25}{}
+    \begin{tabular}{p{0.2\textwidth}p{0.8\textwidth}}\toprule
+        \emph{System call} & Action \\\midrule
+        \texttt{send}   & Send a message, bitwise ORING blocking until it is consumed. \\ 
+        \texttt{nbsend} & Send a message, but only if it is consumed immediately (\ie a thread is
+        already waiting on this endpoint for a message).  \\
+        \texttt{recv}   & Block until a message is available to be consumed from this endpoint.  \\
+        \texttt{nbrecv} & Poll for a message---consume a message from this endpoint, but only if it is available
+        immediately.   \\
+        \texttt{call}   & Send a message, and block until a reply message is received. \\
+        \texttt{reply}  & Send a reply message to a \code{call}.   \\
+        \texttt{replyrecv} & Send a reply message to a \code{call} and then \code{recv}. \\
+        \bottomrule
+    \end{tabular}
+    \caption{System calls and their effects when used on endpoints.}
+    \label{t:endpoint-system-calls}
+\end{table}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{notification}
+    \caption{Notification object state transitions based on invocations.}
+    \label{f:endpoint}
+\end{figure}
+
+
 
 \TODO{A diagram of the notification word}
 Notification objects are an array of binary semaphores used to facilitate asynchronous communication in \selfour, either from other threads via \texttt{send()} or from
@@ -340,12 +506,11 @@ Signals can also be received by threads waiting on \gls{IPC}, as shown in \Cref{
 \gls{TCB} object is bound to a notification object, establishing a link between them. Badges can be
 used to determine whether a message was received from the endpoint or a signal on the notification object.
 
-\section{Control capabilities}
+% cover this under notification binding
+As a result, any object with a pointer to another object must have a back pointer to update should that object be
+deleted, in order to avoid stray pointers in the kernel. 
 
-Not all capabilities refer to memory-based resources, such as interrupts and \IO ports.
-In order to obtain capabilities to specific interrupts or ranges of \IO ports, the root task is
-provided with non-derivable control capabilities which can be invoked to place specific hardware
-resource capabilities in empty \code{cslot}s.
+
 
 
 \subsection{System calls}
