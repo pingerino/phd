@@ -12,8 +12,10 @@ Three main features of \selfour support this claim: it has been formally verifie
 The scheduler in \selfour has been left intentionally underspecified~\citep{Petters_EH_12} for later work and as a result has a very informal notion of time.
 The current implementation is a placeholder, and follows the traditional L4 scheduling model~\citep{Ruocco_06} --- a fixed-priority, round-robin scheduler with 256 priorities.
 
-In this section we will present the current state of relevant \selfour features in order to highlight deficiencies and motivate our changes.
-We will outline the existing scheduler, the API curiosity that is \yield, and how \gls{IPC} interacts with scheduling, followed by an analysis of how the current mechanisms can be used in real-time systems.
+In this section we will present the current state of relevant \selfour features in order to
+highlight deficiencies and motivate our changes.  We will outline the existing scheduler, the API
+curiosity that is \yield, and how \gls{IPC} interacts with scheduling, followed by an analysis of
+how the current mechanisms can be used in real-time systems.
 
 
 First we introduce the basics of \selfour: kernel memory management, capabilities, \gls{IPC} and
@@ -228,7 +230,7 @@ The \code{cnode} contains capabilities that should not be
 deleted while a thread is running
 leveraging the fact that an object cannot be truly deleted until all capabilities to it are removed.
 These capabilities include the top-level \code{cnode}, top-level page directory, and three
-capabilities for \gls{IPC} which we cover in the \cref{s:endpoint} section. 
+capabilities for \gls{IPC}. 
 \cref{t:tcb_ops} shows the main invocations possible on TCB capabilities.
 
 % table of tcb invocations
@@ -591,48 +593,61 @@ processing core, and is a priority-based round-robin scheduler with 256 prioriti
 At a scheduling decision, the kernel chooses the head of the highest-priority, non-empty list.
 
 Implementation wise, the scheduler consists of an array of lists: one list of ready threads for each
-priority level. A two-level bit-field is used to track which priority lists contain threads, 
+priority level. A two-level bit field is used to track which priority lists contain threads, 
 in order to achieve a scheduling decision complexity of $O(1)$. 
 
+The bit field data structure works as follows: the
+top level consists of one word, each bit representing $N$ priorities, where $N$ is 32 or 64
+depending on the word size. The second level consists of $256/N$ words, which are indexed by the first bit set in the
+top-level bit field. To construct a priority we use the hardware instruction count leading zeros
+(\code{CLZ}) to find the highest bit set in the top level index. We take that index and use
+\code{CLZ} on the bottom level bit field corresponding to that index, then construct the priority
+from these two values, allowing the highest priority to be found by reading only two words. For
+example, on a 32-bit system 
+if bit 1 is the highest bit set in the top level bit field, we index entry 1 in the
+bottom level. If bit 5 is the highest bit set in the first entry of the bottom level, we then obtain
+$ 1 * 32 + 5 = 37$ as the highest priority. 
+\cref{list:two-lvl-bitmap} shows the logic for the scheduler bit field on 32-bit systems.
 
+\begin{listing}
+    \begin{ccode}
+uint32_t top_level_index = 0;
+uint32_t bottom_level_index[256 / (1u << 5u)];
 
+void addToBitmap(word_t prio) {
+    uint32_t l1index = prio >> 5u;
+    top_level_bitmap |= (1u << l1index);
+    bottom_level_bitmap[l1index] |= (prio & ((1u << 5) - 1u));
+}
 
-field is used to 
-Scheduling decision complexity is $O(1)$ as a two-level bit field tracks the highest priority with a runnable thread.
+word_t getHighestPrio(void) {
+    uint32_t l1index = 31 - CLZ(top_level_bitmap);
+    l2index = 31 - CLZ(bottom_level_bitmap[l1index]));
+    return (l1index << 5 | l2index);
+}
+    \end{ccode}
+    \caption{Example algorithms for adding a priority to the scheduler bitmap and extracting the highest
+        active priority, on a 32-bit system. Both operations are $O(1)$ and involve two memory accesse. 
+    \code{CLZ} is the hardware instruction for count leading zeros.}
+    \label{list:two-lvl-bitmap}
+\end{listing}
 
-h
-and
-removes it from the relevant scheduler queue, which is referred to as \emph{Benno Scheduling}, named
-after its original author.
-T
+\subsection{Scheduler optimisations}
 
-
-
-
-
+A scheduling decision needs to be made whenever a thread transitions from or to a runnable state.
+The majority of thread state transitions occur on IPC, which is critical for performance, 
+as can be seen in the simplified thread state diagram shown in \cref{f:thread_state}. 
 \begin{figure}[h!tb]
     \centering
     \includegraphics[width=0.7\textwidth]{thread_state}
     \caption{Thread state transitions in \selfour}
     \label{f:thread_state}
 \end{figure}
-
-
-
-% scheduler
-The scheduler in \selfour is priority-based round-robin with 256 priorities (0 --- 255), implemented ase kernel previously used \emph{lazy scheduling}, leaving the current thread in its run queue, however this was replaced in favour of Benno scheduling to reduce the WCET of the kernel. 
-
-
-% domains
-
-% thread states
-
-
-\subsection{Thread states}
-
+The \code{BlockedOnObject} state in the diagram maps to \code{blockedOn<N>} in the following thread
+state definitions:
 \begin{description}
     \item \code{Running} This thread is eligible to be picked by the scheduler, and should be in the
-        scheduling queues or be the currently running thread. 
+        scheduling queues or be the currently running thread.
     \item \code{Inactive} This thread is not runnable, and is not in the scheduler. It has been
         suspended, or possibly never resumed. 
     \item \code{BlockedOnRecv} This thread is waiting to receive an IPC (or bound notification). 
@@ -642,53 +657,50 @@ The scheduler in \selfour is priority-based round-robin with 256 priorities (0 -
     \item \code{BlockedOnNotification} This thread is waiting to receive a notification.
 \end{description}
 
-\Cref{f:thread_state} depicts a simplified state diagram of the thread states that
-threads transition through, although in the diagram we map multiple blocked states to
-\code{BlockedOnObject} for simplicity.  
+Several optimisations exist in the kernel for performance, including lazy and benno
+scheduling. 
+\emph{Lazy} scheduling is the first optimisation, and is used whenever a thread blocks and wakes
+another thread at the same time, for example, in the \code{call} system call where the sender is
+blocked on the resume capability and the receiver is woken. Lazy scheduling observes that the
+current thread must be the highest-priority, runnable thread, and checks if the woken thread is
+higher than any other runnable thread by querying the scheduler bit field. If so, the receiver is
+directly switch to and the scheduler is avoided all together. Otherwise the receiver is moved from
+the endpoint queue into the scheduling queue and the scheduler called.
 
+\emph{Benno} scheduling, named for its inventor Ben Leslie, removes the current thread from the 
+scheduler, changing the invariant that all runnable thread are in the scheduler, to all runnable
+threads except the current thread are in the scheduler. By doing so we avoid manipulating the
+scheduling queues when doing a direct switch, reducing the cache footprint and resulting in a performance improvement.
 
+\subsubsection{Round-robin}
 
-
-As depicted in \Cref{f:thread_state}, threads in \selfour can be inactive, running or blocked on a
-specific object. The thread state encodes the object which the thread is blocked on. 
-
-
-
-Kernel time is accounted for in ticks, with a static tick length defined at compile time (CONFIG\_TIMER\_TICK\_MS).
-Threads have a timeslice field which represents the number of ticks they are eligible to run. 
+Kernel time is accounted for in ticks, and each TCB has a timeslice field which represents the number of ticks they are eligible to run. 
 This value is decremented every time a timer tick is handled, and when the timeslice is exhausted the thread is appended to the relevant scheduler queue, with a replenished timeslice.
-The reload value of the timeslice is also defined at compile time (CONFIG\_TIME\_SLICE).
+Threads can surrender their current tick using the \code{yield} system call, which places the thread
+at the end of it's scheduler queue.
 
-In an unrealistically simple system, where threads run at the same priority and do not communicate, it is possible to analyse temporal behavior on \selfour: threads will run for the timeslice value in round-robin order.
-However, the allocation of ticks to threads is not actually that simple due to yield behaviour, preemption and \gls{IPC}. 
-
-\subsection{Priorities}
+\subsubsection{Priorities}
 
 Like any priority-based kernel without temporal isolation mechanisms, time is only guaranteed to the highest priority threads.
 Priorities in \selfour act as informal capabilities: threads cannot create threads at priorities higher than their current priority, but can create threads at the same or lower priorities.
 If threads at higher priority levels never block, lower priority threads in the system will not run.
 As a result, a single thread running at the highest priority has access to 100\% of processing time.
-However, even this becomes unclear once there is more than one thread at a priority: if two threads are running, they can both access 50\% of processing time.
-If one of two threads blocks, the other gets 100\% of processing time and vice versa.
-There is no way to enforce a certain processor allocation and how CPU time a thread receives is up
-to priorities and the behaviour of other threads in the system, which is impossible to guarantee.
-
-\subsection{Accounting}
-% I think this should move to the design section?
-\selfour has a tick-based scheduler, where ticks are accounted to the currently running thread,
-meaning that temporal isolation in servers is not possible and accuracy is traded for precision, as
-discussed in \Cref{s:tick-v-tickless}.
-
-Similarly, the \texttt{yield} system call will not alter the timeslice of the current thread, and
-only donates a portion of the current tick to the next thread in the round-robin scheduler. 
 
 \subsection{Domain scheduler}
 
-A recent addition to the \selfour kernel adds the ability to guarantee complete temporal isolation and deterministic scheduling between sets of threads, using the concept of scheduling \emph{domains}.
-Threads are assigned to domains, each of which has a separate array of lists of threads over the priority range.
-Each domain runs for a fixed amount of ticks, and domains are scheduled sequentially and deterministically.
+In order to achieve temporal isolation, \selfour provides a top-level hierarchical scheduler
+which provides static, cyclical scheduling of scheduling partitions known as \emph{domains}. 
+Domains are statically configured at compile time with a cyclic schedule, and are non-preemptible
+resulting in completely deterministic scheduling of domains.
+Each domain has it's own priority scheduler, with lists per priority and a bit field structure, which is switched deterministically when a domain's
+ticks expire. 
+Threads are assigned to domains, and threads are only scheduled when their domain is active.
 Cross-domain \gls{IPC} is delayed until a domain switch, and \texttt{yield} between domains is not
 possible. When there there are no threads to run while a domain is scheduled, a domain-specific idle thread will run until a switch occurs.
+
+The domain scheduler was introduced in order to complete the proof of confidentiality \TODO{cite
+paper}.
+
 
 The domain scheduler can be leveraged to achieve temporal isolation however since domains cannot be
 preempted, it is only useful for cyclic, non-preemptive scheduling with scheduling order and
@@ -702,6 +714,7 @@ with the domain scheduler, as they require preemption.
 
 \section{RT support}
 
+\TODO{shared resource temporal isolation not possible}.
 We introduced basic \selfour concepts and terminology, and investigated mechanisms that effect
 timing behaviour in the kernel: the scheduler, priorities, yield and IPC. 
 In this section we will look at how real-time scheduling could be implemented with those mechanisms.

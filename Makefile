@@ -23,7 +23,7 @@ LaTeXEnv   = TEXINPUTS=".:/home/disy/lib/TeX:/home/disy/lib/ps:${TEXINPUTS}:"
 BibTexEnv  = BIBINPUTS=".:${BIBDIR}:${BIBINPUTS}:"
 BibFiles   = defs,combined,systems,fm,other
 
-LaTeX      = ${LaTeXEnv} pdflatex -interaction=nonstopmode
+LaTeX      = ${LaTeXEnv} pdflatex -interaction=nonstopmode -shell-escape
 # Uncomment the following for the "report" and "simple" templates
 #LaTeX      = ${LaTeXEnv} lualatex -interaction=nonstopmode
 LaTeXdiff  = ./tools/latexdiff
