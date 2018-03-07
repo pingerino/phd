@@ -4,26 +4,26 @@ digraph {
     edge [fontsize=11,fontname="inconsolata"]
     //actual nodes
     Idle [shape=ellipse,label="Idle\nblocked=0"]
-    Recv [shape=ellipse,label="Recv\nblocked++"]
-    Send [shape=ellipse,label="Send\nblocked++"]
+    Recv [shape=ellipse,label="Recv"]
+    Send [shape=ellipse,label="Send"]
     IPC1 [shape=box label="Rendezvous\nblocked--"]
     IPC2 [shape=box label="Rendezvous\nblocked--"]
 
     TCB1 [shape=diamond label="blocked > 0?"]
     TCB2 [shape=diamond label="blocked > 0?"]
     
-    Idle -> Recv[label=" receive"]
-    Idle -> Send[label=" send"]
+    Idle -> Recv[label=" recv()\n blocked++"]
+    Idle -> Send[label=" send()\n blocked++"]
 
-    Recv -> Recv[label=" receive"]
-    Recv -> IPC1[label=" send"]
+    Recv -> Recv[label=" recv()\n blocked++"]
+    Recv -> IPC1[label=" send()"]
     IPC1 -> TCB1
-    TCB1 -> Recv[label="no"]
+    TCB1 -> Recv[label=" no"]
     TCB1 -> Idle[label=" yes"]
 
-    Send -> Send[label="send"]
-    Send -> IPC2[label=" receive"]
+    Send -> Send[label=" send()\n blocked++"]
+    Send -> IPC2[label=" recv()"]
     IPC2 -> TCB2
-    TCB2 -> Send[label="yes"]
+    TCB2 -> Send[label=" yes"]
     TCB2 -> Idle[label=" no"]
 }

@@ -3,21 +3,21 @@ digraph {
     node [fontsize=11,style=solid,fontname="inconsolata"]
     edge [fontsize=11,fontname="inconsolata"]
     //actual nodes
-    Idle [shape=ellipse, label="Idle\nblocked=0\nbadge=0"]
-    Waiting [shape=ellipse, label="Waiting\nblocked++"]
+    Idle [shape=ellipse, label="Idle\nblocked=0\ndata=0"]
+    Waiting [shape=ellipse, label="Waiting"]
     Active [shape=ellipse, label="Active\ndata|=badge"]
-    Transmit [shape=box, label="Transmit\nblocked--\nbadge=0"]
+    Transmit [shape=box, label="Transmit\nblocked--\ndata=0"]
 
     TCB2 [shape=diamond label="blocked > 0?"]
    
-    Idle -> Active[label=" notify "]
-    Idle -> Waiting[label=" wait "]
+    Idle -> Active[label=" send()"]
+    Idle -> Waiting[label=" recv() \n blocked++"]
 
-    Active -> Active[label= "notify "]
-    Active -> Transmit[label= " wait "]
+    Active -> Active[label= " send() "]
+    Active -> Transmit[label= " recv() "]
 
-    Waiting -> Transmit [label=" notify "]
-    Waiting -> Waiting [label=" wait "]
+    Waiting -> Transmit [label=" send() "]
+    Waiting -> Waiting [label=" recv() \n blocked++ "]
     Transmit -> TCB2[label=""]
     TCB2 -> Waiting [label="yes"]
     TCB2 -> Idle [label=" no"]

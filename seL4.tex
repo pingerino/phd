@@ -19,13 +19,6 @@ We will outline the existing scheduler, the API curiosity that is \yield, and ho
 First we introduce the basics of \selfour: kernel memory management, capabilities, \gls{IPC} and
 signalling. \Cref{f:legend-1} shows the legend for diagrams in this section. 
 
-\begin{figure}
-    \centering
-    \includegraphics[width=0.5\textwidth]{legend-1}
-    \caption{Legend for diagrams in this section}
-    \label{f:legend-1}
-\end{figure}
-
 \section{Capabilities}
 \label{s:capabilities}
 
@@ -90,31 +83,46 @@ capability from a capability space, the latter removes all child capabilities.
 are distinguishable by system call number, as listed in \cref{t:system-calls}. The majority of
 system calls are for communication; \code{send}, \code{nbsend}, \code{call}, \code{reply} are for
 sending messages; \code{recv}, \code{nbrecv} for receiving messages; and \code{yield} for
-interacting with the scheduler.
+interacting with the scheduler. The \code{nb} prefix indicates that this system call will not block.
 
 The second level of system calls are called \emph{invocations} and are modelled as sending a message
 to the kernel. All invocations are conducted by a sending system call. The kernel is modelled as if
-it is waiting for a message and receives one every time a system call is made. 
+it is waiting for a message and receives one every time a system call is made, and sends a message
+as a reply. 
 To determine the operation, the rest of the arguments to an invocation are encoded as a message to
 the kernel. Each capability type has a different set of invocations available, and on a send to the
 kernel the capability is decoded to determine the action the kernel should take. 
 
 \begin{table} 
     \centering
-    \rowcolors{2}{gray!25}{}
-    \begin{tabular}{l}\toprule
-        \emph{System call} \\\midrule
-        \texttt{send} 
-        \texttt{nbsend}    \\
-        \texttt{call}      \\
-        \texttt{recv}      \\
-        \texttt{nbrecv}    \\
-        \texttt{reply}     \\
-        \texttt{replyrecv} \\
-        \texttt{yield}     \\
+    \begin{tabular}{llll}\toprule
+        \emph{System call}                         & Parameter     & Description                      & Return? \\\midrule
+        \rowcolor{gray!25} \texttt{send, nbsend}   & \texttt{dest} & Capability to send a message to. & \no     \\
+        \rowcolor{gray!25}                         & \texttt{info} & Information about the message
+        sent. & \\     
+        \texttt{call}              & \texttt{dest} & Capability to send a message to. & \\
+                                   & \texttt{info} & Information about the message sent.   & \yes \\
+        \rowcolor{gray!25}
+        \texttt{recv, nbrecv}      & \texttt{src}  & Capability to wait for a message on. & \yes \\
+        \rowcolor{gray!25}
+                                   & \texttt{badge} & The kernel writes the badge of the sender
+        here. & \\
+        \texttt{reply}             & \texttt{info} & Information about the reply message sent. & \no\\
+        \rowcolor{gray!25}
+        \texttt{replyrecv}         & \texttt{info} & Information about the reply message sent. &\yes\\
+        \rowcolor{gray!25}
+                                   & \texttt{src} & Capability to wait for a message on. & \\
+        \rowcolor{gray!25}
+                                   & \texttt{info} & Information about the reply message sent. & \\
+        \rowcolor{gray!25}
+                                   & \texttt{badge} & The kernel writes the badge of the sender
+        here. & \\
+        \texttt{yield}     & \no & \no \\
         \bottomrule
     \end{tabular}
-    \caption{\selfour system call summary.}
+    \caption{\selfour system call summary. All system calls except \code{yield} are based on sending
+    and/or receiving messages. The \emph{return} column indicates if a system call returns a message
+or not.}
     \label{t:system-calls}
 \end{table}
 
@@ -262,6 +270,39 @@ interrupts. Notification objects consist of a queue of blocked threads and a wor
 which contains the semaphore state. Further information on notifications is presented in
 \cref{p:sel4_notifications}. 
 
+\subsection{Consequences}
+
+While the user-level management of kernel memory provides true policy freedom---there is no
+policy required by the kernel on memory layout---this design is not without trade-offs. Ultimately,
+user-level management of kernel memory is key to \selfour's isolation
+guarantees as system designers can fully partition systems by using specific memory layouts and
+avoid shared structures determined by the kernel itself. However, there are two major impacts on kernel 
+design: back-pointers, and dynamic data structures. 
+
+The fact that any capability may be deleted at any time means that any pointer between two memory
+objects must be doubled, with pointers from each object to each other, as any object must be able to be
+traversed on order to reach any other linked object. This is analogous to a doubly-linked list,
+where for $O(1)$ deletion from any node in the list, the list must have pointers in both directions.
+This increases performance of deletion but also doubles the memory required for each list node. 
+
+Secondly, because of the policy freedom, the kernel has no limits on resources, meaning no memory
+resource can be statically sized. Consequently, simple, static data structures, like arrays, cannot
+be used in the kernel as no assumptions on memory layout can be made, meaning dynamic data
+structures are mandated. Because the kernel cannot make assumptions about the location of memory
+objects, specific optimizations are also not possible: it is up to the system designer to decide a trade-off
+between isolation and efficiency in the memory layout of the system.
+
+Both of these consequences make for restrictions on kernel design, which can be demonstrated through
+the list of TCBs maintained by the kernel scheduler. Each priority in the scheduler has a
+doubly-linked list of TCBs: although the scheduler itself only ever removes the head of the list,
+which is $O(1)$ on a singly-linked list, a doubly-linked list is required as TCB objects can be
+deleted at any time. Memory placement of TCBs impacts scheduler performance, as depending on
+allocation patterns, different list nodes may trigger cache misses or worse, cache conflicts. As a
+result, the scheduler will perform far worse than a static, array-based scheduler using a fixed
+maximum number of TCBs with known ids for indexing. However, such an approach provides no policy
+freedom, and is more suitable at a middle-ware level in the \gls{OS} implemented on top of the
+microkernel. 
+
 \section{Control capabilities}
 \label{s:control-capabilities}
 
@@ -339,7 +380,9 @@ threads.
 \begin{figure}
     \centering
     \includegraphics[width=0.8\textwidth]{endpoint}
-    \caption{IPC rendezvous with respect to a single endpoint, circles show the endpoint state.}
+    \caption{State diagram of a single endpoint, where \emph{blocked} tracks the number of threads
+    waiting to send or receive. Note that only one list of threads is maintained by the endpoint:
+senders and receivers cannot be queued at the same time.}
     \label{f:endpoint}
 \end{figure}
 
@@ -375,6 +418,14 @@ message back.
 
 \begin{figure}
     \centering
+    \includegraphics[width=0.5\textwidth]{legend-1}
+    \caption{Legend for diagrams in this section}
+    \label{f:legend-1}
+\end{figure}
+
+
+\begin{figure}
+    \centering
     \begin{subfigure}[h]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{ipc1}
@@ -402,8 +453,16 @@ the \emph{resume} capability into their \code{cspace} to send a reply to later, 
 installed in the \gls{TCB} CNode. The \emph{reply} system call directly invokes the resume
 capability in this slot. 
 
+Multiple senders and receivers can use the same endpoint, and which act as \gls{FIFO}
+queues. In order to distinguish senders, receivers can use endpoint badges, which are unforgeable as
+they are copied by the kernel directly. 
+
 % fastpath
-Given \gls{IPC} performance is critical to overall system performance in a microkernel, \selfour
+\subsection{Fastpath}
+
+Recall from \cref{s:background-ipc} that \gls{IPC} performance is critical to a microkernel, which
+is achieved through optimised fastpaths. A fastpath is an optimised code path for the most
+performance critical operations. \selfour
 contains two \gls{IPC} fastpaths which is used when the following, common-case conditions are satisfied:
 
 \begin{enumerate}
@@ -413,19 +472,20 @@ contains two \gls{IPC} fastpaths which is used when the following, common-case c
     \item and the message fits in registers.
 \end{enumerate}
 
-Multiple senders and receivers can use the same endpoint, and which act as \gls{FIFO}
-queues. In order to distinguish senders, receivers can use endpoint badges, which are unforgeable as
-they are copied by the kernel directly. 
-
 \subsection{Fault handling}
 
 Fault handling in \selfour is modelled as IPC messages between the kernel and receivers. 
 \glspl{TCB} can have a specific fault endpoint registered, on which the kernel can send simulated
 \gls{IPC} messages containing information about the fault. Fault handling threads receive messages
-on this endpoint as if the kernel had conducted a \code{call()}: the kernel blocks the faulting
-thread on a resume capability.  The fault handling thread can subsequently reply to this message to
-resume the thread and reset its
-registers. If no fault endpoint is present, the
+on this endpoint as if the faulting thread had sent a message to that thread with \code{call()}. Of
+course, this message is actually constructed by the kernel, and the message contains information
+about the fault, generally the faulting \gls{TCB}'s registers. The faulting thread is blocked on the
+resume capability, which is generated, just as if the faulting thread had conducted a \code{call()}.
+The fault handling thread can subsequently reply to this message to
+resume the thread, although the reply message is also special: it can be used to reply with a new
+set of registers for the faulting thread to be resumed with, and tell the kernel if it should
+restart the thread or leave it suspended after the reply message is processed.
+If no fault endpoint is present, the
 thread is rendered inactive and no fault message is sent. 
 
 \subsection{Notifications}
@@ -434,8 +494,25 @@ thread is rendered inactive and no fault message is sent.
 Notification objects provide the mechanism for semaphores in \selfour, and consist of a word of
 data. Sending on a notification either sends the badge of the invoked notification capability to a 
 thread waiting on that notification object, or if no threads are waiting stores the badge in the
-data word of the notifications. Future invocations continue to bitwise OR the badge and data word
-until a thread receives the signal and clears the word. 
+data word of the notifications. Unlike IPC, where messages being send are queued, notifications
+accumulate messages in the data word.
+
+The data word is set when the first notification arrives, and further invocations continue to bitwise OR the badge and data word
+until a thread receives the signal and clears the word. This is illustrated in the notification
+state diagram depicted in \cref{f:notification}, and in \cref{f:signal1} which shows the
+notification object and TCB interaction.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\textwidth]{notification}
+    \caption{State diagram Notification object state transitions based on invocations. \code{send} and
+    \code{nbsend} correspond to notify in the diagram, want wait corresponds to a \code{recv}.}
+    \label{f:notification}
+\end{figure}
+
+\Cref{t:notification-system-calls} shows the operations that occur when notification objects are
+invoked with relevant system calls. \cref{f:notification} depicts changes in the notification object
+state that occur when threads notify and block on notifications. 
 
 \begin{table} 
     \centering
@@ -452,38 +529,34 @@ until a thread receives the signal and clears the word.
     \label{t:notification-system-calls}
 \end{table}
 
-\Cref{t-notification-system-calls} shows the operations that occur when notification objects are
-invoked with relevant system calls. \cref{f:notification} depicts changes in the notification object
-state that occur when threads notify and block on notifications. 
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.8\textwidth]{notification}
-    \caption{Notification object state transitions based on invocations. \code{send} and
-    \code{nbsend} correspond to notify in the diagram, want wait corresponds to a \code{recv}.}
-    \label{f:notification}
-\end{figure}
 
 \subsubsection{Interrupts}
 
-In addition to providing a mechanism for threads to notify each other, notification objects are also
-used to allow threads to poll for and wait for interrupts. IRQ handler objects have an invocation
-\code{set\_notification} which results in the kernel issuing a notification when an interrupt
-occurs. The badge of the notification capability given to the IRQ handler determines what is set in
-the data word when the interrupt is triggered. Further notifications are not issued by the kernel
-until the interrupt is acknowledged.
+In addition to providing a mechanism for threads to notify each other, notification objects 
+also allow threads to synchronise with devices via polling and/or blocking for interrupts. 
+IRQHandler capabilities can be associated with a single notification object, via the invocation
+\code{set\_notification}, which results in the kernel issuing a notification when an interrupt
+occurs. The badge of the notification capability provided to the invocation is bitwise ORed with the
+data word when an interrupt is triggered. Further notifications are not issued by the kernel
+until the interrupt is acknowledged, using the \code{acknowledge} invocation on IRQHandler
+capabilities.
 
 \subsubsection{Notification binding}
 \label{s:notification-binding}
-Threads can register a specific notification object to receive notifications from while blocked on
-an endpoint with a mechanism called \emph{notification binding}. This is done by invoking the TCB
-with the \code{bind\_notification} invocation, which establishes a link between a TCB and
-notification object. Subsequently, if a notification is sent on that object and the TCB receives
-on any endpoint, that TCB will receive the notification. 
 
-% cover this under notification binding
-As a result, any object with a pointer to another object must have a back pointer to update should that object be
-deleted, in order to avoid stray pointers in the kernel. 
+Some systems require threads that can receive both notifications and IPC while blocked, in order to
+prevent the requirement that services which receive both IPC message and notifications be multi-threaded.
+The
+mechanism for this is \emph{notification binding} where threads can register a specific notification
+specific notification capability to receive notifications from while blocked on
+an endpoint waiting for IPC. This is done by invoking the TCB
+with the \code{bind\_notification} invocation, which establishes a link between a TCB and
+notification object. Subsequently, if a notification is sent on that notification object and the TCB receives
+on any endpoint, that TCB will receive the notification. 
+Without notification binding, services require a thread for blocking on a notification and another
+thread for blocking on an endpoint, both threads must then synchronise carefully on any shared data.
+Notification binding is illustrated in
+\cref{f:signal2}.
 
 
 % notifications, interrupts, aep-binding
@@ -492,32 +565,63 @@ deleted, in order to avoid stray pointers in the kernel.
     \begin{subfigure}[h]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{signal1}
-        \caption{Notification}
+        \caption{Notifications.} 
         \label{f:signal1}
     \end{subfigure}%
     \begin{subfigure}[h]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{signal2}
-        \caption{Bound notification}
+        \caption{Notification binding.}
         \label{f:signal2}
     \end{subfigure}
+    \caption{Example of a thread, TCB $A$, receiving notifications, by blocking on the notification and by
+        notification binding. In \cref{f:signal1} $A$ blocks waiting on notification
+        object $N$, and wakes when any notifications or interrupts are sent to $N$. In
+        \cref{f:signal2}, $A$ blocks on endpoint $E$, however since
+        $N$ is bound to the $A$, if $N$ receives an interrupt or notification,
+        $A$ is woken and the data word delivered to $A$.
+        See \Cref{f:legend-1} for the legend.}
     \label{f:signal}
-    \caption{Signals via a notification object. See \Cref{f:legend-1} for the legend.}
 \end{figure}
-
-
-\Cref{f:signal1} shows signal handling, where a thread A receives a signal and an interrupt at the
-same time. In this case, the interrupt handler has a badged capability to the notification object,
-$N$, as does the signaller. Both badges will be combined with a bitwise OR and delivered to the
-receiver.
-
-Signals can also be received by threads waiting on \gls{IPC}, as shown in \Cref{f:signal2}. A
-\gls{TCB} object is bound to a notification object, establishing a link between them. Badges can be
-used to determine whether a message was received from the endpoint or a signal on the notification object.
 
 \section{Scheduling}
 
+The scheduler in \selfour is used to pick which runnable thread should run next on a specific
+processing core, and is a priority-based round-robin scheduler with 256 priorities (0---255). 
+At a scheduling decision, the kernel chooses the head of the highest-priority, non-empty list.
+
+Implementation wise, the scheduler consists of an array of lists: one list of ready threads for each
+priority level. A two-level bit-field is used to track which priority lists contain threads, 
+in order to achieve a scheduling decision complexity of $O(1)$. 
+
+
+
+
+field is used to 
+Scheduling decision complexity is $O(1)$ as a two-level bit field tracks the highest priority with a runnable thread.
+
+h
+and
+removes it from the relevant scheduler queue, which is referred to as \emph{Benno Scheduling}, named
+after its original author.
+T
+
+
+
+
+
+\begin{figure}[h!tb]
+    \centering
+    \includegraphics[width=0.7\textwidth]{thread_state}
+    \caption{Thread state transitions in \selfour}
+    \label{f:thread_state}
+\end{figure}
+
+
+
 % scheduler
+The scheduler in \selfour is priority-based round-robin with 256 priorities (0 --- 255), implemented ase kernel previously used \emph{lazy scheduling}, leaving the current thread in its run queue, however this was replaced in favour of Benno scheduling to reduce the WCET of the kernel. 
+
 
 % domains
 
@@ -526,26 +630,29 @@ used to determine whether a message was received from the endpoint or a signal o
 
 \subsection{Thread states}
 
+\begin{description}
+    \item \code{Running} This thread is eligible to be picked by the scheduler, and should be in the
+        scheduling queues or be the currently running thread. 
+    \item \code{Inactive} This thread is not runnable, and is not in the scheduler. It has been
+        suspended, or possibly never resumed. 
+    \item \code{BlockedOnRecv} This thread is waiting to receive an IPC (or bound notification). 
+    \item \code{BlockedOnSend} This thread is waiting to send an IPC. 
+    \item \code{BlockedOnReply} This thread is blocked on a resume capability, waiting for a reply
+        from a \code{call} or fault.
+    \item \code{BlockedOnNotification} This thread is waiting to receive a notification.
+\end{description}
+
+\Cref{f:thread_state} depicts a simplified state diagram of the thread states that
+threads transition through, although in the diagram we map multiple blocked states to
+\code{BlockedOnObject} for simplicity.  
+
+
+
+
 As depicted in \Cref{f:thread_state}, threads in \selfour can be inactive, running or blocked on a
 specific object. The thread state encodes the object which the thread is blocked on. 
 
-\begin{figure}[h!tb]
-    \centering
-    \includegraphics[width=1.1\textwidth]{thread_state}
-    \caption{Thread state transitions in \selfour}
-    \label{f:thread_state}
-\end{figure}
 
-
-\section{Scheduler}
-
-The scheduler in \selfour is priority-based round-robin with 256 priorities (0 --- 255), implemented as an array of lists: one list of ready threads for each priority level. 
-At a scheduling decision, the kernel chooses the head of the highest-priority, non-empty list, and
-removes it from the relevant scheduler queue, which is referred to as \emph{Benno Scheduling}, named
-after its original author.
-The kernel previously used \emph{lazy scheduling}, leaving the current thread in its run queue, however this was replaced in favour of Benno scheduling to reduce the WCET of the kernel. 
-
-Scheduling decision complexity is $O(1)$ as a two-level bit field tracks the highest priority with a runnable thread.
 
 Kernel time is accounted for in ticks, with a static tick length defined at compile time (CONFIG\_TIMER\_TICK\_MS).
 Threads have a timeslice field which represents the number of ticks they are eligible to run. 
