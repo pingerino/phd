@@ -303,7 +303,9 @@ Clearly we don't want to track replenishments for round-robin threads, so the ke
 This avoids much special casing in the replenishment code, as round-robin threads are always ready (we always add 0 to the replenishment time).
 
 \TODO{Say what head refill does}
-\begin{lstlisting}[frame=single,language=c,caption=Check budget routine.,label=list:check-budget,float=htpb]
+\begin{listing}[b]
+\begin{ccode}
+
 uint_64_t check_budget(sched_context_t *sc, uint64_t usage) {
   while (head_refill(sc).amount <= usage) {
     // exhaust and schedule replenishment
@@ -327,9 +329,13 @@ uint_64_t check_budget(sched_context_t *sc, uint64_t usage) {
     }
   }
 }
-\end{lstlisting}
+\end{ccode}
+\caption{Check budget routine.}
+\label{list:check-budget}
+\end{listing}
 
-\begin{lstlisting}[frame=single,language=c,caption=Split check routine.,label=list:split-check,float=htpb]
+\begin{listing}
+    \begin{ccode}
 void split_check(sched_context_t *sc, uint64_t usage) {
   uint64_t remnant = head_refill(sc).amount - usage;
   if (remnant < MIN_BUDGET && refill_size(sc) == 1) {
@@ -354,9 +360,13 @@ void split_check(sched_context_t *sc, uint64_t usage) {
   split.time = head_refill(sc).time + sc->period;
   add_tail(sc, split);
 }
-\end{lstlisting}
+\end{ccode}
+\caption{Split check routine.}
+\label{list:split-check}
+\end{listing}
 
-\begin{lstlisting}[frame=single,language=c,caption=Unblock check routine.,label=list:unblock-check,float=htpb]
+\begin{listing}
+    \begin{ccode}
 void unblock_check(sched_context_t *sc) {
   if (!head_refill(sc).time > now)) {
     return;
@@ -381,8 +391,10 @@ void unblock_check(sched_context_t *sc) {
       head_refill(sc).amount += old_head.amount;
     }
 }
-\end{lstlisting}
-
+\end{ccode}
+\caption{Unblock check routine.}
+\label{list:unblock-check}
+\end{listing}
 
 \subsection{Task model}
 
@@ -427,7 +439,8 @@ Unintentionally completing a job by blocking is incorrect, as it would result in
 One design option we considered was to use the yield system call to complete the current job.
 However this approach would not enable a thread to receive a notification on job release, requiring more system calls to retrieve notifications.
 
-\begin{lstlisting}[frame=single,language=c,caption=Example of a basic sporadic real-time task on sel4.,    label=list:sporadic-sel4]
+\begin{listing}
+\begin{ccode}
     for (;;) {
         // job is released
         doJob();
@@ -436,7 +449,10 @@ However this approach would not enable a thread to receive a notification on job
         seL4_Word badge;
         seL4_Wait(bound_async_endpoint, &badge);
     }
-\end{lstlisting}
+\end{ccode}
+\caption{Example of a basic sporadic real-time task on sel4}
+\label{list:sporadic-sel4}
+\end{listing}
 
 % TODO background on endpoints, endpoint binding on backgournd sel4 section to support this.
 Instead, we use asynchronous endpoints to implement sporadic jobs on seL4, which unifies jobs to be completed and release with notifications, reducing the amount of system calls required.

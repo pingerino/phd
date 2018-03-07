@@ -16,10 +16,7 @@
 \usepackage{algorithm}
 %\usepackage{algpsuedocode}
 %\Onehalfspacing
-\usepackage[usenames]{color}
-\usepackage[table]{xcolor}
-\definecolor{forestgreen}{rgb}{0.0, 0.27, 0.13}
-\definecolor{royalblue}{rgb}{0.0, 0.14, 0.4}
+\usepackage[divpsnames,table,xcdraw]{xcolor}
 
 \usepackage{booktabs}
 % UNSW margin guidelines:
@@ -73,17 +70,20 @@
     linkcolor=black,
     urlcolor=black
     }
-
-\usepackage{listings}
 % references
 %  use \cref to reference labels and automagically guess the
 % name (ie Section, Figure etc).
 \usepackage[capitalise]{cleveref} 
 % clever ref doesn't know about listings, add a format for it
-\crefformat{lstlisting}{Listing #2#1#3}  
+%\crefformat{lstlisting}{Listing #2#1#3}  
+
+
+% code
+%\usepackage{listings}
+\usepackage{minted}
+\usemintedstyle{borland}
 
 \usepackage{array}
-%\usepackage[usenames,dvipsnames]{color}
 \usepackage{colortbl}
 \usepackage{pdfpages}
 \usepackage{tabularx}
@@ -128,24 +128,6 @@
 %\newif \ifhyperlinks    \hyperlinkstrue
 %\newif \ifDraft         \Draftfalse
 \newif \ifDraft        \Drafttrue
-\lstset{
-    language=C,
-    stepnumber=1,
-    tabsize=4,
-    captionpos=b,
-    numbers=left,
-    numberstyle=\scriptsize,
-    numbersep=8pt,
-    commentstyle=\color{forestgreen}\ttfamily,
-    stringstyle=\rmfamily,
-    showstringspaces=false,
-    basicstyle=\small\ttfamily,
-    xleftmargin=6pt,
-    xrightmargin=6pt,
-    keywordstyle=\color{royalblue},
-    breaklines=true,
-    belowcaptionskip=.75\baselineskip
-}
 \usetikzlibrary{arrows,automata,shapes.multipart,positioning,plotmarks}
 
 % font
@@ -263,6 +245,10 @@
 \newcommand{\irqmicro}[2]{\inputbenchmarkrows{#1}{#2}{irq}}
 \newcommand{\schedulemicro}[2]{\inputbenchmarkrows{#1}{#2}{schedule}}
 \begin{document}
+
+
+\newminted{c}{baselinestretch=1.2,fontsize=\footnotesize,linenos,framesep=6mm,xleftmargin=6mm,xrightmargin=6mm}
+
 % tell latex this is the preamble
 \frontmatter
 % Title page 

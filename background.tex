@@ -89,7 +89,8 @@ with a deadline.
 One practical model in common use is the \emph{sporadic task model}~\citep{Sprunt_SL_89a}, which can
 model both \emph{periodic} and \emph{aperiodic} tasks and maps well onto typical control systems. 
 
-\begin{lstlisting}[frame=single,language=c,caption=Example of a basic sporadic real-time task.,label=list:sporadic,float=htpb]
+\begin{listing}
+    \begin{ccode}
 for (;;) {
 	// job arrives
 	doJob();
@@ -97,7 +98,10 @@ for (;;) {
     // sleep until next job is ready
     sleep();
 }
-\end{lstlisting}
+    \end{ccode}
+\caption{Example of a basic sporadic real-time task.}
+\label{list:sporadic}
+\end{listing}
 
 
 The sporadic task model considers a real-time system as a set of tasks, $A_{1},A_{2},...,A_{n}$.
