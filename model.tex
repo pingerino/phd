@@ -227,12 +227,12 @@ the fault.
 \label{sec:model-admission}
 
 Setting budgets is admission control and requires appropriate
-privilege. The total available time on a core is represented in a
-per-core scheduling-control capability, \code{sched\_control}.
+privilege. We introduce a new control capability
+\code{sched\_control} per core, which gives authority to 100\% of time on a processing core.
 Access to this capability provides the admission-control
 privilege. This is analogous to how \selfour controls the right
 to receive interrupts, which is controlled by the IRQ\_control
-capability as introduced in \cref{s:capabilities}. Like time, IRQ sources are non-fungible.
+capability as introduced in \cref{s:control-capabilities}. Like time, IRQ sources are non-fungible.
 
 Unlike the reservations in resource kernels, the scheduling context does not 
 act as a lower-bound on CPU bandwidth that a thread can consume. This, combined with the
@@ -242,7 +242,7 @@ By designating admission tests as user-level policy, we allow system designers c
 in determining which admission test to use, if at all, and when that test should be done.
 Consequently, they can be run dynamically at run-time, or offline, as per user-level policy.
 
-Thus, the kernel places no restriction on the creation of reservations apart from minor validity
+Thus, the kernel places no restriction on the creation of reservations apart from minor integrity
 checks (\ie $C \leq T$).
 For example, some high-assurance systems may sacrifice utilisation for safety with a very basic but easily verifiable, online, admission test.
 Other implementations may conduct complex admission tests offline in order to obtain the highest possible utilisation, using algorithms that are not feasible at run time.
@@ -272,7 +272,8 @@ must be able to use our mechanisms to enforce upper bounds on execution, the usa
 those mechanisms is policy. If a task is truly trusted, no enforcement is required,
 as in standard \gls{HRT} systems. They can also be used for best-effort threads which run in slack time.
 The \(C\) of a full \gls{SC} represents the timeslice, which once expired results in round robin
-scheduling at that priority. 
+scheduling at that priority. Additionally, full \glspl{SC} provide legacy compatibility: setting \(C\ = T =\)
+the previous timeslice value results in the same behaviour as the master kernel. 
 
 From a performance perspective full \glspl{SC} prevent mandatory preemption overheads 
 that derive from forcing all threads in a system to have a reservation. Threads with a full

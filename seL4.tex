@@ -5,17 +5,10 @@
 
 So far we have provided a general background on real-time scheduling and resource sharing.
 As the final piece of background we now present an overview of the concepts relevant to the temporal behaviour of our implementation platform, \selfour.
-
-\selfour is a microkernel that is particularly suited to safety-critical, real-time systems with one
-major caveat: time is not treated as a first class resource, leading to deficiency in real-time
-scheduling support.  Three main features of \selfour support this claim: it has been formally
+Recall \selfour from its introduction in \cref{s:background_sel4}: it is particularly suited to
+safety-critical, real-time systems as it has been formally
 verified for correctness~\citep{Klein_AEMSKH_14}, integrity~\citep{Sewell_WGMAK_11}
-and confidentiality~\citep{Murray_MBGBSLGK_13}.
-All memory management, including kernel memory, is all at user-level~\citep{Elkaduwe_Derrin_06};
-Finally it is the only \gls{OS} to date with full \gls{WCET} analysis~\citep{Sewell_KH_16}.
-The scheduler in \selfour has been left intentionally underspecified~\citep{Petters_EH_12} for later
-work and as a result has a very informal notion of time~\citep{Elphinstone_Heiser_13}.
-The current implementation is a place holder, and follows the traditional L4 scheduling model~\citep{Ruocco_06} ---a fixed-priority, round-robin scheduler with 256 priorities.
+and confidentiality~\citep{Murray_MBGBSLGK_13}, in addition to full \gls{WCET} analysis~\citep{Sewell_KH_16}.
 
 In this section we will present the current state of relevant \selfour features in order to
 highlight deficiencies and motivate our changes.  We present the capability system, resource
