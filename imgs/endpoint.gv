@@ -1,4 +1,5 @@
 digraph {
+    size = "5!"
     ratio = "compress"
     node [fontsize=11,style=solid,fontname="inconsolata"]
     edge [fontsize=11,fontname="inconsolata"]

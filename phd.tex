@@ -46,9 +46,6 @@
 \usepackage[pdftex]{graphicx}
 \graphicspath{{imgs/}}
 %\usepackage[nottoc,numbib]{tocbibind}
-\usepackage{caption}
-\captionsetup{font=small} % format=hang,
-\usepackage{subcaption}
 \usepackage{mwe}
 \usepackage{setspace}
 \usepackage{datetime}
@@ -80,16 +77,22 @@
 
 % code
 %\usepackage{listings}
+\usepackage{caption}
 \usepackage{minted}
 \usemintedstyle{borland}
 
+\captionsetup{font=small,format=hang,position=below} % format=hang,
+\captionsetup[listing]{font=small,format=hang,position=below} % format=hang,
+\usepackage{subcaption}
 \usepackage{array}
 \usepackage{colortbl}
 \usepackage{pdfpages}
 \usepackage{tabularx}
 \setlength{\extrarowheight}{3pt} % increase table row height
 \newcommand{\tableheadline}[1]{\multicolumn{1}{l}{\spacedlowsmallcaps{#1}}}
-\newcommand{\myfloatalign}{\centering} % to be used with each float for alignment
+% reset rowcolor after every table
+\newcounter{tblerows}
+\expandafter\let\csname c@tblerows\endcsname\rownum
 \usepackage{booktabs}
 \usepackage{tikz}
 \usepackage{xspace}

@@ -7,19 +7,23 @@ So far we have provided a general background on real-time scheduling and resourc
 As the final piece of background we now present an overview of the concepts relevant to the temporal behaviour of our implementation platform, \selfour.
 
 \selfour is a microkernel that is particularly suited to safety-critical, real-time systems with one
-major caveat: time is not treated as a first class resource, leading to deficiency in real-time scheduling support. 
-Three main features of \selfour support this claim: it has been formally verified for correctness~\citep{Klein_EHACDEEKNSTW_09} and other properties~\citep{Sewell_WGMAK_11}; All memory management, including kernel memory, is all at user-level~\citep{Elkaduwe_Derrin_06}; Finally it is the only \gls{OS} to date with full \gls{WCET} analysis~\citep{Blackham_SCRH_11}.
-The scheduler in \selfour has been left intentionally underspecified~\citep{Petters_EH_12} for later work and as a result has a very informal notion of time.
-The current implementation is a placeholder, and follows the traditional L4 scheduling model~\citep{Ruocco_06} --- a fixed-priority, round-robin scheduler with 256 priorities.
+major caveat: time is not treated as a first class resource, leading to deficiency in real-time
+scheduling support.  Three main features of \selfour support this claim: it has been formally
+verified for correctness~\citep{Klein_AEMSKH_14}, integrity~\citep{Sewell_WGMAK_11}
+and confidentiality~\citep{Murray_MBGBSLGK_13}.
+All memory management, including kernel memory, is all at user-level~\citep{Elkaduwe_Derrin_06};
+Finally it is the only \gls{OS} to date with full \gls{WCET} analysis~\citep{Sewell_KH_16}.
+The scheduler in \selfour has been left intentionally underspecified~\citep{Petters_EH_12} for later
+work and as a result has a very informal notion of time~\citep{Elphinstone_Heiser_13}.
+The current implementation is a place holder, and follows the traditional L4 scheduling model~\citep{Ruocco_06} ---a fixed-priority, round-robin scheduler with 256 priorities.
 
 In this section we will present the current state of relevant \selfour features in order to
-highlight deficiencies and motivate our changes.  We will outline the existing scheduler, the API
-curiosity that is \yield, and how \gls{IPC} interacts with scheduling, followed by an analysis of
+highlight deficiencies and motivate our changes.  We present the capability system, resource
+management, communication including \gls{IPC} and the scheduler, followed by an analysis of
 how the current mechanisms can be used in real-time systems.
 
-
-First we introduce the basics of \selfour: kernel memory management, capabilities, \gls{IPC} and
-signalling. \Cref{f:legend-1} shows the legend for diagrams in this section. 
+First we introduce the powerful \selfour capability system, used to access all resources in the
+system---with the exception of \emph{time}.
 
 \section{Capabilities}
 \label{s:capabilities}
@@ -44,22 +48,10 @@ Each capability has three potential access rights: read, right and grant. How th
 the resource the capability provides access to depends on the type of resource, and is explained in
 the next section.
 
-% badges and operations
-Various operations can be done on capabilities, which are summarised in \cref{t:capability_ops}.
-When a capability is copied or minted, it is said to be \emph{derived} from the original capability.
-All derived capabilities can be deleted by using \code{revoke}.
-There are restrictions on which capabilities can be derived and under what conditions, depending on
-what the capability provides access to. 
-\emph{Badging} is a special type of derivation which allows specific capability types to be copied
-with an unforgeable identifier. We discuss derivation restrictions and the use of badges further
-in this chapter.
-Any individual capability can be deleted, or revoked. The former simply removes a specific
-capability from a capability space, the latter removes all child capabilities.
-
 \begin{table}
     \centering
     \rowcolors{2}{gray!25}{}
-    \begin{tabular}{l p{0.8\textwidth}}\toprule
+    \begin{tabularx}{\textwidth}{lX}\toprule
     \emph{Operation}    & \emph{Description}\\\midrule
     \code{Copy}         & Create a new capability in a specified CNode slot, which is an exact copy
                          of the other capability and refers to the same resource. \\
@@ -74,10 +66,22 @@ capability from a capability space, the latter removes all child capabilities.
     \code{Revoke}        & Delete any capabilities derived from this capability. \\
     \code{SaveCaller}    & Saves the kernel generated resume capability into the designated slot. \\
     \bottomrule 
-    \end{tabular}
+    \end{tabularx}
     \caption{Summary of operations on capabilities provided by baseline \selfour~\citep{seL417}}.
-     \label{t:capability_ops}
+    \label{t:capability_ops}
 \end{table}
+
+% badges and operations
+Various operations can be done on capabilities, which are summarised in \cref{t:capability_ops}.
+When a capability is copied or minted, it is said to be \emph{derived} from the original capability.
+All derived capabilities can be deleted by using \code{revoke}.
+There are restrictions on which capabilities can be derived and under what conditions, depending on
+what the capability provides access to. 
+\emph{Badging} is a special type of derivation which allows specific capability types to be copied
+with an unforgeable identifier. We discuss derivation restrictions and the use of badges further
+in this chapter.
+Any individual capability can be deleted, or revoked. The former simply removes a specific
+capability from a capability space, the latter removes all child capabilities.
 
 \section{System calls and invocations}
 
@@ -95,10 +99,11 @@ To determine the operation, the rest of the arguments to an invocation are encod
 the kernel. Each capability type has a different set of invocations available, and on a send to the
 kernel the capability is decoded to determine the action the kernel should take. 
 
-\begin{table} 
+\begin{table}[t] 
     \centering
-    \begin{tabular}{llll}\toprule
-        \emph{System call}                         & Parameter     & Description                      & Return? \\\midrule
+    \begin{tabularx}{\textwidth}{llXl}\toprule
+        \emph{System call}                         & \emph{Parameter}     & \emph{Description}
+        & \emph{Return?} \\\midrule
         \rowcolor{gray!25} \texttt{send, nbsend}   & \texttt{dest} & Capability to send a message to. & \no     \\
         \rowcolor{gray!25}                         & \texttt{info} & Information about the message
         sent. & \\     
@@ -121,7 +126,7 @@ kernel the capability is decoded to determine the action the kernel should take.
         here. & \\
         \texttt{yield}     & \no & \no \\
         \bottomrule
-    \end{tabular}
+    \end{tabularx}
     \caption{\selfour system call summary. All system calls except \code{yield} are based on sending
     and/or receiving messages. The \emph{return} column indicates if a system call returns a message
 or not.}
@@ -146,10 +151,10 @@ what type of memory is at that physical address. Options for different types are
 \cref{t:kernel_objects}. 
 
 % table of object types 
-\begin{table}
+\begin{table}[t]
     \centering
     \rowcolors{2}{gray!25}{}
-    \begin{tabular}{l p{0.6\textwidth}}\toprule
+    \begin{tabularx}{\textwidth}{lX}\toprule
     \emph{Object}    & \emph{Description}\\\midrule
     Untyped    & Memory that can be retyped into other types of memory, including untyped.\\
     CNode            & A fixed size table of capabilities. \\
@@ -160,7 +165,7 @@ what type of memory is at that physical address. Options for different types are
     Page Tables  & Intermediate paging structures.\\
     Frames       & Mappable physical memory. \\
     \bottomrule
-    \end{tabular}
+    \end{tabularx}
     \caption{Major memory object types in \selfour, excluding platform specific objects. For further detail
     consult the \selfour manual~\citep{seL417}}.
      \label{t:kernel_objects}
@@ -201,14 +206,14 @@ Capabilities to all of the available memory and devices are set up as untyped in
 \begin{table} 
     \centering
     \rowcolors{2}{gray!25}{}
-    \begin{tabular}{lll} \toprule
+    \begin{tabularx}{\textwidth}{llX} \toprule
         \emph{Start physical address} & \emph{End physical address} & \emph{Kernel virtual address} \\\midrule
     0x100000   & 0x2c00000   & \no \\
     0x10000000 & 0x10010000 & 0xe0000000 \\
     0x105c3000 & 0x2f000000 & 0xe105c3000 \\
     0x2f106400 & 0x2fdfc200 & 0xff106400 \\
     \bottomrule
-    \end{tabular}
+    \end{tabularx}
     \caption{Initial memory ranges on at boot time on the \textsc{Sabre} platform.}
     \label{t:untyped}
 \end{table}
@@ -234,10 +239,10 @@ capabilities for \gls{IPC}.
 \cref{t:tcb_ops} shows the main invocations possible on TCB capabilities.
 
 % table of tcb invocations
-\begin{table}
+\begin{table}[b]
     \centering
     \rowcolors{2}{gray!25}{}
-    \begin{tabular}{l p{0.8\textwidth}}\toprule
+    \begin{tabularx}{\textwidth}{lX}\toprule
     \emph{Operation}    & \emph{Description}\\\midrule
         \code{Resume}               & Place a thread in the scheduler.\\ 
         \code{Suspend}              & Remove a thread from the scheduler.\\
@@ -249,7 +254,7 @@ capabilities for \gls{IPC}.
         \code{BindNotification}     & Bind this TCB with a notification object (see
         \cref{s:notification-binding}. \\
     \bottomrule 
-    \end{tabular}
+    \end{tabularx}
     \caption{Summary of operations on TCBs. Further operations are available that batch several
     setters to reduce thread configuration overheads.}.
      \label{t:tcb_ops}
@@ -316,27 +321,27 @@ resource capabilities in empty slots.
 \begin{table}
 	\centering
     \rowcolors{2}{gray!25}{}
-	\begin{tabular}{lll} 
+    \begin{tabularx}{\textwidth}{lX|lX} 
         \toprule
-        \emph{Start}  & \emph{End} & \emph{Contents} \\\midrule
-        0                &               & empty \\
-        1                &       & initial thread's TCB \\
-        2                &       & this \code{cnode} \\
-        3                &        & initial thread's page directory \\
-        4                &        & \code{irq\_control} \\
-        5                &        & \code{ASID\_control} \\
-        6                &        & initial thread's ASID pool \\
-        7                &        & \code{IO\_port\_control} \\
-        8                &        & \code{IO\_space\_control} \\
-        9                &        & initial thread start-up information frame \\
-        10                &        & initial thread's IPC buffer frame \\
-        11               &        & \code{domain\_control} \\
-        12               & 18       & initial thread's paging structures \\
-        19               & 1431     & initial thread's frames \\
-        1431             & 1591     & untyped \\
-        1592             & $2^{16}-1$ & empty \\
+        \emph{Slot(s)}  & \emph{Contents} & \emph{Slot(s)} & \emph{Contents} \\\midrule
+        0          & empty &
+        8          & \code{IO\_space\_control} \\
+        1          & initial thread's TCB &
+        9          & initial thread start-up information frame \\
+        2          & this \code{cnode} &
+        10         & initial thread's IPC buffer frame \\
+        3          & initial thread's page directory &
+        11         & \code{domain\_control} \\
+        4          & \code{irq\_control} &
+        12---18    & initial thread's paging structures \\
+        5          & \code{ASID\_control} &
+        19---1431  & initial thread's frames \\
+        6          & initial thread's ASID pool &
+        1431---1591 & untyped \\
+        7           & \code{IO\_port\_control} &
+        1592---($2^{16}-1$) & empty \\
         \bottomrule
-	\end{tabular}
+	\end{tabularx}
     \caption{Slot layout in the initial \code{cnode} set up by the kernel for the root task on the
 \textsc{Sabre}.}
 	\label{t:initial_cnode}
@@ -374,12 +379,7 @@ require a copy operation.
 Along with the message the kernel additionally delivers the badge of the endpoint capability that the sender 
 invoked to send the message.
 
-IPC can be one-way, where a single message is sent between a sender and receiver, or two-way in an
-RPC fashion where the sender sends a message and expects a reply. \emph{IPC rendezvous} refers to
-when the IPC takes place, specifically when the kernel transfers data and capabilities between two
-threads. 
-
-\begin{figure}
+\begin{figure}[t]
     \centering
     \includegraphics[width=0.8\textwidth]{endpoint}
     \caption{State diagram of a single endpoint, where \emph{blocked} tracks the number of threads
@@ -388,21 +388,17 @@ senders and receivers cannot be queued at the same time.}
     \label{f:endpoint}
 \end{figure}
 
-Table \cref{t:endpoint-system-calls} summarises \selfour system calls when used on endpoint
-capabilities. Essentially, \code{send()} is used to send a message and \code{recv()} used to
-receive one, both having blocking and non-blocking variants. \code{call()} is of particular interest as it represents the caller side of an RPC
-operation critical to microkernel performance, distinguished from a basic pair of \code{send()} and
-\code{recv()} by \emph{resume} capabilities. Pioneered in EROS~\citep{Shapiro_SF_99}, resume
-capabilities are generated once the message sent by \code{call()} is consumed, and consist of the
-thread waiting for a reply message. In \selfour, the resume capability is stored in the \gls{TCB}
-\code{cnode}, and \code{reply()} is the operation used to invoke this capability and send the reply
-message back.
 
-\begin{table} 
+IPC can be one-way, where a single message is sent between a sender and receiver, or two-way in an
+RPC fashion where the sender sends a message and expects a reply. \emph{IPC rendezvous} refers to
+when the IPC takes place, specifically when the kernel transfers data and capabilities between two
+threads. 
+
+\begin{table}[t]
     \centering
     \rowcolors{2}{gray!25}{}
-    \begin{tabular}{p{0.2\textwidth}p{0.8\textwidth}}\toprule
-        \emph{System call} & Action \\\midrule
+    \begin{tabularx}{\textwidth}{lX}\toprule
+        \emph{System call} & \emph{Action} \\\midrule
         \texttt{send}   & Send a message, blocking until it is consumed. \\ 
         \texttt{nbsend} & Send a message, but only if it is consumed immediately (\ie a thread is
         already waiting on this endpoint for a message).  \\
@@ -413,10 +409,20 @@ message back.
         \texttt{reply}  & Send a reply message to a \code{call}.   \\
         \texttt{replyrecv} & Send a reply message to a \code{call} and then \code{recv}. \\
         \bottomrule
-    \end{tabular}
-    \caption{System calls and their effects when used on endpoints.}
+    \end{tabularx}
+    \caption{System calls and their effects when used on endpoint capabilities.}
     \label{t:endpoint-system-calls}
 \end{table}
+
+Table \cref{t:endpoint-system-calls} summarises \selfour system calls when used on endpoint
+capabilities. Essentially, \code{send()} is used to send a message and \code{recv()} used to
+receive one, both having blocking and non-blocking variants. \code{call()} is of particular interest as it represents the caller side of an RPC
+operation critical to microkernel performance, distinguished from a basic pair of \code{send()} and
+\code{recv()} by \emph{resume} capabilities. Pioneered in EROS~\citep{Shapiro_SF_99}, resume
+capabilities are generated once the message sent by \code{call()} is consumed, and consist of the
+thread waiting for a reply message. In \selfour, the resume capability is stored in the \gls{TCB}
+\code{cnode}, and \code{reply()} is the operation used to invoke this capability and send the reply
+message back.
 
 \begin{figure}
     \centering
@@ -447,6 +453,31 @@ message back.
     \label{f:ipc}
 \end{figure}
 
+% notifications, interrupts, aep-binding
+\begin{figure}
+    \centering
+    \begin{subfigure}[h]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{signal1}
+        \caption{Notifications.} 
+        \label{f:signal1}
+    \end{subfigure}%
+    \begin{subfigure}[h]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{signal2}
+        \caption{Notification binding.}
+        \label{f:signal2}
+    \end{subfigure}
+    \caption{Example of a thread, TCB $A$, receiving notifications, by blocking on the notification and by
+        notification binding. In \cref{f:signal1} $A$ blocks waiting on notification
+        object $N$, and wakes when any notifications or interrupts are sent to $N$. In
+        \cref{f:signal2}, $A$ blocks on endpoint $E$, however since
+        $N$ is bound to the $A$, if $N$ receives an interrupt or notification,
+        $A$ is woken and the data word delivered to $A$.
+        See \Cref{f:legend-1} for the legend.}
+    \label{f:signal}
+\end{figure}
+
 \Cref{f:ipc1} demonstrates the rendezvous phase, where regardless of the order of operations, 
 when one thread blocks (\code{recv()}) on the endpoint and another thread sends on that endpoint
 then the message is consumed by the receiver. This occurs for both one-way and two-way \gls{IPC}.
@@ -470,7 +501,7 @@ contains two \gls{IPC} fastpaths which is used when the following, common-case c
 \begin{enumerate}
     \item the sender is using \texttt{call()} or the receiver is using \texttt{replyrecv()},
     \item there are no threads of higher priority than the thread being woken in the scheduler,
-    \item the thread to be switch to has a valid address space and has not faulted,
+    \item the thread to be switched to has a valid address space and has not faulted,
     \item and the message fits in registers.
 \end{enumerate}
 
@@ -499,11 +530,6 @@ thread waiting on that notification object, or if no threads are waiting stores 
 data word of the notifications. Unlike IPC, where messages being send are queued, notifications
 accumulate messages in the data word.
 
-The data word is set when the first notification arrives, and further invocations continue to bitwise OR the badge and data word
-until a thread receives the signal and clears the word. This is illustrated in the notification
-state diagram depicted in \cref{f:notification}, and in \cref{f:signal1} which shows the
-notification object and TCB interaction.
-
 \begin{figure}
     \centering
     \includegraphics[width=0.8\textwidth]{notification}
@@ -512,6 +538,11 @@ notification object and TCB interaction.
     \label{f:notification}
 \end{figure}
 
+The data word is set when the first notification arrives, and further invocations continue to bitwise OR the badge and data word
+until a thread receives the signal and clears the word. This is illustrated in the notification
+state diagram depicted in \cref{f:notification}, and in \cref{f:signal1} which shows the
+notification object and TCB interaction.
+
 \Cref{t:notification-system-calls} shows the operations that occur when notification objects are
 invoked with relevant system calls. \cref{f:notification} depicts changes in the notification object
 state that occur when threads notify and block on notifications. 
@@ -519,14 +550,14 @@ state that occur when threads notify and block on notifications.
 \begin{table} 
     \centering
     \rowcolors{2}{gray!25}{}
-    \begin{tabular}{p{0.2\textwidth}p{0.8\textwidth}}\toprule
-        \emph{System call} & Action \\\midrule
+    \begin{tabularx}{\textwidth}{lX}\toprule
+        \emph{System call} & \emph{Action} \\\midrule
         \texttt{send}   & Send a notification, transmitting the badge, do not block. \\ 
         \texttt{nbsend} & As above. \\
         \texttt{recv}   & Wait until a notification is available then receive the data word.  \\
         \texttt{nbrecv} & Poll for a notification, do not block, receive the data word if available. \\
         \bottomrule
-    \end{tabular}
+    \end{tabularx}
     \caption{System calls and their effects when used on endpoints.}
     \label{t:notification-system-calls}
 \end{table}
@@ -560,31 +591,6 @@ thread for blocking on an endpoint, both threads must then synchronise carefully
 Notification binding is illustrated in
 \cref{f:signal2}.
 
-
-% notifications, interrupts, aep-binding
-\begin{figure}
-    \centering
-    \begin{subfigure}[h]{0.48\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{signal1}
-        \caption{Notifications.} 
-        \label{f:signal1}
-    \end{subfigure}%
-    \begin{subfigure}[h]{0.48\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{signal2}
-        \caption{Notification binding.}
-        \label{f:signal2}
-    \end{subfigure}
-    \caption{Example of a thread, TCB $A$, receiving notifications, by blocking on the notification and by
-        notification binding. In \cref{f:signal1} $A$ blocks waiting on notification
-        object $N$, and wakes when any notifications or interrupts are sent to $N$. In
-        \cref{f:signal2}, $A$ blocks on endpoint $E$, however since
-        $N$ is bound to the $A$, if $N$ receives an interrupt or notification,
-        $A$ is woken and the data word delivered to $A$.
-        See \Cref{f:legend-1} for the legend.}
-    \label{f:signal}
-\end{figure}
 
 \section{Scheduling}
 
@@ -639,37 +645,37 @@ The majority of thread state transitions occur on IPC, which is critical for per
 as can be seen in the simplified thread state diagram shown in \cref{f:thread_state}. 
 \begin{figure}[h!tb]
     \centering
-    \includegraphics[width=0.7\textwidth]{thread_state}
+    \includegraphics[width=0.6\textwidth]{thread_state}
     \caption{Thread state transitions in \selfour}
     \label{f:thread_state}
 \end{figure}
 The \code{BlockedOnObject} state in the diagram maps to \code{blockedOn<N>} in the following thread
 state definitions:
-\begin{description}
-    \item \code{Running} This thread is eligible to be picked by the scheduler, and should be in the
+\begin{itemize}
+    \item \code{Running}: This thread is eligible to be picked by the scheduler, and should be in the
         scheduling queues or be the currently running thread.
     \item \code{Inactive} This thread is not runnable, and is not in the scheduler. It has been
         suspended, or possibly never resumed. 
-    \item \code{BlockedOnRecv} This thread is waiting to receive an IPC (or bound notification). 
-    \item \code{BlockedOnSend} This thread is waiting to send an IPC. 
-    \item \code{BlockedOnReply} This thread is blocked on a resume capability, waiting for a reply
+    \item \code{BlockedOnRecv}: This thread is waiting to receive an IPC (or bound notification). 
+    \item \code{BlockedOnSend}: This thread is waiting to send an IPC. 
+    \item \code{BlockedOnReply}: This thread is blocked on a resume capability, waiting for a reply
         from a \code{call} or fault.
-    \item \code{BlockedOnNotification} This thread is waiting to receive a notification.
-\end{description}
+    \item \code{BlockedOnNotification}: This thread is waiting to receive a notification.
+\end{itemize}
 
-Several optimisations exist in the kernel for performance, including lazy and benno
+Several optimisations to the scheduler exist in the kernel for performance, including lazy and benno
 scheduling. 
-\emph{Lazy} scheduling is the first optimisation, and is used whenever a thread blocks and wakes
+\emph{Lazy} scheduling is used whenever a thread blocks and wakes
 another thread at the same time, for example, in the \code{call} system call where the sender is
 blocked on the resume capability and the receiver is woken. Lazy scheduling observes that the
 current thread must be the highest-priority, runnable thread, and checks if the woken thread is
 higher than any other runnable thread by querying the scheduler bit field. If so, the receiver is
-directly switch to and the scheduler is avoided all together. Otherwise the receiver is moved from
+directly switched to and the scheduler is avoided all together. Otherwise the receiver is moved from
 the endpoint queue into the scheduling queue and the scheduler called.
 
 \emph{Benno} scheduling, named for its inventor Ben Leslie, removes the current thread from the 
 scheduler, changing the invariant that all runnable thread are in the scheduler, to all runnable
-threads except the current thread are in the scheduler. By doing so we avoid manipulating the
+threads \emph{except the current thread} are in the scheduler. By doing so we avoid manipulating the
 scheduling queues when doing a direct switch, reducing the cache footprint and resulting in a performance improvement.
 
 \subsubsection{Round-robin}
@@ -678,6 +684,10 @@ Kernel time is accounted for in ticks, and each TCB has a timeslice field which 
 This value is decremented every time a timer tick is handled, and when the timeslice is exhausted the thread is appended to the relevant scheduler queue, with a replenished timeslice.
 Threads can surrender their current tick using the \code{yield} system call, which places the thread
 at the end of it's scheduler queue.
+
+When threads communicate with a service over \gls{IPC}, the TCB of the thread providing the service
+is charged for any ticks that occur while that service is active. As a result isolation in shared
+server is not possible: clients are not charged for their execution time. 
 
 \subsubsection{Priorities}
 
@@ -688,7 +698,7 @@ As a result, a single thread running at the highest priority has access to 100\%
 
 \subsection{Domain scheduler}
 
-In order to achieve temporal isolation, \selfour provides a top-level hierarchical scheduler
+In order to provide confidentiality~\citep{Murray_MBGBSLGK_13} \selfour provides a top-level hierarchical scheduler
 which provides static, cyclical scheduling of scheduling partitions known as \emph{domains}. 
 Domains are statically configured at compile time with a cyclic schedule, and are non-preemptible
 resulting in completely deterministic scheduling of domains.
@@ -698,11 +708,8 @@ Threads are assigned to domains, and threads are only scheduled when their domai
 Cross-domain \gls{IPC} is delayed until a domain switch, and \texttt{yield} between domains is not
 possible. When there there are no threads to run while a domain is scheduled, a domain-specific idle thread will run until a switch occurs.
 
-The domain scheduler was introduced in order to complete the proof of confidentiality \TODO{cite
-paper}.
-
-
-The domain scheduler can be leveraged to achieve temporal isolation however since domains cannot be
+The domain scheduler is consistent with that specified by the \citet{ARINC653} standard, and 
+can be leveraged to achieve temporal isolation however since domains cannot be
 preempted, it is only useful for cyclic, non-preemptive scheduling with scheduling order and
 parameters computed-offline.
 In such a scenario each real-time task could be mapped to its own domain, and each task would run for its specified time before the domain scheduler switched to the next thread.
@@ -712,46 +719,68 @@ Such a scheduler is only suitable for closed systems and results in low system u
 Dynamic real-time applications with shared resources and high system utilisation are not compatible
 with the domain scheduler, as they require preemption.
 
-\section{RT support}
+\subsection{Real-time support}
 
-\TODO{shared resource temporal isolation not possible}.
 We introduced basic \selfour concepts and terminology, and investigated mechanisms that effect
-timing behaviour in the kernel: the scheduler, priorities, yield and IPC. 
+timing behaviour in the kernel: the scheduler, domains, priorities, \code{yield} and IPC. 
 In this section we will look at how real-time scheduling could be implemented with those mechanisms.
 
-There are several options for implementing a real-time scheduler in the current version of \selfour: leveraging the domain scheduler, using the priority scheduler or implementing a scheduling component to run at user-level. 
-The domain scheduler offers low utilisation for strictly closed
-systems with strict temporal partitioning and no preemption, so is clearly insufficient, as
-discussed in \Cref{sec:rt-scheduling}.
+There are several options for implementing a real-time scheduler in the current version of \selfour:
+leveraging the domain scheduler, using the priority scheduler or implementing a scheduling component
+to run at user-level. We explore these by explaining how a fixed-priority scheduler can be
+implemented with each technique, and explore the limitations. 
 
-The priority scheduler could be leveraged to implement a rate-monotonic scheduler.
-However, this requires complete trust in every thread in the system, as there is no mechanism for temporal isolation: if one thread executes for too long, other threads will miss their deadlines.
-Essentially the only thread with a guaranteed CPU allocation is the highest priority thread, which under rate-monotonic priority assignment is not the most critical thread in the system, but the thread with the highest rate.
-Additionally, periodic threads driven by timer interrupts rather than events would need to share a user-level timer.
+%explain how to use the domain scheduler for RM
+A basic cyclic executive, as introduced in \cref{s:cyclic-executive} can be implemented using the
+domain scheduler by mapping domains directly to task frames. This approach only works for closed
+systems with offline scheduling. An optimal scheduler like \gls{FPRM} is not possible to implement
+with domains as they are not preemptible. 
 
-\begin{table}
-	\centering
-	\begin{tabular}{lp{2cm}p{2cm}p{2cm}p{2cm}} \toprule
-        & \emph{Temporal isolation} & \emph{Utilisation} & \emph{Low kernel overheads} &
-        \emph{Dynamic}\\
-        \midrule
-Domain scheduler          & \yes               & \no         & \yes        & \no    \\
-Priority scheduler        & \no                & \yes        & \yes        & \yes   \\
-Trusted timer component   & \yes               & \yes        & \no         & \yes   \\
-        \bottomrule
-	\end{tabular}
-	 \caption{Comparison of existing \selfour scheduling options -- nothing ticks all of the boxes.}
-	 \label{tab:nothing-ticks-all-boxes}
-\end{table}
+% FPRM with priority scheduler
+The priority scheduler can be leverages to implement \gls{FPRM}, by mapping \selfour priorities to 
+rate-monotonic priorities. 
+However, this requires complete trust in every thread in the system, as there is no mechanism for
+temporal isolation: if one thread executes for too long, other threads will miss their deadlines.
+Essentially the only thread with a guaranteed CPU allocation is the highest priority thread, which
+under rate-monotonic priority assignment is not the most critical thread in the system, but the
+thread with the highest rate.  Additionally, periodic threads driven by timer interrupts rather than
+events would need to share a user-level timer.
 
-
-To build a dynamic system with temporal isolation and high CPU utilisation, one could implement a trusted timer component at user-level.
-This component would be the highest priority thread in the system, and could pause threads to prevent them from overrunning their assigned rate.
+% trusted component at user-level
+To build a dynamic system with temporal isolation and high CPU utilisation, one could provide a high
+priority scheduling component which implements \gls{FPRM} at user-level. This task would manage a
+time-service for timeouts and monitor task execution, preempting tasks before they exceed their
+declared \gls{WCET}. When tasks complete they would need to call the scheduler in order to dispatch
+a new task.
 However, since the timer component would need to maintain accounting information and track the currently running thread, it would need to be invoked for every single scheduling operation.
 This is prohibitively expensive, as it results in doubled context switching time and increased number of system calls for thread management.
 
-\Cref{tab:nothing-ticks-all-boxes} shows a comparison of all of the available scheduling options in the current version of \selfour -- no option provides all of the qualities we require.
-Clearly, the kernel needs something more. 
-In the next section we will our model for a more principled approach to time by extending the
-baseline \selfour model presented in this chapter. We incorporate using the principles of resource kernels and with the aim of support diverse task sets, including those for mixed-criticality systems.
+\begin{table}
+	\centering
+    \rowcolors{3}{}{gray!25}
+    \begin{tabularx}{\textwidth}{Xllll} \toprule
+        & \emph{Temporal}   & \emph{Utilisation} & \emph{Low kernel} & \emph{Dynamic}\\
+        & \emph{isolation}  &                    & \emph{overheads} & \\  
+        \midrule
+Domain scheduler          & \yes               & \no         & \yes        & \no    \\
+Priority scheduler        & \no                & \yes        & \yes        & \yes   \\
+Scheduling component   & \yes               & \yes        & \no         & \yes   \\
+        \bottomrule
+	\end{tabularx}
+	 \caption{Comparison of existing \selfour scheduling options.}
+	 \label{tab:nothing-ticks-all-boxes}
+\end{table}
 
+\Cref{tab:nothing-ticks-all-boxes} shows a comparison of all of the available scheduling options in
+the current version of \selfour---no option provides all of the qualities we require.
+
+\section{Summary}
+
+In this chapter we have provided an overview of \selfour concepts, including capabilities, system
+calls, resource management, communication and scheduling. We conclude that current real-time
+scheduling support is deficient, and temporal isolation is not possible over shared server IPC.  
+
+In the next section we will outline our model for a more principled approach to managing time by
+extending the baseline \selfour model presented in this chapter. We appeal to resource kernel
+principles where time is treated as a first-class resource, with the aim of support diverse task
+sets, including those for mixed-criticality systems.

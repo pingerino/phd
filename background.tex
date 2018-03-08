@@ -242,6 +242,28 @@ There are two definitive scheduling algorithms: \gls{FPRM}, which has fixed prio
 schedulability tests for the periodic task model in the seminal paper by \citet{Liu_Layland_73}. We
 describe them briefly here. 
 
+\subsection{Cyclic executives}
+\label{s:cyclic-executive}
+
+A cyclic-executive scheduler dispatches tasks according to a pre-computed schedule, and is only
+suitable for static, closed systems. Each task
+has one or more entries in the pre-computed schedule, referred to as \emph{frames}, which specify a
+\gls{WCET}. Frames are never preempted while running, resulting in a completely deterministic
+schedule. The cyclic executive completes in a
+\emph{hyperperiod}, which is the least common multiplier of all task periods. The \emph{minor cycle}
+is the greatest common divisor of all the task periods.
+
+Cyclic executives can, in theory, schedule task sets where the total utilisation is 100\%, as in \cref{eq:1}.
+However, this only holds
+if a task model where tasks can be split into infinite chunks, as tasks that do not fit into the
+minor cycle must be split. This assumption is unrealistic as many tasks
+cannot be split, and task switching is not without overheads. Calculating a cyclic schedule is
+NP-hard, and must be done every time the task set changes.
+
+Because cyclic executives are non-preemptible and deterministic, they cannot take advantage of 
+over-provisioned \gls{WCET} estimates, therefore a lot of processor utilisation is discarded
+when cyclic executives are run on modern hardware with caches. 
+
 % survey of scheduling algorithms (FP, EDF, PFAIR)
 \subsection{Fixed priority scheduling}
 \label{s:fp}
