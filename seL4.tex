@@ -147,16 +147,16 @@ what type of memory is at that physical address. Options for different types are
 \begin{table}[t]
     \centering
     \rowcolors{2}{gray!25}{}
-    \begin{tabularx}{\textwidth}{lX}\toprule
+    \begin{tabularx}{\textwidth}{p{3cm} X}\toprule
     \emph{Object}    & \emph{Description}\\\midrule
-    Untyped    & Memory that can be retyped into other types of memory, including untyped.\\
+    Untyped          & Memory that can be retyped into other types of memory, including untyped.\\
     CNode            & A fixed size table of capabilities. \\
     \Gls{TCB}        & A thread of execution in \selfour.\\
-    Endpoint  & Ports which facilitate \gls{IPC}. \\
+    Endpoint         & Ports which facilitate \gls{IPC}. \\
     Notification object & Arrays of binary semaphores.\\
-    Page Directories     & Top level paging structure. \\
-    Page Tables  & Intermediate paging structures.\\
-    Frames       & Mappable physical memory. \\
+    Page Directory  & Top level paging structure. \\
+    Page Table      & Intermediate paging structures.\\
+    Frame           & Mappable physical memory. \\
     \bottomrule
     \end{tabularx}
     \caption{Major memory object types in \selfour, excluding platform specific objects. For further detail
@@ -196,7 +196,7 @@ are not writeable by the kernel.
 Capabilities to all of the available memory and devices are set up as untyped in the initial root task's
 \code{cnode}. 
 
-\begin{table} 
+\begin{table}[b] 
     \centering
     \rowcolors{2}{gray!25}{}
     \begin{tabularx}{\textwidth}{llX} \toprule

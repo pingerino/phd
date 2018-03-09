@@ -14,11 +14,8 @@
 
 \usepackage{microtype}
 \usepackage{algorithm}
-%\usepackage{algpsuedocode}
-%\Onehalfspacing
 \usepackage[divpsnames,table,xcdraw]{xcolor}
 
-\usepackage{booktabs}
 % UNSW margin guidelines:
 %
 %   Top >= 30mm
@@ -42,10 +39,17 @@
 
 \frenchspacing
 
+% font
 \usepackage{amsfonts}
+\usepackage[tt=false,type1=true]{libertine}
+\usepackage{inconsolata}
+\usepackage[T1]{fontenc}
+\renewcommand\cftappendixname{\appendixname~}
+
+% graphics are in imgs/ dir
 \usepackage[pdftex]{graphicx}
 \graphicspath{{imgs/}}
-%\usepackage[nottoc,numbib]{tocbibind}
+
 \usepackage{mwe}
 \usepackage{setspace}
 \usepackage{datetime}
@@ -71,33 +75,38 @@
 %  use \cref to reference labels and automagically guess the
 % name (ie Section, Figure etc).
 \usepackage[capitalise]{cleveref} 
-% clever ref doesn't know about listings, add a format for it
-%\crefformat{lstlisting}{Listing #2#1#3}  
 
 
-% code
-%\usepackage{listings}
-\usepackage{caption}
+% code - note you need to install pygmentize (sudo apt-get install python-pygments)
+% and invoke pdflatex as follows: pdflatex -shell-escape phd.tex
 \usepackage{minted}
 \usemintedstyle{borland}
 
+% captions
+\usepackage{caption}
 \captionsetup{font=small,format=hang,position=below} % format=hang,
 \captionsetup[listing]{font=small,format=hang,position=below} % format=hang,
 \usepackage{subcaption}
+
 \usepackage{array}
-\usepackage{colortbl}
 \usepackage{pdfpages}
-\usepackage{tabularx}
+
+% tables
+\usepackage{colortbl} % be able to colour rows in tables
+\usepackage{tabularx} % use tabularx to specify width of table, X is a column to fill width of table
+\usepackage{multirow} % supports rows spanning multiple cells
 \setlength{\extrarowheight}{3pt} % increase table row height
 \newcommand{\tableheadline}[1]{\multicolumn{1}{l}{\spacedlowsmallcaps{#1}}}
-% reset rowcolor after every table
+% reset rowcolor after every table -- required so tabularx and rowcolor behave
 \newcounter{tblerows}
 \expandafter\let\csname c@tblerows\endcsname\rownum
-\usepackage{booktabs}
+\usepackage{booktabs} % pretty book style tables
+
+% pictures
 \usepackage{tikz}
-\usepackage{xspace}
 
 % abbreviations with correct spacing
+\usepackage{xspace}
 \newcommand*{\eg}{e.g.\@\xspace}
 \newcommand*{\ie}{i.e.\@\xspace}
 \newcommand*{\IO}{I/O\@\xspace}
@@ -114,7 +123,6 @@
 \setlist[enumerate]{itemsep=0mm}
 \setlist[itemize]{itemsep=0mm}
 
-\usepackage{multirow}
 \usepackage{verbatim}
 \usepackage{pgfgantt}
 \usepackage{pgfplots}
@@ -124,25 +132,15 @@
 % allow latex to break urls up over lines
 \Urlmuskip=0mu plus 1mu
 
+% bibliography
 \usepackage[authoryear,square,sort]{natbib}
 \usepackage{bibentry}
 \renewcommand{\cite}{\citep}
 \usepgfplotslibrary{ternary}
-%\newif \ifhyperlinks    \hyperlinkstrue
-%\newif \ifDraft         \Draftfalse
 \newif \ifDraft        \Drafttrue
 \usetikzlibrary{arrows,automata,shapes.multipart,positioning,plotmarks}
 
-% font
-\usepackage{palatino}
-\usepackage{inconsolata}
-\usepackage[T1]{fontenc}
-\renewcommand\cftappendixname{\appendixname~}
-
-%\usepackage{libertine}
-%\renewcommand{\rmdefault}{ppl}
-%\renewcommand{\ttdefault}{pcr}
-% commands
+% short cut for tick and cross commands
 \newcommand{\yes}{\checkmark}
 \newcommand{\no}{\hspace{1pt}\ding{55}}
 
@@ -247,6 +245,8 @@
 \newcommand{\faultmicro}[2]{\inputbenchmarkrows{#1}{#2}{fault}}
 \newcommand{\irqmicro}[2]{\inputbenchmarkrows{#1}{#2}{irq}}
 \newcommand{\schedulemicro}[2]{\inputbenchmarkrows{#1}{#2}{schedule}}
+
+\input{glossary}
 \begin{document}
 
 
@@ -272,7 +272,7 @@
 %\clearpage
 %\listoftables
 %\clearpage
-\input{glossary}
+% glossary
 \printglossary[type=\acronymtype]
 %\clearpage
 
@@ -285,7 +285,6 @@
 \mainmatter
 
 \sloppy
-% glossary
 \pagebreak
 
 \input{introduction}
@@ -300,7 +299,7 @@
 \input{conclusion}
 
 %{
-%\backmatter
+%\backmatter - back matter screws up numbering for appendixes so don't use it
 \cleardoublepage
 \bibliographystyle{plainnat}
 \bibliography{references}

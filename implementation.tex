@@ -107,6 +107,41 @@ Sporadic threads are more complex; the amount of replenishments is limited by bo
 
 
 \TODO{And we changed how fault handlers work}
+\section{System calls}
+
+\begin{table}[t] 
+    \centering
+    \begin{tabularx}{\textwidth}{llXl}\toprule
+        \emph{System call}                         & \emph{Parameter}     & \emph{Description}
+        & \emph{Return?} \\\midrule
+        \rowcolor{gray!25} \texttt{send, nbsend}   & \texttt{dest} & Capability to send a message to. & \no     \\
+        \rowcolor{gray!25}                         & \texttt{info} & Information about the message
+        sent. & \\     
+        \texttt{call}              & \texttt{dest} & Capability to send a message to. & \\
+                                   & \texttt{info} & Information about the message sent.   & \yes \\
+        \rowcolor{gray!25}
+        \texttt{recv, nbrecv}      & \texttt{src}  & Capability to wait for a message on. & \yes \\
+        \rowcolor{gray!25}
+                                   & \texttt{badge} & The kernel writes the badge of the sender here. & \\
+        \texttt{reply}             & \texttt{info} & Information about the reply message sent. & \no\\
+        \rowcolor{gray!25}
+        \texttt{replyrecv}         & \texttt{info} & Information about the reply message sent. &\yes\\
+        \rowcolor{gray!25}
+                                   & \texttt{src} & Capability to wait for a message on. & \\
+        \rowcolor{gray!25}
+                                   & \texttt{info} & Information about the reply message sent. & \\
+        \rowcolor{gray!25}
+                                   & \texttt{badge} & The kernel writes the badge of the sender
+        here. & \\
+        \texttt{yield}     & \no & \no \\
+        \bottomrule
+    \end{tabularx}
+    \caption{\selfour system call summary. All system calls except \code{yield} are based on sending
+    and/or receiving messages. The \emph{return} column indicates if a system call returns a message
+or not.}
+    \label{t:system-calls}
+\end{table}
+
 
 
 % TODO what is changed in TCBs
