@@ -104,9 +104,9 @@ for (;;) {
 \end{listing}
 
 
-The sporadic task model considers a real-time system as a set of tasks, $A_{1},A_{2},...,A_{n}$.
+The sporadic task model considers a real-time system as a set of tasks, $A_{1},A_{2},\ldots,A_{n}$.
 Each $A_{i}$ refers to a specific task in the task set, usually each for a different functionality.
-The infinite series of jobs is per task, and represented by $A_{i1},A_{i2},...,A{in}$. Each task has
+The infinite series of jobs is per task, and represented by $A_{i1},A_{i2},\ldots,A{in}$. Each task has
 an execution time, $C_{i}$, and period, $T_{i}$, which represents the minimum inter-arrival time
 between jobs. When a $T_{i}$ has passed and a job can run again, it is said to be \emph{released}.
 When a job is ready to run, it is said to have \emph{arrived}. When a job finishes and blocks until
@@ -296,7 +296,7 @@ towards infinity.
 \end{equation}
 \begin{equation}
     \label{eq:4}
-    \lim_{n \to \infty}n(\sqrt[n]{2}-1) = \ln_{} 2 \approx 0.693147...
+    \lim_{n \to \infty}n(\sqrt[n]{2}-1) = \ln_{} 2 \approx 0.693147\ldots
 \end{equation}
 
 \begin{figure}
@@ -423,7 +423,7 @@ This approach avoids blocking any higher priority threads that do not access thi
 works for both fixed and dynamic priority scheduling.
 However, \gls{PIP} results in a large preemption overhead and as a result has poor WCET analysis.
 
-To understand this, consider a task set with $n$ tasks, $A_{1}, ... , A_{n}$, where each task's priority
+To understand this, consider a task set with $n$ tasks, $A_{1}, \ldots, A_{n}$, where each task's priority
 corresponds to its index, such the priority of $A_{i} = i$. The highest priority is $n$ and the
 lowest is 1 and all tasks access the same resource. If $A_{1}$ holds the lock to that resource, then
 the worst preemption overhead occurs if $A_{2}$ wakes up, elevating the priority of $A_{1}$ to 2. Subsequently,
