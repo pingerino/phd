@@ -95,29 +95,25 @@ kernel the capability is decoded to determine the action the kernel should take.
 \begin{table}[t] 
     \centering
     \begin{tabularx}{\textwidth}{llXl}\toprule
-        \emph{System call}                         & \emph{Parameter}     & \emph{Description}
+        \emph{System call}                          & \emph{Parameter}     & \emph{Description}
         & \emph{Return?} \\\midrule
-        \rowcolor{gray!25} \texttt{send, nbsend}   & \texttt{dest} & Capability to send a message to. & \no     \\
-        \rowcolor{gray!25}                         & \texttt{info} & Information about the message
-        sent. & \\     
-        \texttt{call}              & \texttt{dest} & Capability to send a message to. & \\
-                                   & \texttt{info} & Information about the message sent.   & \yes \\
+        \rowcolor{gray!25} \texttt{send, nbsend}    & \texttt{dest} & Capability to invoke. & \no     \\
+        \rowcolor{gray!25}                          & \texttt{info} & Description of message. & \\     
+        \texttt{call}              & \texttt{dest}  & Capability to invoke. & \\
+                                   & \texttt{info}  & Description of message.   & \yes \\
         \rowcolor{gray!25}
-        \texttt{recv, nbrecv}      & \texttt{src}  & Capability to wait for a message on. & \yes \\
+        \texttt{recv, nbrecv}      & \texttt{src}   & Capability to block on. & \yes \\
         \rowcolor{gray!25}
-                                   & \texttt{badge} & The kernel writes the badge of the sender
-        here. & \\
-        \texttt{reply}             & \texttt{info} & Information about the reply message sent. & \no\\
+                                   & \texttt{badge} & Destination for badge. & \\
+        \texttt{reply}             & \texttt{info}  & Description of reply message. & \no\\
         \rowcolor{gray!25}
-        \texttt{replyrecv}         & \texttt{info} & Information about the reply message sent. &\yes\\
+        \texttt{replyrecv}         & \texttt{info}  & Description of reply message. &\yes\\
         \rowcolor{gray!25}
-                                   & \texttt{src} & Capability to wait for a message on. & \\
+                                   & \texttt{src}   & Capability to block on. &        \\
         \rowcolor{gray!25}
-                                   & \texttt{info} & Information about the reply message sent. & \\
-        \rowcolor{gray!25}
-                                   & \texttt{badge} & The kernel writes the badge of the sender
-        here. & \\
-        \texttt{yield}     & \no & \no \\
+                                   & \texttt{info}  & Description of reply message. & \\
+        \rowcolor{gray!25}         & \texttt{badge} & Destination for badge. &        \\
+        \texttt{yield}             & \no            & \no                             \\
         \bottomrule
     \end{tabularx}
     \caption{\selfour system call summary. All system calls except \code{yield} are based on sending

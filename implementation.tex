@@ -1,4 +1,4 @@
-\chapter{Implementation in \selfour}
+\chapter{Implementation in seL4}
 \label{chap:implementation}
 
 \TODO{Finish this chapter}
@@ -71,7 +71,24 @@ and 64-bit processors respectively. This is sufficient for most uses, but more r
 be supported by larger sizes, allowing system designers to trade
 
 
-\TODO{diagram of scheduling context layout}
+\begin{table}[t] 
+    \centering
+    \begin{tabular}{c|c|c|c|c|}\cline{2-5}
+        0x00 &  \multicolumn{2}{c}{\texttt{period}} & \multicolumn{2}{|c|}{\texttt{consumed}}
+        \\\cline{2-5}
+        0x10 & \texttt{core}                         & \texttt{TCB} & \texttt{reply} & \texttt{ntfn} \\\cline{2-5}
+        0x20 &\texttt{badge}                        & \texttt{yieldFrom}                               & \texttt{head}  & \texttt{tail} \\\cline{2-5}
+        0x30 & \texttt{max}                          &                                                  &                & \\\cline{2-5}
+        0x40 & \multicolumn{4}{c|}{\texttt{replenishment$_{0}$}}  \\\cline{2-5}
+        0x50 & \multicolumn{4}{c|}{\texttt{replenishment$_{1}$}}  \\\cline{2-5}
+        \ldots & \multicolumn{4}{c|}{\ldots}  \\\cline{2-5}
+        0xF0 & \multicolumn{4}{c|}{\texttt{replenishment$_{n}$}}  \\\cline{2-5}
+
+
+    \end{tabular}
+    \caption{Layout of a scheduling context object on a 34-bit system.}
+    \label{t:impl-sc-layout}
+\end{table}
 
 \begin{description}
     \item[Period] The replenishment period, $T$.
@@ -111,29 +128,37 @@ Sporadic threads are more complex; the amount of replenishments is limited by bo
 
 \begin{table}[t] 
     \centering
-    \begin{tabularx}{\textwidth}{llXl}\toprule
-        \emph{System call}                         & \emph{Parameter}     & \emph{Description}
-        & \emph{Return?} \\\midrule
-        \rowcolor{gray!25} \texttt{send, nbsend}   & \texttt{dest} & Capability to send a message to. & \no     \\
-        \rowcolor{gray!25}                         & \texttt{info} & Information about the message
-        sent. & \\     
-        \texttt{call}              & \texttt{dest} & Capability to send a message to. & \\
-                                   & \texttt{info} & Information about the message sent.   & \yes \\
-        \rowcolor{gray!25}
-        \texttt{recv, nbrecv}      & \texttt{src}  & Capability to wait for a message on. & \yes \\
-        \rowcolor{gray!25}
-                                   & \texttt{badge} & The kernel writes the badge of the sender here. & \\
-        \texttt{reply}             & \texttt{info} & Information about the reply message sent. & \no\\
-        \rowcolor{gray!25}
-        \texttt{replyrecv}         & \texttt{info} & Information about the reply message sent. &\yes\\
-        \rowcolor{gray!25}
-                                   & \texttt{src} & Capability to wait for a message on. & \\
-        \rowcolor{gray!25}
-                                   & \texttt{info} & Information about the reply message sent. & \\
-        \rowcolor{gray!25}
-                                   & \texttt{badge} & The kernel writes the badge of the sender
-        here. & \\
-        \texttt{yield}     & \no & \no \\
+    \begin{tabularx}{\textwidth}{llXll}\toprule
+\emph{System call}                                  & \emph{Parameter} & \emph{Description}
+        & \emph{Return?} & \emph{Donation?} \\\midrule
+        \rowcolor{gray!25} \texttt{send, nbsend}    & \texttt{dest}    & Capability to invoke.                                  & \no            & \no  \\
+        \rowcolor{gray!25}                          & \texttt{info}    & Description of message.                                &                &      \\
+        \texttt{call}                               & \texttt{dest}    & Capability to invoke.                                  &                &      \\
+                                                    & \texttt{info}    & Description of message.                                & \yes           & \yes \\
+        \rowcolor{gray!25} \texttt{recv, nbrecv}    & \texttt{src}     & Capability to wait on.                                 & \yes           & \yes \\
+        \rowcolor{gray!25}                          & \texttt{badge}   & Destination for badge.                                 &                &      \\
+        \rowcolor{gray!25}                          & \texttt{reply}   & Reply object to block callers on.                      &                &      \\
+        \texttt{wait, nbwait}                       & \texttt{src}     & Capability to wait on.                                 & \yes           & \no  \\
+                                                    & \texttt{badge}   & Destination for badge.                                 &                &      \\
+        \rowcolor{gray!25} \texttt{replyrecv}       & \texttt{src}     & Capability to wait on.                                 & \yes           & \yes \\
+        \rowcolor{gray!25}                          & \texttt{info}    & Description of reply message.                          &                &      \\
+        \rowcolor{gray!25}                          & \texttt{badge}   & Destination for badge.                                 &                &      \\
+        \rowcolor{gray!25}                          & \texttt{reply}   & Reply object to invoke, then block callers on.         &                &      \\
+        \texttt{nbsendrecv}                         & \texttt{dest}    & Capability to invoke.                                  & \yes           & \yes  \\
+                                                    & \texttt{info}    & Description of reply
+        message.                          &            &  \\
+                                                    & \texttt{src}     & Capability to wait on.                                 &                &      \\
+                                                    & \texttt{badge}   & Destination for badge.                                 &                &      \\
+                                                    & \texttt{reply}   & Reply object to block callers on.                      &                &      \\
+
+        \rowcolor{gray!25} \texttt{nbsendwait}      & \texttt{dest}    & Capability to invoke.
+        & \yes           & \no  \\
+        \rowcolor{gray!25}                          & \texttt{info}    & Description of message.                          &  &  \\
+        \rowcolor{gray!25}                          & \texttt{src}     & Capability to wait on.                                 &                &      \\
+        \rowcolor{gray!25}                          & \texttt{badge}   & Destination for badge.                                 &                &      \\
+ 
+        \texttt{yield}                              & \no              & \no
+        & \no            &   \no   \\
         \bottomrule
     \end{tabularx}
     \caption{\selfour system call summary. All system calls except \code{yield} are based on sending
