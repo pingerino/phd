@@ -369,6 +369,9 @@ When \texttt{seL4\_SchedControl\_Configure} is called on an inactive scheduling 
 At all times, the sum of the amounts in the replenishment buffer is equal to the configured budget.
 The maximum size of this buffer is statically configurable, and the minimum size is one.
 Users can specify the amount of extra refills a scheduling context can have, up to the static maximum.
+This extends the approach used by Quest-V~\citep{Danish_LW_11}, which has as static limit of 32
+replenishments % TODO expand, specify IO or find elsewhere. 
+
 
 Scheduling contexts with zero extra refills behave like polling servers (\cref{p:polling-servers}), otherwise they behave as sporadic servers (\cref{p:sporadic}), allowing application developers to tune the behaviour of threads depending on their preemption levels and execution durations.
 
