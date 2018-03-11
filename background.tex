@@ -609,6 +609,16 @@ Services on top of the microkernel can be isolated and assigned different levels
 the services in a monolithic \gls{OS} which all run at the same privilege level such that a fault in
 one service can compromise the entire system. 
 
+Operating systems can run on each other in a process called \emph{virtualisation}, where the
+underlying OS presents an interface imitating hardware. A \emph{hypervisor} is an operating system that can
+run other operating systems on top of it, and operating systems running on the hypervisor are
+referred to as \emph{guests}. Guest operating systems can be para- or fully-virtualised, where the
+former involves modifications to the source of the guest. Modern hardware has virtualisation
+extensions which improve virtualisation performance and reduce the need for para-virtualisation.
+Both microkernels and monolithic kernels can also be hypervisors, although monolithic hypervisors
+are often smaller than full OS counterparts, as they provide less functionality and rely on guest
+OSes to provide most systems. 
+
 \subsection{Capabilities}
 
 Many security-focused microkernels make use of \emph{capabilities}~\citep{Dennis_VanHorn_66}, an
@@ -630,9 +640,13 @@ to~\citep{Hardy_88}.
 processes. Because the microkernel model provides services encapsulated into user-level servers,
 \gls{IPC} is key to microkernel performance, as it is used for more predominantly than in monolithic
 \glspl{OS}. Originally, microkernels were criticised as impractical due to inefficient IPC
-implementations, however this was demonstrated to be false~\citep{Hartig_HLSW_97} with the
-development of very fast microkernels with optimised code paths for IPC, referred to as \emph{fastpaths}. 
-
+implementations of first-generation microkernels. However, this was demonstrated to be
+false~\citep{Hartig_HLSW_97} due to the high cache footprint and poor design of the original
+microkernels. Second-generation microkernels were built much leaner, with less services in the
+kernel and fast, optimised code paths for IPC, referred to as \emph{fastpaths}. 
+\emph{Third-generation} microkernels follow the pattern of minimality and speed, whilst also
+promoting security as a first-class concern, which resulted in the incorporation of capability
+systems. 
 
 \subsection{Open vs. Closed Systems}
 
