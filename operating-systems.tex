@@ -6,11 +6,11 @@
 In this chapter we provide a survey of existing operating systems and mechanisms for building
 mixed-criticality systems. We evaluate
 the scheduling and resource sharing policies and mechanisms available, with a focus on temporal isolation,
-asymmetric protection, and resource sharing. 
+asymmetric protection, policy freedom, and resource sharing.  
 
 First, we look at the \emph{\gls{POSIX}} standard which underlies many commercial and open source operating
 systems. Then we examine what is available in Linux other open source operating systems, before
-examining commercial offerings. Finally we survey existing relevant operating systems
+examining commercial offerings. Finally, we survey existing relevant operating systems
 from systems research, deeply examining techniques that can be leveraged to build mixed-criticality
 systems, including isolation and resource sharing techniques.
 
@@ -118,7 +118,7 @@ One of the original
 works~\citep{Yodaiken_Barabanov_97} runs Linux as a fully-preemptable task via virtualisation and
 kernel modifications, and runs real-time threads in privileged mode. Interrupts are virtualised and
 sent to real-time threads, only directed to
-Linux if required. Consequently real-time tasks do not have to suffer from long interrupt
+Linux if required. Consequently, real-time tasks do not have to suffer from long interrupt
 latencies, however it also means that devices drivers need to be rewritten from scratch for
 real-time. This approach is clearly untenable in a mixed-criticality system, given all real-time
 threads are trusted. 
@@ -132,13 +132,13 @@ Implementations of global- and partitioned-, EDF and FP schedulers exist for LIT
 \emph{PFair} schedulers. A \gls{SS} implementation exists, as well as various multicore,
 real-time locking protocols.
 
-Linux/RK~\citep{Oikawa_Rajkumar_98} is a resource kernel implementation of Linux with scheduling,
+\linuxrk~\citep{Oikawa_Rajkumar_98} is a resource kernel implementation of Linux with scheduling,
 admission control, and enforcement in the kernel. Every resource, memory, CPU time and devices was
-time-multiplexed using a recurrence period, processing time and deadline. Reservations in Linux/RK
+time-multiplexed using a recurrence period, processing time and deadline. Reservations in \linuxrk
 could be hard, firm of soft, which altered resource scheduling after a resource was exhausted. Hard
 reservations were not scheduled again until replenishment, firm would only be scheduled if no other
 undepleted reserve or unreserved resource use was scheduled, while soft allowed resource usage to be
-scheduled at a background priority. Linux/RK is additionally often used to implement and test other
+scheduled at a background priority. \linuxrk is additionally often used to implement and test other
 schedulers, such as \Gls{ZS} scheduling~\citep{deNiz_LR_09}, which was presented in
 \cref{s:zero-slack-scheduling}.
  
@@ -394,7 +394,7 @@ server, a more explicit form of
 timeslice donation: when the scheduling context is passed between client and server, the scheduling
 context of the client is billed for activity on the server's behalf. 
 Message ports contained two flags indicating what policy should be applied to priority on \gls{IPC}:
-one would enable running the server at the clients priority, and the other implemented \gls{PIP},
+one would enable running the server at the client's priority, and the other implemented \gls{PIP},
 where pending clients would boost the priority of the server should a lower priority client be
 executing a request~\citep{Kitayama_NT_93}. 
 
@@ -411,7 +411,7 @@ scheduling contexts consisted of a timeslice and a priority. Unlike Real-time Ma
 algorithm was not used, simply a timeslice without a period, meaning that the timeslice is
 replenished immediately, however threads are scheduled round-robin within their priority level, so
 when a thread executes again is a function of other threads in the system.  In another
-differentiating factor from Real-time Mach, instead of delegating expired timeslices to a a
+differentiating factor from Real-time Mach, instead of delegating expired timeslices to a
 second-level scheduler, NOVA implements \emph{helping}~\citep{Steinberg_BK_10}, which is a form of
 bandwidth inheritance, where pending clients not only boost the priority of the server, but the
 server can account the current clients request to the pending client in order to finish the initial request. 
@@ -424,11 +424,11 @@ Scheduling contexts in \fiascooc contained a budget, a
 replenishment rule, and a priority, and guests 
 can change scheduling contexts on priority switches and interrupt service routines.
 
-
+% TODO rephrase
 All the scheduling context donation policies implement a form of bandwidth inheritance, which
 forces the use of \gls{PIP}, which has high preemption overhead. This conflicts with the
 policy-freedom goal of a microkernel; out claim is \gls{PIP} does not belong in the kernel. 
-Designs differ as to whether
+Designs differ whether
 scheduling context donation is required or optional.  Some designs allow multiple execution contexts
 to be attached to one scheduling context, such that the scheduling context forms a secondary run
 queue.  In others, multiple scheduling contexts can be bound to one execution context, allowing the
@@ -443,17 +443,10 @@ difference}.
 \subsection{Capabilities to time}
 \label{s:os-capabilities}
 
-Capabilities~\citep{Dennis_VanHorn_66} are an established mechanism for
-fine-grained access control to spatial resources. The  \selfour
-microkernel uses capabilities to provide a memory-management model
-that delegates all management decisions to user level,
-including allocation of kernel memory, resulting in a largely
-policy-free
-kernel~\citep{Elkaduwe_DE_08,Heiser_Elphinstone_16}.
-However, the capability system in \selfour does not presently apply to time.
-
-Many existing and research \glspl{OS} use capabilities for principled access to spatial resources. \composite, NOVA,
-KeyKOS, EROS, Fiasco O.C and Barrelfish all provide capability systems. 
+Recall from \cref{s:b-capabilities} that capabilities~\citep{Dennis_VanHorn_66} are an established mechanism for
+fine-grained access control to system resources.
+Third-generation microkernels use capabilities for principled access to system resources, including 
+KeyKOS, EROS, \fiascooc, NOVA, \selfour, \composite and Barrelfish. 
 
 % TODO integrate
 EROS introduced the
@@ -542,7 +535,8 @@ always trusted, one the falls apart in the mixed criticality context.
 While real-time literature is divided between which real-time scheduling algorithm should be
 deployed as the core of real-time systems (\gls{EDF} or \gls{FP}), no such divide exists in industry
 where the vast majority of \glspl{OS} provide \gls{FP}.  \gls{FP} is far more dominant due to its
-inclusion in \gls{POSIX} andExcept in a pure research sense, kernels that provide
+inclusion in \gls{POSIX} and  % TODO finish
+Except in a pure research sense, kernels that provide
 \gls{EDF} do so in addition to \gls{FP}.  Resource reservations and \gls{EDF} are more common in
 research OSes, whilst commercial and open source products are heavily influenced by ARINC 653 and
 provide static partitioning. 
@@ -571,7 +565,7 @@ is trusted. A component is \emph{trustworthy} if it has undergone a process
 that establishes that it can be trusted, the degree of trustworthiness
 being a reflection of the rigour of this process (testing,
 certification, formal verification)~\citep{Verissimo_NC_03}.
-\Cref{plot:ternary} illustrates these axises.
+\Cref{plot:ternary} illustrates these axes.
 
 \begin{figure}
     \centering
