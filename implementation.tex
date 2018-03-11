@@ -64,11 +64,47 @@ contain the following:
 \subsection{Scheduling context objects}
 \label{s:sco}
 
+We introduce a new kernel object type, \glspl{SCO}, which all processing time is accounted against, 
+and a new scheduler invariant: any thread in the scheduler must have a \gls{SCO}. 
+
+
+
 \glspl{SCO} are variable sized objects that represent access to a certain amount of time and
 consist of a core amount of fields, and a circular buffer to track the consumption of time.
+
+
+
 Each \gls{SCO} is minimum $2^{8}$ bytes in size, which can hold eight or ten replenishments for 32
 and 64-bit processors respectively. This is sufficient for most uses, but more replenishments can
 be supported by larger sizes, allowing system designers to trade
+
+
+
+
+contain sporadic task parameters.  Scheduling contexts encapsulate processor time reservations,
+derived from sporadic task parameters: min-period ($T$) and a set of replenishments which is
+populated from an original execution budget ($C$), representing the reserved rate reserved rate
+($U$) = $\frac{C}{T}$.  The execution budget will be populated with the \gls{WCET} for \gls{HRT}
+tasks, and a max-rate for \gls{SRT} and rate-based tasks.
+
+
+
+
+\begin{description}
+    \item[Period] The replenishment period, $T$.
+    \item[Consumed] The amount of cycles consumed since the last reset.
+    \item[Core] The id of the processor this scheduling context grants time on.
+    \item[TCB] A pointer to the thread (if any) that this scheduling context is currently providing time to.
+    \item[Reply] A pointer to the last resume object (see \cref{s:resume}) in a call chain where
+        this scheduling context was donated.
+    \item[Notification] A pointer (if any) to the notification object this \gls{SCO} is bound to.
+    \item[Badge] A unique identifier for this scheduling context, which is delivered as part of a
+        timeout fault message to identify the faulting client.
+    \item[YieldFrom] Pointer to a \gls{TCB} that has yielded to this \gls{SCO}.
+    \item[Head,Tail] Indexes to the circular buffer of sporadic replenishments.
+    \item[Max] Maximum amount of replenishments for this scheduling context.
+\end{description}
+
 
 
 \begin{table}[t] 
@@ -90,26 +126,28 @@ be supported by larger sizes, allowing system designers to trade
     \label{t:impl-sc-layout}
 \end{table}
 
-\begin{description}
-    \item[Period] The replenishment period, $T$.
-    \item[Consumed] The amount of cycles consumed since the last reset.
-    \item[Core] The id of the processor this scheduling context grants time on.
-    \item[TCB] A pointer to the thread (if any) that this scheduling context is currently providing time to.
-    \item[Reply] A pointer to the last resume object (see \cref{s:resume}) in a call chain where
-        this scheduling context was donated.
-    \item[Notification] A pointer (if any) to the notification object this \gls{SCO} is bound to.
-    \item[Badge] A unique identifier for this scheduling context, which is delivered as part of a
-        timeout fault message to identify the faulting client.
-    \item[YieldFrom] Pointer to a \gls{TCB} that has yielded to this \gls{SCO}.
-    \item[Head,Tail] Indexes to the circular buffer of sporadic replenishments.
-    \item[Max] Maximum amount of replenishments for this scheduling context.
-\end{description}
-
 In addition to the core fields, \glspl{SCO} contain a variable amount of
 \emph{replenishments}, which consist of a \emph{timestamp} and \emph{amount}. These are used for
 both round-robin and sporadic threads. For round robin threads we simply use the head replenishment to track how much time is left in that \glspl{SCO} timeslice. 
 
-Sporadic threads are more complex; the amount of replenishments is limited by both a variable provided on configuration and the size of the \gls{SCO}, configured on creation. This allows system designers to control the preemption and fragmentation of sporadic replenishments as discussed in \cref{s:sporadic}.
+Sporadic threads are more complex; the amount of replenishments is limited by both a variable
+provided on configuration and the size of the \gls{SCO}, configured on creation. This allows system
+designers to control the preemption and fragmentation of sporadic replenishments as discussed in
+\cref{s:sporadic}.
+
+
+Scheduling contexts are connected to one thread at a time.  A thread is not permitted to execute for
+more time than that represented in the scheduling context.  Threads without scheduling contexts are
+not runnable.
+
+Scheduling contexts also form part of the accounting mechanism: the amount of budget a thread has
+remaining, and when the budget is due to be recharged, are stored in the scheduling contexts.
+\Cref{tab:sched_context} displays a summary of the main fields stored in a scheduling context
+object.
+
+The method \texttt{seL4\_SchedControl\_Configure} is used to set the parameters on a specific scheduling context.
+It taskes a \texttt{budget}, \texttt{period}, \texttt{num\_extra\_refills} and \texttt{badge}.
+
 
 \subsection{Thread control blocks}
 
@@ -166,7 +204,6 @@ Sporadic threads are more complex; the amount of replenishments is limited by bo
 or not.}
     \label{t:system-calls}
 \end{table}
-
 
 
 % TODO what is changed in TCBs
@@ -322,20 +359,6 @@ Only a single copy of this capability is available per processor in the system, 
 
 \subsection{Scheduling Contexts}
 \label{sec:schedcontext}
-
-We introduce a new kernel object type, scheduling contexts, which act as processor reservations and contain sporadic task parameters.
-Scheduling contexts encapsulate processor time reservations, derived from sporadic task parameters: min-period ($T$) and a set of replenishments which is populated from an original execution budget ($C$), representing the reserved rate reserved rate ($U$) = $\frac{C}{T}$.
-The execution budget will be populated with the \gls{WCET} for \gls{HRT} tasks, and a max-rate for \gls{SRT} and rate-based tasks.
-
-Scheduling contexts are connected to one thread at a time.
-A thread is not permitted to execute for more time than that represented in the scheduling context.
-Threads without scheduling contexts are not runnable.
-
-Scheduling contexts also form part of the accounting mechanism: the amount of budget a thread has remaining, and when the budget is due to be recharged, are stored in the scheduling contexts.
-\Cref{tab:sched_context} displays a summary of the main fields stored in a scheduling context object.
-
-The method \texttt{seL4\_SchedControl\_Configure} is used to set the parameters on a specific scheduling context.
-It taskes a \texttt{budget}, \texttt{period}, \texttt{num\_extra\_refills} and \texttt{badge}.
 
 \subsection{Replenishments}
 \label{sec:replenishments}
