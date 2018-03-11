@@ -82,15 +82,15 @@ capability from a capability space, the latter removes all child capabilities.
 are distinguishable by system call number, as listed in \cref{t:system-calls}. The majority of
 system calls are for communication; \code{send}, \code{nbsend}, \code{call}, \code{reply} are for
 sending messages; \code{recv}, \code{nbrecv} for receiving messages; and \code{yield} for
-interacting with the scheduler. The \code{nb} prefix indicates that this system call will not block.
+interacting with the scheduler. An \code{nb} prefix indicates that this system call will not block.
 
-The second level of system calls are called \emph{invocations} and are modelled as sending a message
+Second-level system calls are called \emph{invocations} and are modelled as sending a message
 to the kernel. All invocations are conducted by a sending system call. The kernel is modelled as if
 it is waiting for a message and receives one every time a system call is made, and sends a message
 as a reply. 
 To determine the operation, the rest of the arguments to an invocation are encoded as a message to
-the kernel. Each capability type has a different set of invocations available, and on a send to the
-kernel the capability is decoded to determine the action the kernel should take. 
+the kernel. Each capability type has a different set of invocations available, and on kernel entry 
+ the invoked capability is decoded to determine the action the kernel should take. 
 
 \begin{table}[t] 
     \centering
@@ -122,7 +122,7 @@ or not.}
     \label{t:system-calls}
 \end{table}
 
-All of the operations on capabilities are that are listed in \cref{t:capability_ops} are invocations
+All the operations on capabilities are that are listed in \cref{t:capability_ops} are invocations
 on \code{cnode} capability addresses. For example, to copy a capability, one uses \code{call} on a
 \code{cnode}, and provides the invocation code for copy, as well as the arguments. In the case of
 copy, one provides the slot of the capability being copied, in addition to the destination
@@ -189,7 +189,7 @@ subsets of memory will not become available for retyping again until every capab
 500MiB kernel window. Physical memory on this platform starts at 0x10000000, which is mapped into
 the kernel address space at 0xe0000000. Physical addresses outside of this range are devices and
 are not writeable by the kernel.
-Capabilities to all of the available memory and devices are set up as untyped in the initial root task's
+Capabilities to all available memory and devices are set up as untyped in the initial root task's
 \code{cnode}. 
 
 \begin{table}[b] 
@@ -219,7 +219,7 @@ unmapping, and cache flushing operations.
 \Glspl{TCB} represent an execution context and manage processor time in \selfour, and consist of a
 base TCB structure and a \code{cnode}. 
 The base TCB structure contains accounting information for scheduling and IPC in addition to the
-register set and floating point context. 
+register set and floating-point context. 
 The \code{cnode} contains capabilities that should not be
 deleted while a thread is running
 leveraging the fact that an object cannot be truly deleted until all capabilities to it are removed.
@@ -235,16 +235,16 @@ capabilities for \gls{IPC}.
     \emph{Operation}    & \emph{Description}\\\midrule
         \code{Resume}               & Place a thread in the scheduler.\\ 
         \code{Suspend}              & Remove a thread from the scheduler.\\
-        \code{WriteRegisters}       & Configure a threads execution context.\\
-        \code{ReadRegisters}        & Read a threads execution context.\\
+        \code{WriteRegisters}       & Configure a thread's execution context.\\
+        \code{ReadRegisters}        & Read a thread's execution context.\\
         \code{SetAffinity}          & Set the CPU on which this thread should run.\\
         \code{SetIPCBuffer}         & Set the page to use for the IPC buffer.\\
         \code{SetPriority}          & Set the priority of this TCB.\\
         \code{BindNotification}     & Bind this TCB with a notification object (see
-        \cref{s:notification-binding}. \\
+        \cref{s:notification-binding}). \\
     \bottomrule 
     \end{tabularx}
-    \caption{Summary of operations on TCBs. Further operations are available that batch several
+    \caption{Summary of operations on \glspl{TCB}. Further operations are available that batch several
     setters to reduce thread configuration overheads.}.
      \label{t:tcb_ops}
 \end{table}
@@ -268,7 +268,7 @@ which contains the semaphore state. Further information on notifications is pres
 
 \subsection{Consequences}
 
-While the user-level management of kernel memory provides true policy freedom---there is no
+User-level management of kernel memory provides true policy freedom---there is no
 policy required by the kernel on memory layout---this design is not without trade-offs. Ultimately,
 user-level management of kernel memory is key to \selfour's isolation
 guarantees as system designers can fully partition systems by using specific memory layouts and
@@ -285,7 +285,7 @@ Secondly, because of the policy freedom, the kernel has no limits on resources, 
 resource can be statically sized. Consequently, simple, static data structures, like arrays, cannot
 be used in the kernel as no assumptions on memory layout can be made, meaning dynamic data
 structures are mandated. Because the kernel cannot make assumptions about the location of memory
-objects, specific optimizations are also not possible: it is up to the system designer to decide a trade-off
+objects, specific optimisations are also not possible: it is up to the system designer to decide a trade-off
 between isolation and efficiency in the memory layout of the system.
 
 Both of these consequences make for restrictions on kernel design, which can be demonstrated through
@@ -352,8 +352,8 @@ capabilities to model specific registers and \IO interrupts.
 \section{Communication}
 
 \selfour provides communication through synchronous IPC via endpoints, or asynchronous notifications
-via notification objects. All of the communication system calls introduced in \cref{t:system-calls},
-when used on endpoints and notifications, are used to communicate between TCBs. There are no kernel
+via notification objects. All the communication system calls introduced in \cref{t:system-calls},
+when used on endpoints and notifications, are used to communicate between TCBs. There are no
 invocations that can take place via endpoints or notification capabilities. 
 
 \subsection{IPC}
@@ -489,8 +489,8 @@ contains two \gls{IPC} fastpaths which is used when the following, common-case c
 
 \begin{enumerate}
     \item the sender is using \texttt{call()} or the receiver is using \texttt{replyrecv()},
-    \item there are no threads of higher priority than the thread being woken in the scheduler,
-    \item the thread to be switched to has a valid address space and has not faulted,
+    \item there are no threads of higher priority than the receiver in the scheduler,
+    \item the receiver has a valid address space and has not faulted,
     \item and the message fits in registers.
 \end{enumerate}
 
@@ -501,7 +501,7 @@ Fault handling in \selfour is modelled as IPC messages between the kernel and re
 \gls{IPC} messages containing information about the fault. Fault handling threads receive messages
 on this endpoint as if the faulting thread had sent a message to that thread with \code{call()}. Of
 course, this message is actually constructed by the kernel, and the message contains information
-about the fault, generally the faulting \gls{TCB}'s registers. The faulting thread is blocked on the
+about the fault, generally the faulting thread's registers. The faulting thread is blocked on the
 resume capability, which is generated, just as if the faulting thread had conducted a \code{call()}.
 The fault handling thread can subsequently reply to this message to
 resume the thread, although the reply message is also special: it can be used to reply with a new
@@ -516,7 +516,7 @@ thread is rendered inactive and no fault message is sent.
 Notification objects provide the mechanism for semaphores in \selfour, and consist of a word of
 data. Sending on a notification either sends the badge of the invoked notification capability to a 
 thread waiting on that notification object, or if no threads are waiting stores the badge in the
-data word of the notifications. Unlike IPC, where messages being send are queued, notifications
+data word of the notifications. Unlike IPC, where messages being sent are queued, notifications
 accumulate messages in the data word.
 
 \begin{figure}
@@ -567,16 +567,15 @@ capabilities.
 \label{s:notification-binding}
 
 Some systems require threads that can receive both notifications and IPC while blocked, in order to
-prevent the requirement that services which receive both IPC message and notifications be multi-threaded.
-The
-mechanism for this is \emph{notification binding} where threads can register a specific notification
-specific notification capability to receive notifications from while blocked on
-an endpoint waiting for IPC. This is done by invoking the TCB
-with the \code{bind\_notification} invocation, which establishes a link between a TCB and
-notification object. Subsequently, if a notification is sent on that notification object and the TCB receives
-on any endpoint, that TCB will receive the notification. 
-Without notification binding, services require a thread for blocking on a notification and another
-thread for blocking on an endpoint, both threads must then synchronise carefully on any shared data.
+prevent the requirement that services which receive both IPC message and notifications be
+multi-threaded.  The mechanism for this is \emph{notification binding} where threads can register a
+specific notification capability to receive notifications from while blocked on an endpoint waiting
+for IPC. This is done by invoking the TCB with the \code{bind\_notification} invocation, which
+establishes a link between a TCB and notification object. Subsequently, if a notification is sent on
+that notification object and the TCB receives on any endpoint, that TCB will receive the
+notification.  Without notification binding, services require a thread for blocking on a
+notification and another thread for blocking on an endpoint, both threads must then synchronise
+carefully on any shared data.
 Notification binding is illustrated in
 \cref{f:signal2}.
 
@@ -592,16 +591,16 @@ priority level. A two-level bit field is used to track which priority lists cont
 in order to achieve a scheduling decision complexity of $O(1)$. 
 
 The bit field data structure works as follows: the
-top level consists of one word, each bit representing $N$ priorities, where $N$ is 32 or 64
+top-level consists of one word, each bit representing $N$ priorities, where $N$ is 32 or 64
 depending on the word size. The second level consists of $256/N$ words, which are indexed by the first bit set in the
 top-level bit field. To construct a priority we use the hardware instruction count leading zeros
-(\code{CLZ}) to find the highest bit set in the top level index. We take that index and use
+(\code{CLZ}) to find the highest bit set in the top-level index. We take that index and use
 \code{CLZ} on the bottom level bit field corresponding to that index, then construct the priority
 from these two values, allowing the highest priority to be found by reading only two words. For
 example, on a 32-bit system 
-if bit 1 is the highest bit set in the top level bit field, we index entry 1 in the
+if bit 1 is the highest bit set in the top-level bit field, we index entry 1 in the
 bottom level. If bit 5 is the highest bit set in the first entry of the bottom level, we then obtain
-$ 1 * 32 + 5 = 37$ as the highest priority. 
+$1 * 32 + 5 = 37$ as the highest priority. 
 \cref{list:two-lvl-bitmap} shows the logic for the scheduler bit field on 32-bit systems.
 
 \begin{listing}
@@ -622,7 +621,8 @@ word_t getHighestPrio(void) {
 }
     \end{ccode}
     \caption{Example algorithms for adding a priority to the scheduler bitmap and extracting the highest
-        active priority, on a 32-bit system. Both operations are $O(1)$ and involve two memory accesse. 
+        active priority, on a 32-bit system. Both operations are $O(1)$ and involve two memory
+        accesses. 
     \code{CLZ} is the hardware instruction for count leading zeros.}
     \label{list:two-lvl-bitmap}
 \end{listing}
@@ -659,12 +659,12 @@ another thread at the same time, for example, in the \code{call} system call whe
 blocked on the resume capability and the receiver is woken. Lazy scheduling observes that the
 current thread must be the highest-priority, runnable thread, and checks if the woken thread is
 higher than any other runnable thread by querying the scheduler bit field. If so, the receiver is
-directly switched to and the scheduler is avoided all together. Otherwise the receiver is moved from
+directly switched to and the scheduler is avoided all together. Otherwise, the receiver is moved from
 the endpoint queue into the scheduling queue and the scheduler called.
 
 \emph{Benno} scheduling, named for its inventor Ben Leslie, removes the current thread from the 
 scheduler, changing the invariant that all runnable thread are in the scheduler, to all runnable
-threads \emph{except the current thread} are in the scheduler. By doing so we avoid manipulating the
+threads \emph{except the current thread} are in the scheduler. Consequently, we avoid manipulating the
 scheduling queues when doing a direct switch, reducing the cache footprint and resulting in a performance improvement.
 
 \subsubsection{Round-robin}
@@ -672,7 +672,7 @@ scheduling queues when doing a direct switch, reducing the cache footprint and r
 Kernel time is accounted for in ticks, and each TCB has a timeslice field which represents the number of ticks they are eligible to run. 
 This value is decremented every time a timer tick is handled, and when the timeslice is exhausted the thread is appended to the relevant scheduler queue, with a replenished timeslice.
 Threads can surrender their current tick using the \code{yield} system call, which places the thread
-at the end of it's scheduler queue.
+at the end of the scheduler queue.
 
 When threads communicate with a service over \gls{IPC}, the TCB of the thread providing the service
 is charged for any ticks that occur while that service is active. As a result isolation in shared
@@ -691,11 +691,11 @@ In order to provide confidentiality~\citep{Murray_MBGBSLGK_13} \selfour provides
 which provides static, cyclical scheduling of scheduling partitions known as \emph{domains}. 
 Domains are statically configured at compile time with a cyclic schedule, and are non-preemptible
 resulting in completely deterministic scheduling of domains.
-Each domain has it's own priority scheduler, with lists per priority and a bit field structure, which is switched deterministically when a domain's
+Each domain has its own priority scheduler, with lists per priority and a bit field structure, which is switched deterministically when a domain's
 ticks expire. 
 Threads are assigned to domains, and threads are only scheduled when their domain is active.
 Cross-domain \gls{IPC} is delayed until a domain switch, and \texttt{yield} between domains is not
-possible. When there there are no threads to run while a domain is scheduled, a domain-specific idle thread will run until a switch occurs.
+possible. When there are no threads to run while a domain is scheduled, a domain-specific idle thread will run until a switch occurs.
 
 The domain scheduler is consistent with that specified by the \citet{ARINC653} standard, and 
 can be leveraged to achieve temporal isolation however since domains cannot be
@@ -726,7 +726,7 @@ systems with offline scheduling. An optimal scheduler like \gls{FPRM} is not pos
 with domains as they are not preemptible. 
 
 % FPRM with priority scheduler
-The priority scheduler can be leverages to implement \gls{FPRM}, by mapping \selfour priorities to 
+The priority scheduler can be leveraged to implement \gls{FPRM}, by mapping \selfour priorities to 
 rate-monotonic priorities. 
 However, this requires complete trust in every thread in the system, as there is no mechanism for
 temporal isolation: if one thread executes for too long, other threads will miss their deadlines.
@@ -736,10 +736,10 @@ thread with the highest rate.  Additionally, periodic threads driven by timer in
 events would need to share a user-level timer.
 
 % trusted component at user-level
-To build a dynamic system with temporal isolation and high CPU utilisation, one could provide a high
-priority scheduling component which implements \gls{FPRM} at user-level. This task would manage a
+To build a dynamic system with temporal isolation and high CPU utilisation, one could provide a 
+high-priority scheduling component which implements \gls{FPRM} at user-level. This task would manage a
 time-service for timeouts and monitor task execution, preempting tasks before they exceed their
-declared \gls{WCET}. When tasks complete they would need to call the scheduler in order to dispatch
+declared \gls{WCET}. On task completion, tasks would RPC the scheduler in order to dispatch
 a new task.
 However, since the timer component would need to maintain accounting information and track the currently running thread, it would need to be invoked for every single scheduling operation.
 This is prohibitively expensive, as it results in doubled context switching time and increased number of system calls for thread management.
@@ -760,8 +760,8 @@ Scheduling component   & \yes               & \yes        & \no         & \yes  
 	 \label{tab:nothing-ticks-all-boxes}
 \end{table}
 
-\Cref{tab:nothing-ticks-all-boxes} shows a comparison of all of the available scheduling options in
-the current version of \selfour---no option provides all of the qualities we require.
+\Cref{tab:nothing-ticks-all-boxes} shows a comparison of all the available scheduling options in
+the current version of \selfour---no option provides all the qualities we require.
 
 \section{Summary}
 

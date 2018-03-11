@@ -12,9 +12,9 @@ temporal faults in another, independent task.
 
 What does isolation mean in a fully- or over-committed system, where there is no slack time 
 to schedule? What if there simply is not enough time? One could argue that systems should be
-over-provisioned to avoid such a scenarios.
+over-provisioned to avoid such a scenario.
 However, in the presence of \gls{SRT} and best-effort tasks which may be low in
-criticality, this requirement is too strong. Instead we must explore mechanisms for \emph{asymmetric
+criticality, this requirement is too strong. Instead, we must explore mechanisms for \emph{asymmetric
 protection}, where high criticality tasks can cause a failure in low criticality tasks, but not vice
 versa.
 
@@ -39,7 +39,7 @@ The issue of trust in real-time literature has not been greatly addressed: real-
 assumed to perform correctly and safely.  However, much research has looked into the scheduling of
 aperiodic tasks, which by definition do cannot be trusted to follow a specific schedule, or abide by
 their estimated minimum inter-arrival time. Further applicable research examines the scheduling of
-\gls{SRT} and best-effort tasks along with \gls{HRT} tasks. Consequently we examine scheduling methods for
+\gls{SRT} and best-effort tasks along with \gls{HRT} tasks. Consequently, we examine scheduling methods for
 these types of systems. 
 
 Neither \gls{FP} nor \gls{EDF} scheduling
@@ -72,7 +72,7 @@ which allocate time to tasks in discrete sized quanta. Tasks in proportional sha
 weights according to their rate, and those weights determine the share of time for which each task 
 has access to a resource.
 
-While proportional share algorithms are applied to many different scheduling problems, they apply
+While proportional share algorithms are applied to many scheduling problems, they apply
 well to real-time scheduling on one or more processors.
 Unlike other approaches to real-time scheduling, proportional share schedulers have the explicit property of guaranteeing a rate of progress for all tasks in the system.
 
@@ -95,10 +95,10 @@ proportionate fair systems.  This problem can be exacerbated by critical section
 longer than a single quantum.  \citet{Stoica_AKBGP_96} propose defining arbitrary quanta sizes based
 on maximum critical section size, however quanta size decreases the accuracy of the scheduler.
 Additionally, it may not be possible to have \emph{a priori} knowledge of critical section size, especially
-in a soft real-time systems where it is not worth conducting \gls{WCET} analysis or execution time
-is dependant on exterior factors, such as network behaviour.
+in a soft real-time system where it is not worth conducting \gls{WCET} analysis or execution time
+is dependent on exterior factors, such as network behaviour.
 
-One early uniprocessor Pfair scheduling algorithm is earliest eligible deadline first, presented in
+One early uniprocessor Pfair scheduling algorithm is earliest-eligible deadline first, presented in
 \citet{Stoica_AKBGP_96}.  PD$^{2}$~\citep{Srinivasan_Anderson_06} is a more recent Pfair/ERfair
 scheduling algorithm that is theoretically optimal for multiprocessors under \gls{HRT} constraints,
 although only under the assumption that process preemption and migration are free.
@@ -118,17 +118,17 @@ We outline the most dominant approaches in this section.
 One early approach to temporal isolation with \gls{EDF} scheduling attempts to extend the 
 algorithm to allow overload conditions to be handled with respect to a value. Robust earliest deadline
 scheduling~\citep{Buttazzo_Stankovic_93} assigns a value to each task set, and drop jobs from
-low-value tasks under overload. If the system returns to non-overload conditions those tasks are
+low-value tasks under overload. If the system returns to non-overload conditions, those tasks are
 scheduled again. This is a very early version of asymmetric protection
 The algorithm is optimal, however this is only the case if
 scheduler overhead is excluded.  Since the algorithm has O($n$) complexity in the number of
 tasks, the authors recommend using a dedicated scheduling processor such that overhead will not
-effect the timing behaviour -- but this is not suitable for embedded systems, where the goal is to
+affect the timing behaviour -- but this is not suitable for embedded systems, where the goal is to
 minimise the number of processors, not increase them.
 
 \subsubsection{Constant-bandwidth servers}
 
-In the real-time community, the term \emph{server} is used it describe virtual time sources, where
+In the real-time community, the term \emph{server} is used to describe virtual time sources, where
 an intermediate algorithm monitors task execution and, using that information, prevents task(s)
 guarded by the server from exceeding specified temporal behaviour. These algorithms are integrated
 into the scheduler.
@@ -145,7 +145,7 @@ postponed, but still executed.
 \gls{CBS} stands out from previous server-based approaches~\citep{Spuri_Buttazzo_96,
 Ghazalie_Baker_95, Spuri_Buttazzo_94, Deng_Liu_97} as it does not require a \gls{WCET} or a minimum
 bound on job inter-arrival time, making it much more suitable for \gls{SRT} tasks.  Implementation
-wise, \gls{CBS} has fewer hardware overheads than Pfair schedulers.
+wise, \gls{CBS} has less hardware overheads than Pfair schedulers.
 
 Many extensions exist to \gls{CBS} to improve functionality.  \citet{Kato_IR_11} extend \gls{CBS} to
 implement \emph{slack donation}, where any unused bandwidth is given to other jobs.  In
@@ -158,19 +158,19 @@ resources, providing temporal isolation for additional resources other than proc
 \Gls{RBED} schedulers explicitly separate the resource allocation and dispatching
 (choosing which thread to run) in order to provide flexibility in timeliness requirements supported
 by the scheduler.  \Gls{RBED} ~\citep{Brandt_BLB_03} is an algorithm that implements such a
-scheduler.  In \gls{RBED}, tasks are considered as either \gls{HRT}, \gls{SRT}, best effort or
+scheduler.  In \gls{RBED}, tasks are considered as either \gls{HRT}, \gls{SRT}, best-effort or
 rate-based.  Tasks are modelled using an extension of the periodic task model, allowing any job of a
 task to have a different period.  If rate-based or \gls{HRT} tasks cannot be scheduled at their
 desired rate they are rejected.  \gls{SRT} tasks are given their rate if possible with the option to
 provide a quality of service specification.  Processor time reservations can be used to make sure
-best effort tasks are allowed some execution time.  Otherwise they are allocated slack time unused
-by SRT and HRT tasks.  Either way, best effort tasks are scheduled by assigning them a rate that
+best-effort tasks are allowed some execution time.  Otherwise, they are allocated slack time unused
+by SRT and HRT tasks.  Either way, best-effort tasks are scheduled by assigning them a rate that
 reflects how they would be scheduled in a standard, fair, quantum-based scheduler.  Based on the
 rates used, \gls{RBED} breaks tasks down and feeds them to an \gls{EDF} scheduler to manage
 processing time.  Rates are enforced using a one-shot timer to stop tasks that exceed their
 {\gls{WCET}}.  As tasks enter and leave the system, the rates of \gls{SRT} tasks will change.  Slack
-time that occurs as a result of tasks completing before their deadlines is only donated to best
-effort tasks, although the authors note that extensions should be able to donate slack to \gls{SRT}
+time that occurs as a result of tasks completing before their deadlines is only donated to 
+best-effort tasks, although the authors note that extensions should be able to donate slack to \gls{SRT}
 tasks as well.  \Gls{RBED} is similar to the concept of CBS, however it deals with separate types of
 real-time tasks more explicitly.
 
@@ -201,13 +201,13 @@ the budget can never be exceeded.  This removes latency problems with polling se
 unfortunately breaks rate-monotonic schedulability analysis, as this policy can result in servers
 executing back-to-back and exceeding their allocated scheduling bandwidth for any specific occurrence of
 the period.  This occurs as deferrable servers replenish the budget to full at the start of each
-period, and the budget can be used at any point during a tasks execution. 
+period, and the budget can be used at any point during a task's execution. 
 
 We demonstrate the problem with deferrable servers using the notation introduced in
 \Cref{t:notation}. Consider a sporadic task with implicit deadlines in a task set, 
 $A_{1}$, with jobs $A_{11}, A_{12}, \ldots, A_{1n}$. Each job in that task set has a deadline once the
 period has passed: $d_{1j} = t_{1j} + T_{1}$. The problem occurs if the first job arrives at $a_{11}
-= d_{11} - C_{1}$, such that it only completes at exactly the implicit deadline.  
+= d_{11}-C_{1}$, such that it only completes at exactly the implicit deadline.  
 Then a second job may arrive at the release time $d_{11}$ such that it runs back-to-back with the first
 task, from $a_11$ to $d_{11} + C_{1}$, then the task has exceeded its permitted utilisation 
 ($\frac{C_{1}}{T_{1}})$. As a result deadline misses can be caused in other
@@ -222,7 +222,7 @@ that for all possible points in time $U_{i} \leq \frac{C_{i}}{T_{i}}$, known as 
 is the condition that deferrable servers violate.  Each time a task is preempted, or blocks, a
 replenishment is set for current time + $T_{i}$, for the amount consumed.  When no replenishments are
 available, sporadic servers have their priority decreased below any real-time task.  The priority is
-restored once a replenishment is available.  While this addresses the problems of deferrable
+restored once a replenishment is available.  While this approach addresses the problems of deferrable
 servers, the implementation is problematic as the number of times a thread is preempted or blocked
 is potentially unbounded.  It is also subject to capacity loss as tasks that use very small chunks
 of budget at a time increase the interrupt load.  The bigger the bound on replenishments the less
@@ -264,7 +264,7 @@ system.
 None of the scheduling algorithms so far directly support mixed-criticality systems.  \gls{RBED} is
 the closest, although it assumes a direct relationship between criticality and real-time model, with
 the assumption that \gls{HRT} tasks are more critical than \gls{SRT} tasks which are more critical
-than best effort tasks. 
+than best-effort tasks. 
 
 Recall that in this model \glspl{CA} provide \gls{WCET} estimates that must be schedulable, however they are often very
 pessimistic.  This results in a task with two {\gls{WCET}} estimates, one very pessimistic one from
@@ -275,19 +275,20 @@ high-criticality tasks.  If high-criticality tasks finish before the lower \gls{
 lower criticality tasks are also scheduled.  Otherwise, tasks of lower criticality may not be
 scheduled at all. 
 
-Schedulers in this class are distinguished by a mode-switch between two or more criticality levels,
+Scheduling algorithms in this class are distinguished by a mode-switch between two or more criticality levels,
 which may result in low criticality tasks being dropped or de-prioritised in some way. 
 Schedulers for this model of mixed-criticality have been developed and extensively studied for
 \gls{FP}~\citep{Vestal_07, Pathan:phd} and \gls{EDF}~\citep{Baruah_BDMVS_11},
 
 \subsection{Zero Slack Scheduling}
+\label{s:zero-slack-scheduling}
 
 \Citet{deNiz_LR_09} propose a scheduling approach that can handle multiple levels of criticality,
 called \gls{ZS} scheduling. \gls{ZS} scheduling is based on the fact that tasks rarely use their
 \gls{WCET}.  This means that resource reservation techniques like \gls{CBS} without slack donation
 result in low effective utilisation.  ZS scheduling takes the reverse approach: high criticality
-tasks steal utilization from lower criticality tasks.  This involves calculating a \gls{ZS} instant
-- the last point at which a task can be scheduled without missing its deadline.  Under overload, the
+tasks steal utilisation from lower criticality tasks.  This involves calculating a \gls{ZS} instant
+---the last point at which a task can be scheduled without missing its deadline.  Under overload, the
 \gls{ZS} scheduler makes sure that high criticality tasks are scheduled by their \gls{ZS} instant,
 such that they cannot be preempted by lower criticality tasks.
 
@@ -314,7 +315,7 @@ normal operation and overload.
 \section{Resource sharing}
 
 Like the scheduling algorithms, the locking protocols presented in
-\Cref{sec:resource-sharing-theory} do not work if tasks are untrusted: in all of the protocols, if a
+\Cref{sec:resource-sharing-theory} do not work if tasks are untrusted: in all the protocols, if a
 task does not voluntarily release the resource, all other tasks sharing that resource will be
 blocked.
 
@@ -336,7 +337,7 @@ choices:
 
 \begin{description}
 \item[Bandwidth inheritance] Tasks using the resource run on their own reservation.  If that
-    reservation expires and their are other pending tasks, the task runs on the reservations of the
+    reservation expires and there are other pending tasks, the task runs on the reservations of the
     pending tasks. 
 \item[Reservation for the resource] Shared resources have their own reservation, which tasks use.
     This reservation must be enough for all tasks to complete their request.  Once again, if tasks
@@ -347,7 +348,7 @@ choices:
 
 Of most relevant to mixed-criticality systems, where tasks cannot be guaranteed to unlock a
 resource, is the enforcement mechanism.  Many protocols rely on tasks being trusted with \emph{a
-priori} knowledge of a tasks resource usage.  However, in systems where tasks may not be trusted
+priori} knowledge of a task's resource usage.  However, in systems where tasks may not be trusted
 (either due to security, certification level, or potential bugs) such \emph{a priori}
 knowledge is unavailable. 
 
@@ -355,14 +356,15 @@ knowledge is unavailable.
 resource servers accessed. In this scheme, the resources themselves must be at the ceiling
 criticality of any task accessing those resources, but all tasks do not have to be at that
 criticality level. The protocol works by channelling all IPC requests through a three-level,
-multi-ended queue where high criticality tasks are prioritised over best effort tasks. 
+multi-ended queue where high criticality tasks are prioritised over best-effort tasks. 
 
 \section{Summary}
 
 %TODO{rewrite to include whole chapter}
 
 Traditional scheduling algorithms, like \gls{EDF} and \gls{FP}-\gls{RM} schedule processor time but do not consider criticality differences between tasks, and also trust all tasks to stay within their \gls{WCET}.
-Due to pessimism in \gls{WCET} estimates, this results in low utilisation in such systems and also prevents systems of mixed-criticality being constructed in a safe way.
+Due to pessimism in \gls{WCET} estimates, this results in low utilisation in such systems and also
+prevents systems of mixed-criticality being constructed safely and securely.
 
 Mixed-criticality systems require at minimum temporal isolation, however the asymmetric protection property allows for higher utilisation in systems.
 \gls{EDF} and \gls{FP} scheduling can be adapted to have temporal isolation, or another approach, like PFair scheduling can be used to provide temporal isolation.
