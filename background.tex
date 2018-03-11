@@ -10,14 +10,13 @@
 % operating systems
 %% resource kernels
 %% microkernels
-%% os survey - brief, go into details later?
 
 \chapter{Core concepts}
 \label{chap:background}
 
 In this section we provide the background required to motivate and understand our research.
 We introduce real-time theory, including scheduling algorithms and resource sharing protocols.
-In addition we define operating systems, microkernels and introduce the concept of a resource kernel.
+In addition, we define operating systems, microkernels and introduce the concept of a resource kernel.
 This thesis draws on all of these fields in order to support real-time and mixed-criticality systems.
 
 \section{Real-time theory}
@@ -36,11 +35,12 @@ There are many ways to model real-time systems, which we touch on in the coming 
 
 \subsection{Types of real-time tasks}
 
-The term \emph{task} in real-time theory is used to refer to a single instruction stream.  How tasks
-are realised by an operating system---as a processes or threads---is specific to the
+The term \emph{task} in real-time theory is used to refer to a single instruction stream, which in 
+operating systems terms is referred to as a thread. How tasks
+are realised by an operating system---with or without memory protection, for example---is specific to the
 implementation.  Computations by tasks in real-time systems have deadlines which determine the
 correctness of the system. How those deadlines effect correctness depends on the category of the
-system, which is generally referred to as \gls{HRT}, \gls{SRT}, or \emph{best effort}.
+system, which is generally referred to as \gls{HRT}, \gls{SRT}, or \emph{best-effort}.
 
 \emph{Hard Real-Time} tasks have absolute deadlines; if a deadline is missed,
 the task is considered incorrect. \gls{HRT} tasks are most common in safety-critical systems, where
@@ -63,7 +63,7 @@ used for practicality.  Examples of \gls{SRT} tasks can be found in multimedia a
 where deadline misses may result in some non-critical effect such as performance degradation.
 \gls{SRT} tasks can also be found in safety-critical systems where the result degrades if enough time is not
 allocated by the deadline, but the result remains useful \eg image recognition and object detection
-in autonomous vehicles. In such tasks, a minimum allocation of time to the task mights be \gls{HRT},
+in autonomous vehicles. In such tasks, a minimum allocation of time to the task might be \gls{HRT},
 while further allocations are \gls{SRT}.
 
 Various models exist to quantify permissible deadline misses in \gls{SRT} systems.  One measure is
@@ -75,7 +75,7 @@ completely~\citep{Koren_Shasha_95} while others allow deadlines to be postponed.
 deadlines to be skipped are often referred to as firm real-time \eg media processing, where some
 frames can be dropped. 
 
-\emph{Best effort} tasks do not have temporal requirements, and generally execute in the
+\emph{best-effort} tasks do not have temporal requirements, and generally execute in the
 background of a real-time system. Examples include logging services and standard applications, but
 may be far more complicated. Of course, any task must be scheduled at some point for system success,
 so there must be some timing guarantee. 
@@ -109,7 +109,7 @@ Each $A_{i}$ refers to a specific task in the task set, usually each for a diffe
 The infinite series of jobs is per task, and represented by $A_{i1},A_{i2},\ldots,A{in}$. Each task has
 an execution time, $C_{i}$, and period, $T_{i}$, which represents the minimum inter-arrival time
 between jobs. When a $T_{i}$ has passed and a job can run again, it is said to be \emph{released}.
-When a job is ready to run, it is said to have \emph{arrived}. When a job finishes and blocks until
+When a job is ready to run, it is said to have \emph{arrived} and when a job finishes and blocks until
 the next arrival, it is said to be \emph{completed}. 
 
 For periodic tasks, which are commonly found in control systems, jobs release and arrive at the same
@@ -194,7 +194,7 @@ referred to as an \emph{admission test}.
 
 There is an absolute limit on task sets that are feasible which can be derived from the total
 utilisation. 
-The \emph{total utilisation} of a task set is the sum of all of the rates and must be less than the
+The \emph{total utilisation} of a task set is the sum of all the rates and must be less than the
 total processing capacity of a system for all deadlines to be met.
 For each processor in a system, this amounts to \cref{eq:1}.
 \begin{equation}
@@ -230,7 +230,7 @@ capacity loss in addition to algorithmic capacity loss.
 
 Tasks often do not use all of their execution requirement, any execution remaining in is referred to
 as \emph{slack}. For \gls{HRT} tasks, slack is a consequence of pessimistic \gls{WCET} values. Slack
-also occurs for \gls{SRT} tasks as they may be variable in length. Slack also occurs for aperiodic
+also occurs for \gls{SRT} tasks as they may vary in length. Slack also occurs for aperiodic
 tasks where the actual arrival time varies from the minimum inter-arrival time. Many scheduling algorithms
 attempt to gain performance by reclaiming or stealing slack.
 
@@ -261,8 +261,8 @@ cannot be split, and task switching is not without overheads. Calculating a cycl
 NP-hard, and must be done every time the task set changes.
 
 Because cyclic executives are non-preemptible and deterministic, they cannot take advantage of 
-over-provisioned \gls{WCET} estimates, therefore a lot of processor utilisation is discarded
-when cyclic executives are run on modern hardware with caches. 
+over-provisioned \gls{WCET} estimates, therefore processor utilisation is low
+for cyclic executives on modern hardware. 
 
 % survey of scheduling algorithms (FP, EDF, PFAIR)
 \subsection{Fixed priority scheduling}
@@ -273,7 +273,7 @@ The scheduler is invoked when a job is released or a job ends.
 The job with the highest priority is always scheduled.
 
 Priority assignment such that all tasks meet their deadlines is the core challenge of \gls{FP} scheduling.
-Two well established techniques are \gls{RM} and deadline monotonic, both of which are optimal with respect to \gls{FP} scheduling.
+Two well-established techniques are \gls{RM} and deadline monotonic, both of which are optimal with respect to \gls{FP} scheduling.
 \Gls{RM} priority assignment~\citep{Liu_Layland_73} allocates higher priorities to tasks with higher
 rates---where \emph{rate} is determined by the period, as shown in \cref{eq:2}.
 \begin{equation}
@@ -355,7 +355,7 @@ may not be suitable for \gls{HRT} systems.
 Both algorithms behave differently under constant
 overload. \gls{EDF} allows progress for all jobs but at a lower rate, while \gls{FP} will
 continue to meet deadlines for jobs with higher \gls{RM} priorities, completely starving other
-jobs. Whether these behaviours are desirable is subject to context.  Under
+jobs. Whether these behaviours are desirable is subject to context, under
 transient overload conditions both algorithms can cause deadline misses.
 
 % TODO mention reneging?
@@ -382,7 +382,7 @@ Access to shared resources requires \emph{mutual exclusion}, where only one
 task is permitted to access a resource at a time, to prevent system corruption. Code that
 must be accessed in a mutually exclusive fashion is called a \emph{critical section}. Generally
 speaking, tasks lock access to resources, preventing other tasks from accessing that resource
-until it is unlocked. However many variants on locking protocols exist, including locks that permit
+until it is unlocked. However, many variants on locking protocols exist, including locks that permit
 $n$ tasks to access a section, or locks that behave differently for read and write access.
 
 Resource sharing in a real-time context is more complicated than standard resource sharing and
@@ -418,7 +418,7 @@ critical sections accessed by that task.
 \label{sec:pip}
 
 In the \gls{PIP}, when a high priority task encounters a locked resource, it donates its priority 
-to the task holding the lock. When the lock is released the priority is restored. 
+to the task holding the lock and when the lock is released the priority is restored. 
 This approach avoids blocking any higher priority threads that do not access this resource, and
 works for both fixed and dynamic priority scheduling.
 However, \gls{PIP} results in a large preemption overhead and as a result has poor WCET analysis.
@@ -437,14 +437,14 @@ Another disadvantage of \gls{PIP} is that deadlock can occur if resource orderin
 \label{sec:hlp}
 \label{sec:ipcp}
 
-Under \gls{IPCP}, also known as the highest lockers protocol, resources are assigned a
+Under \gls{IPCP}, also known as the highest lockers' protocol, resources are assigned a
 \emph{ceiling} priority: the highest priority of all tasks that access that resource + 1.  When tasks
 lock that resource, they run at the ceiling priority, removing the preemption overhead
 of \gls{PIP}.
 
 The disadvantage of \gls{IPCP} is that all priorities of task that access locked resources must be known \emph{a
 priori}.  Additionally, if priority ceilings are all set to the highest priority, then behaviour
-degrades to that of \gls{NCP}. Finally this protocol allows intermediate priority tasks that do not need
+degrades to that of \gls{NCP}. Finally, this protocol allows intermediate priority tasks that do not need
 the resource to be blocked. 
 
 \subsection{Original Priority Ceiling Protocol}
@@ -540,16 +540,16 @@ the same physical hardware.
 
 \TODO{references in this paragraph}
 Varying definitions exist in the literature. Some consider merely
-the combination of \gls{HRT}, \gls{SRT} and best effort tasks, with criticality observed in that order.
+the combination of \gls{HRT}, \gls{SRT} and best-effort tasks, with criticality observed in that order.
 Others allow for \gls{QoS} specifications, which can reflect criticality. 
 
 In the real-time community, much work has been
 conducted around a theoretical model introduced by \citet{Vestal_07}. In this model, a system has
-a specific range of criticality levels, $L_{min} - L_{max}$ and a current criticality level
+a specific range of criticality levels, $L_{min}-L_{max}$ and a current criticality level
 $L_{now}$. Each task in the system is assigned a criticality level, $L_{i}$, and has a vector of
-execution times of size $L_{i} - L_{min}$. When the system undergoes a mode change, should $L_{i}
+execution times of size $L_{i}-L_{min}$. When the system undergoes a mode change, should $L_{i}
 \leq L_{now}$ the execution time required by that task is set to the value in the vector
-corresponding to the new $L_{now}$. If a tasks criticality is less than $L_{now}$, it may be dropped
+corresponding to the new $L_{now}$. If a task's criticality is less than $L_{now}$, it may be dropped
 or scheduled with much lower priority until a mode switch increases $L_{now}$. 
 
 This model can be interpreted in several ways; as a form of graceful degradation; or as an
@@ -558,7 +558,7 @@ estimates for a system. Theoretically, if the system designer could show that th
 of the \gls{CA} can be met by such a mode change, they could schedule less criticality tasks when in
 a low criticality mode. 
 
-However, while this model, and many variations upon it have been subject to much research in the
+However, while this model, and many variations upon it have been subject too much research in the
 real-time community, questions have been raised as to its practicality in industry.
 \citet{Ernst_DiNatale_16} claim that a \gls{CA} would be unlikely to accept multiple \gls{WCET}
 definitions and state that the focus of mixed-criticality research should be on providing systems
@@ -583,14 +583,14 @@ trusted code.  Figure \ref{fig:os-microkernel} illustrates the difference betwee
 \glspl{OS} and microkernels.  Modern microkernel implementation is guided by the minimality
 principle~\citep{Liedtke_95} which aims to provide minimal mechanisms to allow resource servers to
 function, leaving the rest of the policy up to the software running outside of the kernel. According
-to the minimality principle, if a service does not need to be in the kernel to achieve its'
+to the minimality principle, if a service does not need to be in the kernel to achieve its
 functionality, it should not be in the kernel.
 
 \begin{figure}[tb]
 	\begin{center}
 		\leavevmode
 		\includegraphics{os-microkernel.pdf}
-		\caption{Structure of a microkernel vs. monolithic operating system.}
+		\caption{Structure of a microkernel versus monolithic operating system.}
 		\label{fig:os-microkernel}
 	\end{center}
 \end{figure}
@@ -718,7 +718,8 @@ provide, in order to implement the above concepts.
 \begin{description}
 	\item[Admission] check that all resource requests can be scheduled (\textbf{G1}).
 	\item[Scheduling] implements the dynamic allocation of resources according to reservations (\textbf{G1, G2}).
-	\item[Enforcement] limit the consumption of the resources to that specified by the reservation(\textbf{G3}.
+	\item[Enforcement] limit the consumption of the resources to that specified by the
+        reservation (\textbf{G3}).
 	\item[Accounting] of reservation use, to implement scheduling and enforcement (\textbf{G1, G2, G3}).
 \end{description}
 
@@ -733,7 +734,7 @@ handling resource sharing in reservation-based systems:
 \end{description}
 
 Resource kernels are a form of monolithic operating system, where all system services and drivers
-are provided by the kernel.  In a microkernel, not all of the mechanisms of a resource kernel are
+are provided by the kernel.  In a microkernel, not all the mechanisms of a resource kernel are
 suitable for inclusion in the kernel itself: some can be provided by user-level middle-ware.  This
 is because core resource kernel concepts contain both policy and mechanism.  We argue that the
 microkernel should provide resource kernel mechanisms such that a resource kernel can be built with
