@@ -31,7 +31,7 @@ scheduler with 256 priorities.
 \label{s:capabilities}
 
 As a capability-based \gls{OS}, access to any resource in \selfour is via capabilities (recall
-\Cref{s:os-capabilities}). Capabilities to all system resources are passed to the initial task---the first
+\Cref{s:os-capabilities}). Capabilities to all system resources are available to the initial task---the first
 user-level thread started in the system---which can then allocate resources as appropriate.
 Capabilities exist in a \emph{capability space} that can be configured per thread or shared between
 threads. 
@@ -87,8 +87,8 @@ capability from a capability space, the latter removes all child capabilities.
 
 \section{System calls and invocations}
 
-\selfour has a two-level system call structure, based on capabilities. The first level of system calls
-are distinguishable by system call number, as listed in \cref{t:system-calls}. The majority of
+\selfour has a two-level system call structure, based on capabilities. The first level of system
+calls, listed in \cref{t:system-calls}, are distinguishable by system call number.  The majority of
 system calls are for communication; \code{send}, \code{nbsend}, \code{call}, \code{reply} are for
 sending messages; \code{recv}, \code{nbrecv} for receiving messages; and \code{yield} for
 interacting with the scheduler. An \code{nb} prefix indicates that this system call will not block.
@@ -140,7 +140,7 @@ slot.
 
 \section{Physical memory management}
 
-All kernel memory in \selfour is managed at user-level and accessed via capabilities
+All kernel memory in \selfour is managed at user-level and accessed via capabilities,
 which is key to \selfour's isolation and security, but also essential for
 understanding the complexity of kernel design. Additionally, this allows for the ultimate in policy
 freedom: all resource allocation is done from user-level by those holding the appropriate
@@ -352,11 +352,11 @@ interrupts, \glspl{ASID}, \IO Ports, \IO Spaces and domains.
 
 We take interrupts as an example to explain how control capabilities function. The
 \code{irq\_control} capability is the control capability for obtaining capabilities to specific
-interrupt numbers, which is achieved by invoking the \code{irq\_control} capability.
-Users provide an interrupt number and an empty slot and on success a IRQHandler capability to
-that interrupt number is placed in that slot. Once this authority is granted, the IRQHandler can then be
-invoked to manage that specific interrupt. On x86, \code{irq\_control} is also used to provide
-capabilities to model specific registers and \IO interrupts.
+interrupt numbers. By invoking the \code{irq\_control} capability, users can obtain IRQHandler
+capabilities to specific interrupt numbers, thereby granting them authority to invoke that handler.
+Once an IRQHandler capability is obtained, users can invoke it to manage that specific interrupt.
+On x86, \code{irq\_control} is also used to provide capabilities to model specific registers and \IO
+interrupts.
 
 \section{Communication}
 
@@ -524,7 +524,7 @@ thread is rendered inactive and no fault message is sent.
 
 Notification objects provide the mechanism for semaphores in \selfour, and consist of a word of
 data. Sending on a notification either sends the badge of the invoked notification capability to a 
-thread waiting on that notification object, or if no threads are waiting stores the badge in the
+thread waiting on that notification object, or if no threads are waiting stores, the badge in the
 data word of the notifications. Unlike IPC, where messages being sent are queued, notifications
 accumulate messages in the data word.
 
@@ -707,7 +707,7 @@ Cross-domain \gls{IPC} is delayed until a domain switch, and \texttt{yield} betw
 possible. When there are no threads to run while a domain is scheduled, a domain-specific idle thread will run until a switch occurs.
 
 The domain scheduler is consistent with that specified by the \citet{ARINC653} standard, and 
-can be leveraged to achieve temporal isolation however since domains cannot be
+can be leveraged to achieve temporal isolation. However, since domains cannot be
 preempted, it is only useful for cyclic, non-preemptive scheduling with scheduling order and
 parameters computed-offline.
 In such a scenario each real-time task could be mapped to its own domain, and each task would run for its specified time before the domain scheduler switched to the next thread.

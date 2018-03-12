@@ -184,7 +184,7 @@ verification of correctness.
 
 \subsubsection{VxWorks}
 
-VxWorks\citep{VxWorks_08} is a monolithic \gls{RTOS} deployed most notably in aircraft
+VxWorks~\citep{VxWorks_08} is a monolithic \gls{RTOS} deployed most notably in aircraft
 and spacecraft.  It supports \gls{FP} scheduling with a native POSIX-compliant scheduler.  VxWorks
 also has a pluggable scheduler framework, allowing developers to implement their own, in-kernel
 scheduler.
@@ -192,11 +192,22 @@ scheduler.
 \subsubsection{PikeOS}
 
 PikeOS~\citep{PikeOS:URL} is a second-generation microkernel which implements ARINC 653~\citep{ARINC653} 
-and runs RTOSes as paravirtualised guests in different partitions. 
+and runs RTOSes as paravirtualised guests in different partitions. Partitions are scheduled
+statically in a cyclic fashion, and each partition has its own scheduling structure supporting 256
+priorities.
+An alternative design has been implemented for PikeOS~\citep{Vanga_BTB_17}, where reservations are
+used to schedule low-latency, low-criticality tasks.
+This is achieved by using ``\gls{EDF} within fixed priorities''~\citep{Harbour_Palencia_03}, which
+schedules using EDF at specific priority bands, with combined with a pluggable interface for using a
+reservation algorithm (\eg \gls{CBS}, \gls{SS}, \gls{DS}) to temporally contain threads. In order to achieve low-latency, these tasks are run
+in the special partition of PikeOS, known as the system partition, which is scheduled at the same
+time as the currently active partition and provides essential system services. However, these tasks
+are intended to run without sharing resources or interfering with high-criticality tasks, which run
+in their own partitions.
 
 \subsubsection{Deos}
 
-\citet{Deos} is another RTOS which provides fixed-priority scheduling, with the addition of slack
+\citet{Deos:URL} is another RTOS which provides fixed-priority scheduling, with the addition of slack
 scheduling, where threads can register to receive slack and are scheduled according to their
 priority when there is slack in the system. Like PikeOS, Deos also implements ARINC 653 and a
 defined subset of POSIX.
