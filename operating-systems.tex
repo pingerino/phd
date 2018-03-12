@@ -219,15 +219,9 @@ There are many other \gls{RTOS}es used commercially, but the general pattern is 
 This brief survey shows that \gls{FP} scheduling is dominant in industry due to its predictable
 behaviour on overload, specification in the
 POSIX standard, and compatibility with existing, priority-based, best-effort systems.
+If \gls{EDF} is incorporated, it is provided at priority bands in the fixed-priority system.
 
-Although temporal isolation is sometimes provided with the possibility of bounded bandwidth via
-\glspl{CBS}, asymmetric protection is not provided, and support for temporal isolation in 
-shared resources is non-existent. In addition to scheduling, code-bases are
-generally large and complex, and beyond the grasp of modern {\gls{WCET}} analysis.  Although all of
-these \gls{RTOS}es are deployed in safety critical systems, their support for mixed-criticality
-applications is limited to the ARINC653 approach discussed in \cref{p:arinc}. 
-
-\begin{table}
+\begin{table}[h]
 \centering
 \rowcolors{2}{}{gray!25}
 \begin{tabular}{lll}\toprule
@@ -246,16 +240,23 @@ Deos    & \gls{FP}             & ARINC 653\\
 commercial \glspl{OS}.}
 \end{table}
 
+
+Although temporal isolation is sometimes provided with the possibility of bounded bandwidth via
+\gls{CBS} and other algorithms, support for temporal isolation in 
+shared resources is non-existent. In addition to scheduling, code-bases are
+generally large and complex, and beyond the grasp of modern {\gls{WCET}} analysis.  Although all of
+these \gls{RTOS}es are deployed in safety critical systems, their support for mixed-criticality
+applications is limited to the ARINC653 approach discussed in \cref{p:arinc}. 
+
 \section{Isolation mechanisms}
 
 We now look to systems research and explore mechanisms for temporal isolation and resource sharing
-in research operating systems, exploring their history and the state of the art. First we briefly introduce each operating system that is surveyed,
-before exploring in detail specific mechanisms 
-that can be used to support mixed-criticality systems. We investigate 
-how different \glspl{OS} address resource kernel concepts required to treat time as a first class
-resource; scheduling, accounting, enforcement, admission. Additionally, we look at how
-prioritisation, charging and enforcement are achieved, if at all, to achieve temporal isolation
-across shared resources.
+in research operating systems, exploring their history and the state of the art. First we briefly
+introduce each operating system that is surveyed, before exploring in detail specific mechanisms
+that can be used to support mixed-criticality systems. We investigate how different \glspl{OS}
+address resource kernel concepts required to treat time as a first class resource; scheduling,
+accounting, enforcement, admission. Additionally, we look at how prioritisation, charging and
+enforcement are achieved, if at all, to achieve temporal isolation across shared resources.
 
 The majority of kernels surveyed here are microkernels, as introduced in
 \cref{sec:background-operating-systems} and are as follows: 
@@ -297,34 +298,39 @@ of \composite.
  \hires delivers timer interrupts to a root, user-level scheduling component, which are then forwarded
 through the hierarchy to child schedulers.  Consequently, scheduling overhead increases as the
 hierarchy deepens.  Child schedulers with adequate permissions use a dedicated system call to tell
-the kernel to switch threads.  The kernel itself does not provide blocking semantics, which are also
+the kernel to switch threads, while the kernel itself does not provide blocking semantics, which are also
 provided by user-level schedulers.  This design offers total scheduling policy freedom, as
 user-level scheduling components can implement all the goals of a resource kernel according to
 their own policy.
-
 
 \subsection{Timeslices and meters}
 
 KeyKOS ~\citep{Bomberger_FFHLS_92} introduced a concept called \emph{meters}, which represented a
 defined length of processing time. Threads required meters to execute, and once a meter was depleted
-a higher authority was required to replenish the meter. Meters treat time as fungible: the mechanism
-only quantifies the amount of time to be consumed, not when it must be consumed by.
+a higher authority was required to replenish the meter.
 
-L4 kernels~\citep{Elphinstone_Heiser_13} extended this with time slices, although in different ways.
+L4 kernels~\citep{Elphinstone_Heiser_13} extended this with timeslices, although in different ways.
 Kernels like \selfour provide a timeslice which like meters is consumed as threads execute, but no
 authority is invoked to replenish the meter: the thread is simply preempted and placed at the end of
 the \gls{FIFO} scheduling queue for the appropriate priority with a refilled timeslice. NOVA
 extended the idea with variable time slices, which represented an amount of time that a thread could
 execute at a priority before preemption.
 
-\TODO{Rephrase - address peters comment Surely even if time is a first class resource, it can be
-exchanged... A task can transfer some of its time to another task}
-In a system where time is treated as a first-class resource, time cannot be treated as fungible and
-as such the timeslice/meter is not an appropriate mechanism alone for building mixed-criticality
+Meters and timeslices provide a unit of time, but do not restrict when that time must be consumed
+by, and have insufficient policy freedom in that they are recharged immediately, providing no
+mechanism for an upper bound on execution. 
+As a result, in a system where time is treated as a first-class resource, 
+the timeslice/meter is not an appropriate mechanism alone for building mixed-criticality
 systems with temporal isolation guarantees.
 
 \subsection{Reservations}
 % TODO finish unifying
+
+Many research \glspl{OS} have provided mechanisms for processor reservations, which thread(s)
+execute upon to consume time. The reservation parameters, charging and enforcement policies vary wildly,
+and we survey them here. 
+
+
 Mach and EROS used \gls{DS}, Tiptoe \gls{CBS} and Barrelfish \gls{RBED}. 
 An implementation of RBED has also been completed on OKL4~\citep{Petters_LHE_09}.
 \Glspl{SS} are provided by Quest-V~\citep{Li_WCM_14} and QNX, which address the back-to-back
@@ -333,7 +339,9 @@ problem of \gls{DS} however require a more complex implementation.
 Starting with Real-time Mach reservations are an existing mechanism used for temporal isolation.
 However, temporal isolation in the form of resource reservations is more common. Barrelfish provides
 an \gls{RBED} implementation, and Tiptoe a modified, variable bandwidth version of \gls{CBS}, while \minix provides hooks into the kernel
-scheduler such that CBS can be implemented at user-level. For the fixed-priority \glspl{OS}, two broad
+scheduler such that CBS can be implemented at user-level. 
+
+For the fixed-priority \glspl{OS}, two broad
 types of reservation are available: either a timeslice, which when exhausted schedules the thread
 round-robin (NOVA, \fiascooc), or a budget and period pair, representing a bandwidth (Real-time Mach). 
 
@@ -372,7 +380,7 @@ illustrated in \cref{f:os-ipc}.
 Early implementations of IPC had clients send messages directly to servers by referencing the
 thread ID. Later IPC message \emph{ports} were introduced to provide isolation; clients send
 messages and wait for replies on ports, and servers receive messages on ports and reply to the
-clients message on that port, removing the need for threads to know details about each other. 
+client's message on that port, removing the need for threads to know details about each other. 
 Servers effectively provide resources shared with multiple clients, via IPC through ports. 
 
 The heavy optimisation of second- and third-generation microkernels resulted in \emph{timeslice
