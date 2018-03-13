@@ -11,7 +11,7 @@ with one major caveat: time is not treated as a first-class resource, and as a r
 temporal isolation is deficient. Three main features of \selfour
 support this claim: it has been formally verified for correctness~\citep{Klein_EHACDEEKNSTW_09,
 Klein_AEMSKH_14}, integrity~\citep{Sewell_WGMAK_11}, confidentiality~\citep{Murray_MBGBSLGK_13}.
-; All memory management, including kernel memory, is all at
+; All memory management, including kernel memory, is at
 user-level~\citep{Elkaduwe_Derrin_06}; Finally it is the only \gls{OS} to date with full \gls{WCET}
 analysis~\citep{Sewell_KH_16}.  
 
@@ -191,7 +191,8 @@ While the majority of objects in \selfour have a platform-dependent size fixed a
 are sized dynamically at runtime, \eg untyped and CNodes, which can be any power of two size.
 
 Any capability to memory---untyped or not---is a capability to a specific object in memory,
-containing a pointer to that object. When retype is used to create sub-objects in an untyped, those
+containing a pointer to that object. When retype is used to create sub-objects in from an untyped
+object, those
 subsets of memory will not become available for retyping again until every capability to that object has been deleted, somewhat like reference counting pointers.
 
 \Cref{t:untyped} shows an example initial memory layout for the \textsc{Sabre} platform, which has a
@@ -550,7 +551,7 @@ state that occur when threads notify and block on notifications.
     \rowcolors{2}{gray!25}{}
     \begin{tabularx}{\textwidth}{lX}\toprule
         \emph{System call} & \emph{Action} \\\midrule
-        \texttt{send}   & Send a notification, transmitting the badge, do not block. \\ 
+        \texttt{send}   & Send a notification, transmitting the badge; do not block. \\ 
         \texttt{nbsend} & As above. \\
         \texttt{recv}   & Wait until a notification is available then receive the data word.  \\
         \texttt{nbrecv} & Poll for a notification, do not block, receive the data word if available. \\
