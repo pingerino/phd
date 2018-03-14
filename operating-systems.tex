@@ -134,16 +134,19 @@ nesting of resources.
 \section{Existing operating systems}
 
 There is a significant gap between real-time theory, as surveyed in the last chapter, and real-time
-practice. Here we provide a survey of existing open source and commercial operating systems with
+practice. Here we provide a survey of existing open-source and commercial operating systems with
 real-time mechanisms to demonstrate the status quo.
 
 \subsection{Open source}
 
 \subsubsection{Linux}
 
-While Linux cannot be considered a real-time operating system for high criticality applications, it
-is frequently used for lower criticality applications with \gls{SRT} demands.  Additionally, Linux
-is often used as a platform for conducting real-time systems research. 
+Due to its collaborative development and a massive code base, Linux is not amenable to
+certification and cannot be considered an \gls{OS} for high-criticality applications. However, Linux
+is frequently used for low-criticality applications with \gls{SRT} demands, and can be used to
+provide low-criticality services in a mixed-criticality setting, as long as it is sufficiently
+isolated. Additionally, Linux is often used as a platform for conducting real-time systems research. 
+
 % TODO cite completely fair scheduler
 Linux has fixed-priority preemptive scheduler which is split into scheduling classes.  Real-time
 threads can be scheduled with \gls{POSIX} \schedfifo and \schedsporadic. Best-effort threads are
