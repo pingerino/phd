@@ -152,10 +152,10 @@ nesting of resources. For synchronisation, events are provided, which threads ca
 We have surveyed three standards: POSIX, ARINC and AUTOSAR. All mandate the use of fixed-priority schedulers 
 and provide protocols and mechanisms for resource sharing. Under POSIX, 
 the focus of the resource sharing mechanisms is synchronisation of critical sections for
-correctness not temporal isolation. AUTOSAR provides optional monitoring which can raise an
-exception if a task holds a resource for too long, although this requires an exact scheduling
+correctness, not temporal isolation. AUTOSAR provides optional monitoring which can raise an
+exception if a task holds a resource for too long, although this requires exact scheduling
 details to be provided about the task and resource. ARINC alone provides real temporal isolation for
-tasks sharing resources, however like its scheduler, the support is limited to fixed, static
+tasks sharing resources however, the support is limited to fixed, static
 partitions with no flexibility.
 
 \section{Existing operating systems}
@@ -168,7 +168,7 @@ the impact of the discussed specifications and standards on their development.
 \subsection{Open source}
 
 Many open source \glspl{OS} are used in real-time settings, although generally not in
-safety-criticality systems, temporal isolation and resource sharing mechanisms remain important to
+safety-criticality systems. Regardless, temporal isolation and resource sharing mechanisms remain important to
 guarantee the function of the software.
 
 \subsubsection{Linux}
@@ -193,8 +193,8 @@ which is between the fair and the fixed priority scheduling classes.  The \gls{E
 allows threads to be temporally isolated using \gls{CBS}.
 
 Scheduling in Linux promotes the false correlation we see in many systems: real-time tasks are
-automatically trusted (unless scheduled with \gls{EDF}) and assumed to be more important, or more
-critical, than best-effort tasks.  In reality, criticality and real-time strictness are orthogonal.
+automatically trusted (unless scheduled with \gls{EDF} and \gls{CBS}) and assumed to be more important---or more
+critical---than best-effort tasks.  In reality criticality and real-time strictness are orthogonal.
 Linux does not provide any mechanisms for asymmetric protection beyond priority.
 
 On the resource sharing side Linux provides real-time locking via the \gls{POSIX} API as per
@@ -242,14 +242,15 @@ and best-effort applications.
 
 \subsubsection{RTEMS}
 
-\citet{RTEMS:URL} is an open-source \gls{RTOS} that operates with or without
-memory protection, although in either case it is statically configured.  Although it is an open
-source project, RTEMS is used widely in industry and research.  The main scheduling policy is
-\gls{FPRM}, however \gls{EDF} is also available with temporal isolation an option using \gls{CBS}.
-No temporal isolation mechanisms are present for fixed-priority scheduling.  RTEMS provides
-semaphores with \gls{PIP} or \gls{HLP} for resource sharing, as well as
-higher level primitives for these. RTEMS does not provide mechanisms for shared resources, as target 
-threads are trusted to complete critical sections within a determined \gls{WCET} provides no mechanism for isolation through shared resources.
+\citet{RTEMS:URL} is an open-source \gls{RTOS} that operates with or without memory protection,
+although in either case it is statically configured.  Although it is an open source project, RTEMS
+is used widely in industry and research.  The main scheduling policy is \gls{FPRM}, however
+\gls{EDF} is also available with temporal isolation an option using \gls{CBS}.  No temporal
+isolation mechanisms are present for fixed-priority scheduling.  RTEMS provides semaphores with
+\gls{PIP} or \gls{HLP} for resource sharing, as well as higher level primitives for these. RTEMS
+does not provide mechanisms for shared resources, as target threads are trusted to complete critical
+sections within a determined \gls{WCET}, and provides no mechanism for isolation through shared
+resources.
 
 \subsubsection{FreeRTOS}
 
@@ -288,7 +289,7 @@ priorities.
 An alternative design has been implemented for PikeOS~\citep{Vanga_BTB_17}, where reservations are
 used to schedule low-latency, low-criticality tasks.
 This is achieved by using ``\gls{EDF} within fixed priorities''~\citep{Harbour_Palencia_03}, which
-schedules using EDF at specific priority bands, with combined with a pluggable interface for using a
+schedules using EDF at specific priority bands, combined with a pluggable interface for using a
 reservation algorithm (\eg \gls{CBS}, \gls{SS}, \gls{DS}) to temporally contain threads. In order to achieve low-latency, these tasks are run
 in the special partition of PikeOS, known as the system partition, which is scheduled at the same
 time as the currently active partition and provides essential system services. However, these tasks
