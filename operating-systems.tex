@@ -14,7 +14,11 @@ examining commercial offerings. Finally, we survey existing relevant operating s
 from systems research, deeply examining techniques that can be leveraged to build mixed-criticality
 systems, including isolation and resource sharing techniques.
 
-\section{POSIX}
+\section{Standards}
+
+\TODO{intro}
+
+\subsection{POSIX}
 
 The \gls{POSIX} standard specifies \gls{RTOS} interfaces~\citep{Harbour_93} for scheduling and
 resource sharing, which
@@ -76,6 +80,56 @@ locking, or provide ways to pre-empt locked resources.
 As a result, \gls{POSIX} is insufficient for
 mixed-criticality systems where tasks of different criticalities share resources.  Few \glspl{OS}
 implement the full \gls{POSIX} standard, however many incorporate features of it, including Linux.
+
+\subsection{ARINC653}
+\label{s:arinc}
+
+\citet{ARINC653} 653 (Avionics Application Standard Software Interface) is a software specification
+for avionics which allows for the construction of a limited form of mixed-criticality systems. Under
+ARINC 653, software of different criticality levels can share hardware under strict temporal and
+spatial partitioning, where CPU, memory and \IO are all partitioned. 
+
+Software of different criticality levels are assigned to separate, non-preemptive partitions, which
+are scheduled according to a fixed-time window, in the fashion of a cyclic executive
+(recall \cref{s:cyclic-executive}). When a partition switch occurs, all CPU pipeline state and
+cache state is flushed to avoid data leakage between partitions~\citep{VanderLeest_10}. Within partitions,
+a second-level, preemptive, fixed-priority scheduler is used to dispatch threads, with \gls{FIFO}
+ordering for equal priorities. 
+At the end of each partition, all CPU pipeline state and cache
+state is flushed and a partition switch occurs. 
+The ARINC 653 specification does not consider multiprocessor hardware, although it is possible to
+schedule specific partitions on fixed processors. 
+
+The standard does permit resource sharing between partitions: resources are either
+exclusive, and accessible to one partition only, or shared between two or more partitions.
+Synchronisation mechanisms are specified both inter- and intra-partition. 
+
+Inter-partition sharing between partitions is provided by sending and receiving ports, configured to be either
+sampling ports, or queuing ports, depending on the access required~\citep{Kinnan_Wlad_04}.
+Importantly, ports have no 
+impact on the scheduling order of partitions, all operations must complete in the duration of a
+partition's fixed-time window.
+
+Intra-partition synchronisation is via the low-level events and semaphores, or high-level
+blackboards and buffers. The latter are both uni-directional 
+message passing interfaces, \emph{buffers} provide a statically-sized producer-consumer queue while
+\emph{blackboards} provide asynchronous multicast behaviour where multiple tasks can read the latest
+message until it is cleared~\citep{Zuepke_BL_15}.
+Finally, ARINC 653 specifies a health monitoring system, which can detect deadline misses and run
+preconfigured exception handlers.
+
+\subsection{AUTOSAR}
+
+AUTOSAR (AUTomotive Open System ARchitecture) is a set of specifications for developing real-time
+software in the automotive domain, which like ARINC653, has a focus on safety.
+
+Scheduling in AUTOSAR is partitioned per processor, with a  
+fixed-priority, preemptive scheduler per core, with \gls{FIFO} for equal priorities. Unlike ARINC,
+AUTOSAR allows for inter-processor synchronisation, facilitated by spinlocks. 
+
+For resource sharing, AUTOSAR specifies synchronisation through \gls{IPCP}, supported by allowing
+tasks to raise their priority to the resources' configured priority. Additionally, AUTOSAR supports
+nesting of resources. 
 
 \section{Existing operating systems}
 
@@ -245,8 +299,8 @@ Although temporal isolation is sometimes provided with the possibility of bounde
 \gls{CBS} and other algorithms, support for temporal isolation in 
 shared resources is non-existent. In addition to scheduling, code-bases are
 generally large and complex, and beyond the grasp of modern {\gls{WCET}} analysis.  Although all of
-these \gls{RTOS}es are deployed in safety critical systems, their support for mixed-criticality
-applications is limited to the ARINC653 approach discussed in \cref{p:arinc}. 
+these \glspl{RTOS} are deployed in safety critical systems, their support for mixed-criticality
+applications is limited to the ARINC653 approach discussed in \cref{s:arinc}. 
 
 \section{Isolation mechanisms}
 
