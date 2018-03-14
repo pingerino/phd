@@ -119,7 +119,7 @@ One early approach to temporal isolation with \gls{EDF} scheduling attempts to e
 algorithm to allow overload conditions to be handled with respect to a value. Robust earliest deadline
 scheduling~\citep{Buttazzo_Stankovic_93} assigns a value to each task set, and drop jobs from
 low-value tasks under overload. If the system returns to non-overload conditions, those tasks are
-scheduled again. This is a very early version of asymmetric protection
+scheduled again. This is a very early version of asymmetric protection.
 The algorithm is optimal, however this is only the case if
 scheduler overhead is excluded.  Since the algorithm has O($n$) complexity in the number of
 tasks, the authors recommend using a dedicated scheduling processor such that overhead will not
@@ -329,7 +329,7 @@ asses their suitability for mixed criticality systems.  As introduced in
 prioritisation, charging and enforcement.
 
 Prioritisation, or what priority a task uses while accessing a resource, can be decided by any of
-the existing protocols: \gls{OPCP}, \gls{IPCP} or \gls{PIP}, \gls{SRP}. Which reservation to charge 
+the existing protocols: \gls{OPCP}, \gls{IPCP}, \gls{PIP} or \gls{SRP}. Which reservation to charge 
 for processing time consumed when accessing a shared resource, and when to charge, are more
 interesting. \citet{deNiz_LSR_01} describe the possible mappings
 between reservations and resources consuming those reservations, which comes down to the following

@@ -428,7 +428,7 @@ systems with temporal isolation guarantees.
 % TODO finish unifying
 
 Many research \glspl{OS} have provided mechanisms for processor reservations, a concept with roots
-in resource kernels, as introduced in \label{sec:resource-kernels}. Like meters and timeslices,
+in resource kernels, as introduced in \cref{sec:resource-kernels}. Like meters and timeslices,
 reservations are consumed when threads execute upon them, however, they represent a bandwidth or
 share of a processor, and provide a mechanism for temporal isolation.
 
@@ -527,7 +527,7 @@ information, such as priority and accounting information, in a single structure 
 Other kernels, including real-time Mach, NOVA, and \fiascooc, divide the TCB into an execution context and
 \emph{scheduling context} in order to allow the scheduling context to
 transfer between threads over \gls{IPC} for accounting and/or priority inheritance purposes, and for
-performance~\citep{Steinberg_Kauer_10}.
+performance~\citep{Steinberg_WH_05}.
 
 The contents of a scheduling context vary per implementation.
 Real-time Mach's scheduling contexts contained parameters for the deferrable
@@ -550,12 +550,12 @@ The enforcement policy of Real-time Mach derived directly from its two-level sch
 scheduling context expired the server would run in the second-level time-sharing scheduler, blocking
 any pending requests.
 
-NOVA~\citep{Steinberg_BK_10} also provided scheduling contexts with donation over \gls{IPC},
+NOVA~\citep{Steinberg_Kauer_10} also provided scheduling contexts with donation over \gls{IPC},
 although the prioritisation policy was strictly \gls{PIP}, which has high preemption overhead, 
 as described in \cref{sec:pip}, and conflicts with the
 policy-freedom goal of a microkernel. 
 Enforcement and charging
-in NOVA are both provided through the mechanism of helping:  a form of
+in NOVA are both provided through the mechanism of helping~\citep{Steinberg_BK_10}:  a form of
 bandwidth inheritance, where pending clients not only boost the priority of the server, but the
 server can charge the current clients request to the pending client in order to finish the initial request. 
 
