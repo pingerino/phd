@@ -885,7 +885,7 @@ driver more often as the release queue is nearly always full, which involves mor
 to acknowledge the IRQ, in addition to reprogramming the timer.
 
 We compare our latencies to those of
-LITMUS$^{RT}$~\citep{Calandrino_LBDA_07}, a widely-used real-time scheduling
+LITMUS$^{RT}$~\citep{Calandrino_LBDA_06}, a widely-used real-time scheduling
 framework embedded in Linux, where we use Feather-Trace~\citep{Brandenburg_Anderson_07} to gather data.
 We use the C-EDF scheduler, which is a partitioned (per-core), clustered (per-node) EDF scheduler, on a single
 core. We use the same parameters and thread sets, running each set for 10\,s. 
