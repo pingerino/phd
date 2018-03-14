@@ -182,7 +182,7 @@ isolated. Additionally, Linux is often used as a platform for conducting real-ti
 % TODO cite completely fair scheduler
 Linux has fixed-priority preemptive scheduler which is split into scheduling classes.  Real-time
 threads can be scheduled with \gls{POSIX} \schedfifo and \schedsporadic. Best-effort threads are
-scheduled with \gls{CFS}, and real-time threads are scheduled either \gls{FIFO} or round-robin, and
+scheduled with the time-sharing \gls{CFS}, and real-time threads are scheduled either \gls{FIFO} or round-robin, and
 are prioritised over the best-effort tasks.  Fixed priority threads in Linux are completely trusted:
 apart from a bound on total execution time for real-time threads which guarantees that best-effort
 threads are scheduled (referred to as real-time throttling~\citep{Corbet_08}), individual temporal
@@ -206,7 +206,7 @@ Linux.  We briefly summarise major and relevant works here.
 One of the original
 works~\citep{Yodaiken_Barabanov_97} runs Linux as a fully-preemptable task via virtualisation and
 kernel modifications, and runs real-time threads in privileged mode. Interrupts are virtualised and
-sent to real-time threads, only directed to
+sent to real-time threads, and only directed to
 Linux if required. Consequently, real-time tasks do not have to suffer from long interrupt
 latencies, however it also means that devices drivers need to be rewritten from scratch for
 real-time. This approach is clearly untenable in a mixed-criticality system, given all real-time
@@ -237,7 +237,7 @@ even being deployed for non-critical \gls{SRT} applications, ultimately Linux is
 results in a colossal trusted computing base, where it is impossible to guarantee correctness through
 formal verification or timeliness through {\gls{WCET}} analysis.  Major reasons for adapting Linux
 to real-time are the existing applications and wide array of device and platform support. For
-mixed-criticality systems these advantages can by running Linux as a virtualised, guest \gls{OS} to run \gls{SRT}
+mixed-criticality systems these advantages can be leveraged by running Linux as a virtualised, guest \gls{OS} to run \gls{SRT}
 and best-effort applications.
 
 \subsubsection{RTEMS}
@@ -274,7 +274,8 @@ verification of correctness.
 \subsubsection{VxWorks}
 
 VxWorks~\citep{VxWorks_08} is a monolithic \gls{RTOS} deployed most notably in aircraft
-and spacecraft.  It supports \gls{FP} scheduling with a native POSIX-compliant scheduler.  VxWorks
+and spacecraft.  It supports \gls{FP} scheduling with a native POSIX-compliant scheduler, and
+implements ARINC 653.  VxWorks
 also has a pluggable scheduler framework, allowing developers to implement their own, in-kernel
 scheduler.
 
@@ -307,8 +308,11 @@ There are many other \gls{RTOS}es used commercially, but the general pattern is 
 \gls{FP} scheduling and resource sharing.
 This brief survey shows that \gls{FP} scheduling is dominant in industry due to its predictable
 behaviour on overload, specification in the
-POSIX standard, and compatibility with existing, priority-based, best-effort systems.
+POSIX standard, and compatibility with existing, priority-based, best-effort systems. 
 If \gls{EDF} is incorporated, it is provided at priority bands in the fixed-priority system.
+Without a principled way to treat time as a first-class resource, the reliance on fixed-priority
+conflates the importance of a task and its scheduling priority, often based on rate, resulting in 
+low utilisation in these systems.
 
 \begin{table}[h]
 \centering
@@ -329,18 +333,18 @@ Deos    & \gls{FP}             & ARINC 653\\
 commercial \glspl{OS}.}
 \end{table}
 
-
 Although temporal isolation is sometimes provided with the possibility of bounded bandwidth via
-\gls{CBS} and other algorithms, support for temporal isolation in 
-shared resources is non-existent. In addition to scheduling, code-bases are
-generally large and complex, and beyond the grasp of modern {\gls{WCET}} analysis.  Although all of
+\gls{CBS} and or \gls{SS}, support for temporal isolation in 
+shared resources is non-existent beyond the strict partitioning of ARINC 653.
+Although many of
 these \glspl{RTOS} are deployed in safety critical systems, their support for mixed-criticality
-applications is limited to the ARINC653 approach discussed in \cref{s:arinc}. 
+applications is limited to the ARINC653 approach discussed in \cref{s:arinc}. Clearly, more flexible 
+mechanisms for temporal isolation and resource sharing are required.
 
 \section{Isolation mechanisms}
 
 We now look to systems research and explore mechanisms for temporal isolation and resource sharing
-in research operating systems, exploring their history and the state of the art. First we briefly
+in research operating systems, exploring their history and the state of the art. First, we briefly
 introduce each operating system that is surveyed, before exploring in detail specific mechanisms
 that can be used to support mixed-criticality systems. We investigate how different \glspl{OS}
 address resource kernel concepts required to treat time as a first class resource; scheduling,
@@ -356,8 +360,6 @@ The majority of kernels surveyed here are microkernels, as introduced in
         generation, L4 microkernel.
     \item EROS~\citep{Shapiro_SF_99}, the first third-generation microkernel.
     \item Fiasco~\citep{Hohmuth_02} is a second-generation L4 microkernel, with fixed-priority scheduling.
-    \item \textsc{Minix 3}~\citep{Herder_BGHT_06} is a traditional microkernel with a focus on 
-        reliability rather than performance. 
     \item Tiptoe~\citep{Craciunas_KPRS_09} is a now-defunct research microkernel that also aims at
 temporal isolation between user-level processes and the operating system.
     \item NOVA~\citep{Steinberg_Kauer_10} a third-generation microkernel and hypervisor.
@@ -393,71 +395,99 @@ user-level scheduling components can implement all the goals of a resource kerne
 their own policy.
 
 \subsection{Timeslices and meters}
+\label{s:timeslices-and-meters}
 
-KeyKOS ~\citep{Bomberger_FFHLS_92} introduced a concept called \emph{meters}, which represented a
-defined length of processing time. Threads required meters to execute, and once a meter was depleted
-a higher authority was required to replenish the meter.
+Meters were one of the first mechanisms used to treat time as a resource, originating 
+in KeyKOS ~\citep{Bomberger_FFHLS_92}. A \emph{meter} represented a
+defined length of processing time, and threads required meters to execute. Once a meter was
+depleted a higher authority was required to replenish it, requiring another thread to run.
 
-L4 kernels~\citep{Elphinstone_Heiser_13} extended this with timeslices, although in different ways.
-Kernels like \selfour provide a timeslice which like meters is consumed as threads execute, but no
-authority is invoked to replenish the meter: the thread is simply preempted and placed at the end of
-the \gls{FIFO} scheduling queue for the appropriate priority with a refilled timeslice. NOVA
-extended the idea with variable time slices, which represented an amount of time that a thread could
-execute at a priority before preemption.
+L4 kernels~\citep{Elphinstone_Heiser_13} extended this concept with timeslices, 
+which like meters are consumed as threads execute, but no
+authority is invoked to replenish the meter: the timeslice simply represents an amount of time 
+that a thread could execute at a priority before preemption. 
+On preemption, the thread placed at the end of
+the \gls{FIFO} scheduling queue for the appropriate priority, with a refilled timeslice, in a
+round-robin fashion. 
 
-Meters and timeslices provide a unit of time, but do not restrict when that time must be consumed
-by, and have insufficient policy freedom in that they are recharged immediately, providing no
-mechanism for an upper bound on execution. 
-As a result, in a system where time is treated as a first-class resource, 
-the timeslice/meter is not an appropriate mechanism alone for building mixed-criticality
+Meters and timeslices provide a unit of time, but do not restrict \emph{when} that time must be consumed
+by. Although simpler, timeslices have insufficient policy freedom in that they are recharged immediately,
+providing no mechanism for an upper bound on execution. Although meters allowed a user-level policy 
+to define replenishment, this proved expensive on the systems and hardware at the time, as every
+preemption resulted in a switch to a user-level scheduler and back. Neither concept provides
+anything resembling a bandwidth or share of a CPU, and only threads at the highest priority level
+have any semblance of temporal isolation as they cannot be preempted by other threads, sharing their
+time only with threads at the same priority.
+
+As a result, in a system where time is treated as a first-class resource,
+the timeslice/meter is not an appropriate, policy-free mechanism alone for building mixed-criticality
 systems with temporal isolation guarantees.
 
 \subsection{Reservations}
 % TODO finish unifying
 
-Many research \glspl{OS} have provided mechanisms for processor reservations, which thread(s)
-execute upon to consume time. The reservation parameters, charging and enforcement policies vary wildly,
-and we survey them here. 
+Many research \glspl{OS} have provided mechanisms for processor reservations, a concept with roots
+in resource kernels, as introduced in \label{sec:resource-kernels}. Like meters and timeslices,
+reservations are consumed when threads execute upon them, however, they represent a bandwidth or
+share of a processor, and provide a mechanism for temporal isolation.
 
-
-Mach and EROS used \gls{DS}, Tiptoe \gls{CBS} and Barrelfish \gls{RBED}. 
-An implementation of RBED has also been completed on OKL4~\citep{Petters_LHE_09}.
-\Glspl{SS} are provided by Quest-V~\citep{Li_WCM_14} and QNX, which address the back-to-back
+Reservation schemes differ in the algorithm used to ensure the specified bandwidth was not
+exceeded: Mach and EROS used \gls{DS}, Tiptoe \gls{CBS}, while Barrelfish provides \gls{RBED}. 
+\Glspl{SS} are provided by Quest-V~\citep{Li_WCM_14}, which address the back-to-back
 problem of \gls{DS} however require a more complex implementation.
-
-Starting with Real-time Mach reservations are an existing mechanism used for temporal isolation.
-However, temporal isolation in the form of resource reservations is more common. Barrelfish provides
-an \gls{RBED} implementation, and Tiptoe a modified, variable bandwidth version of \gls{CBS}, while \minix provides hooks into the kernel
-scheduler such that CBS can be implemented at user-level. 
-
-For the fixed-priority \glspl{OS}, two broad
-types of reservation are available: either a timeslice, which when exhausted schedules the thread
-round-robin (NOVA, \fiascooc), or a budget and period pair, representing a bandwidth (Real-time Mach). 
-
-Real-time Mach followed this model, incorporating reservations into a two-level fixed-priority
-scheduler, where threads with
-reserves would execute first, then threads without reserves and with
-depleted reserves would be scheduled using a second level time-sharing scheduler. EROS would then
-use the same scheduling mechanisms as Real-time Mach. \gls{DROPS} allowed processes to reserve a 
-higher priority for a certain amount of cycles, before returning to a lower priority.
-
 Quest-V~\citep{Danish_LW_11} provides reservations through \gls{SS}, however \IO and normal processes
 are distinguished statically: \IO processes use polling servers and normal processes use sporadic
-servers. In Quest-V, separate partitions are assigned to
-different priority levels, and communication via shared memory and inter-processor interrupts 
-is permitted between partitions.
+servers. 
 
-Regardless of the algorithm used to implement a reservation there are some common patterns.  None of
-the systems require a reservation to execute, instead the reservation provides a guarantee to a
-certain amount of time, while threads with depleted time may be scheduled by a best-effort layer
-scheduler in any slack time. All the systems surveyed perform admission tests in the kernel: if a
-reservation is not schedulable, it is not allowed to be created. 
+All of the research OSes that implement reservations have an admission
+test in the kernel which is run on new reservations, and checks that the set of reservations are
+schedulable. Although the testing is done dynamically, providing the admission test in the kernel makes the scheduler used, and the
+schedulability test, an inflexible policy mandated by the kernel. 
+
+Enforcement policy, which determines what occurs when a reserve is exhausted,
+varies between two extremes: either threads cannot be scheduled until the reservation is
+replenished, or it is scheduled in slack time. 
+\gls{CBS} approaches enforce an upper bound on execution, not permitting threads to run until 
+replenishment. Real-time Mach, with EROS to follow, allowed threads with exhausted reservations to
+run in a second-level, time sharing scheduler. For RBED-based approaches, enforcement is coded into
+the classification of the task: rate-based tasks are not scheduled until replenishment, but
+best-effort and \gls{SRT} tasks can run in slack time. 
+\gls{DROPS} allowed processes to reserve a 
+higher priority for a certain amount of cycles, before returning to a lower priority, essentially
+running expired reservations in slack time. 
+
+The importance or reservations also varies. In the case of RBED, the highest criticality threads
+are trusted, and their execution is not monitored at all, while threads with reservations are
+considered second tier and best-effort threads the least important. This allows for a strict form 
+of asymmetric protection where \gls{HRT} threads can temporally effect \gls{SRT} threads and
+best-effort threads, but not vice-versa. The Mach approach, on the other hand, only guarantees time
+to threads with reservations, which are scheduled ahead of any threads in the time-sharing
+scheduler. We consider both models to be policy, as is the original resource kernel concept where
+all threads must have a reservation in order to execute at all.  
+
+Some implementations allow for multiple threads to run on one reservation, which effectively creates
+a hierarchical scheduler, but allows for convenient temporal isolation of a set of tasks. In
+Quest-V, reservations are actually bound to virtual processors, not threads scheduled by that
+processor. 
+
+Reservations are a mechanism that can be used to provide isolation, however, all of the kernels
+surveyed combine this mechanism with a good deal of policy for enforcement, how important
+reservations are, and admission. To build mixed-criticality systems, we
+need high-performance mechanisms for temporal isolation that are decoupled from policy.
 
 \subsection{Timeslice donation}
 
+Reservations alone can be used to provide temporal isolation, however are insufficient without
+further mechanisms for resource sharing. Recall from \cref{p:resource-kernel-resource-sharing} that
+prioritisation (the priority threads use when accessing resources), charging (which reservation to
+charge during resource access) and enforcement (what action to take when a reservation expires while
+accessing a resource) are key to avoiding priority inversion in a resource kernel.
+
+We first examine mechanisms for charging in the context of microkernels.
 Recall from \cref{s:background-ipc} that in a microkernel, \gls{OS} services are implemented at
 user-level where clients use \gls{IPC} to communicate with servers, in an \gls{RPC}-like fashion, as
-illustrated in \cref{f:os-ipc}.
+illustrated in \cref{f:os-ipc}. These servers logically map to shared resources, where clients are
+the threads accessing those resources.
 
 \begin{figure}
     \centering
@@ -483,70 +513,59 @@ timeslice is used beyond that. This results in no
 proper accounting of the server's execution, and no temporal isolation.
 
 Other kernels, like Barrelfish, allowed the sender to set a flag on a message specifying if
-timeslice donation should occur.
+timeslice donation should occur. However, this approach still suffers the problem of undisciplined 
+charging, rendering timeslice donation an inappropriate mechanism for temporal isolation over
+shared resources.
 
 \subsubsection{Scheduling contexts}
 \label{s:sc-intro}
 
+The mechanism of scheduling contexts is a more principled extension of timeslice donation.
 Thread structures in the majority of kernels contain the execution context (registers) and scheduling
 information, such as priority and accounting information, in a single structure known as a \gls{TCB}.
-Other kernels, including real-time Mach and NOVA, divide the TCB into an execution context and
+Other kernels, including real-time Mach, NOVA, and \fiascooc, divide the TCB into an execution context and
 \emph{scheduling context} in order to allow the scheduling context to
-transfer between threads over \gls{IPC} for accounting and/or priority inheritance purposes.
+transfer between threads over \gls{IPC} for accounting and/or priority inheritance purposes, and for
+performance~\citep{Steinberg_Kauer_10}.
+
+The contents of a scheduling context vary per implementation.
+Real-time Mach's scheduling contexts contained parameters for the deferrable
+server, while NOVA's contained a timeslice. In \fiascooc, scheduling contexts contain a
+replenishment rule, and a budget. All three implementations include a priority in the
+scheduling context. 
+
 \emph{Scheduling context donation} refers to a scheduling context transferring between threads over
-\gls{IPC}. The contents of a scheduling context vary per implementation, which we now explore.
+\gls{IPC}, and is implemented in both Real-time Mach and NOVA, although the implementations are
+quite different. We look at both in terms of prioritisation, charging, and enforcement. 
 
-In the case of Real-time Mach, processor capacity reserves were the first form of scheduling context
-split from execution context. Real-time Mach's scheduling contexts contained parameters for the deferrable
-server, a more explicit form of
-timeslice donation: when the scheduling context is passed between client and server, the scheduling
-context of the client is billed for activity on the server's behalf. 
-Message ports contained two flags indicating what policy should be applied to priority on \gls{IPC}:
-one would enable running the server at the client's priority, and the other implemented \gls{PIP},
-where pending clients would boost the priority of the server should a lower priority client be
-executing a request~\citep{Kitayama_NT_93}. 
+In Real-time Mach, scheduling donation would always occur and the scheduling context of the client
+always charged. In terms of prioritisation, a flag on the message port
+indicated if the server should run at the priority of the scheduling context, or a statically set
+priority. A further flag indicated if \gls{PIP} should be implemented, where the servers priority
+would be increased to the priority of scheduling contexts from further pending requests~\citep{Kitayama_NT_93}. Although this approach provided a fair amount of policy freedom, it introduces performance costs on the 
+critical \gls{IPC} path, on a kernel already notorious for its poor \gls{IPC}
+performance~\citep{Hartig_HLSW_97}. 
+The enforcement policy of Real-time Mach derived directly from its two-level scheduler, and if a
+scheduling context expired the server would run in the second-level time-sharing scheduler, blocking
+any pending requests.
 
-In Real-time Mach, this process was
-compulsory: scheduling contexts would always travel over \gls{IPC}.
-If a server exhausted the
-donated reservation, it would finish the operation using the time-sharing scheduler.  
-The approach taken by real-time Mach offers little in policy freedom in terms of accounting: 
-servers must account time executed to its clients, and the time-sharing scheduler must be used to
-finish the operation.
-
-NOVA~\citep{Steinberg_WH_05} also provided scheduling contexts with donation over \gls{IPC}, where
-scheduling contexts consisted of a timeslice and a priority. Unlike Real-time Mach, a bandwidth
-algorithm was not used, simply a timeslice without a period, meaning that the timeslice is
-replenished immediately, however threads are scheduled round-robin within their priority level, so
-when a thread executes again is a function of other threads in the system.  In another
-differentiating factor from Real-time Mach, instead of delegating expired timeslices to a
-second-level scheduler, NOVA implements \emph{helping}~\citep{Steinberg_BK_10}, which is a form of
+NOVA~\citep{Steinberg_BK_10} also provided scheduling contexts with donation over \gls{IPC},
+although the prioritisation policy was strictly \gls{PIP}, which has high preemption overhead, 
+as described in \cref{sec:pip}, and conflicts with the
+policy-freedom goal of a microkernel. 
+Enforcement and charging
+in NOVA are both provided through the mechanism of helping:  a form of
 bandwidth inheritance, where pending clients not only boost the priority of the server, but the
-server can account the current clients request to the pending client in order to finish the initial request. 
+server can charge the current clients request to the pending client in order to finish the initial request. 
 
-\fiascooc introduced scheduling contexts in order to allow paravirtualised guests to switch between
-scheduling context with different parameters in order to provide flattened hierarchical
-scheduling~\citep{Lackorzynski_WVH_12}, which prevents scheduling integrity violations
-when scheduling multiple real-time guests by exporting scheduling information to the hypervisor.
-Scheduling contexts in \fiascooc contained a budget, a
-replenishment rule, and a priority, and guests 
-can change scheduling contexts on priority switches and interrupt service routines.
+In both implementations of scheduling context donation, the charging mechanism becomes policy: the
+scheduling context of the client is always charged. Although Mach provided a mechanism to allow for
+system-specific prioritisation, this came at a considerable IPC cost. Finally, both provide
+different enforcement mechanisms but both are hard-coded policy which rely on either charging the
+next client, or running in slack. While scheduling contexts are a good mechanism for
+passing reservations across \gls{IPC}, and thereby implementing temporal isolation over shared
+resources, the state of the art is insufficient.
 
-% TODO rephrase
-All the scheduling context donation policies implement a form of bandwidth inheritance, which
-forces the use of \gls{PIP}, which has high preemption overhead. This conflicts with the
-policy-freedom goal of a microkernel; out claim is \gls{PIP} does not belong in the kernel. 
-Designs differ whether
-scheduling context donation is required or optional.  Some designs allow multiple execution contexts
-to be attached to one scheduling context, such that the scheduling context forms a secondary run
-queue.  In others, multiple scheduling contexts can be bound to one execution context, allowing the
-execution context to execute on any scheduling context with available execution time. 
-
-
-\subsection{Accounting}
-
-\TODO{Rewrite, describe where time is accounted to: the client or server, and explain the
-difference}.
 
 \subsection{Capabilities to time}
 \label{s:os-capabilities}
@@ -554,33 +573,16 @@ difference}.
 Recall from \cref{s:b-capabilities} that capabilities~\citep{Dennis_VanHorn_66} are an established mechanism for
 fine-grained access control to system resources.
 Third-generation microkernels use capabilities for principled access to system resources, including 
-KeyKOS, EROS, \fiascooc, NOVA, \selfour, \composite and Barrelfish. 
+KeyKOS, EROS, \fiascooc, NOVA, \selfour, \composite and Barrelfish. Of those, only KeyKOS, EROS and
+\composite apply the capability system to processing time, we explore these systems after
+differentiating temporal and spatial capabilities. 
 
-% TODO integrate
-EROS introduced the
-idea of a single-use reply capability, termed a \emph{resume} capability, which when invoked would
-be consumed and allows the receiver to reply to the sender.  EROS also used what is known as an
-\emph{entry} capability, which allowed the holder to invoke the services provided by a program
-within a particular process. 
-
-Prior uses of capabilities for controlling time include
-KeyKOS~\citep{Bomberger_FFHLS_92}, which had capabilities to \emph{meters}, which granted the holder
-the right to execute for the unit of time held by the meter.
-However, the KeyKOS model treats time as fungible, with no guarantee
-of \emph{when} the time will be provided, which makes this approach
-unsuitable for real-time use.
-
-EROS~\citep{Shapiro_SF_99} combined processor capacity reserves with capabilities rather than the
-meters of KeyKOS. However, these reserves were optional: a two level scheduler first
-scheduled the reserves with available capacity, then threads without reserves,
-or with exhausted reserves, were scheduled.
-Like any hierarchical scheduling model, this enforces a policy that
-reduces flexibility.
-
-Furthermore, hierarchical delegation has the significant disadvantage
-of algorithmic utilisation loss~\citep{Lackorzynski_WVH_12}; this is a
-direct result of the unfungible nature of time. Consider real
-estate: like time, it is (arbitrarily) divisible but not fungible: If
+The major challenge of applying capabilities to time is the fact that time cannot be treated
+as fungible. This is very different to spatial resources like memory, which is rendered fungible by the
+flexibility of virtual memory systems: it where a page of memory is, as long as it has the correct
+contents. One window of time is not replaceable for another window, even in the case of a
+best-effort task: a minor change in schedule can force a deadline miss somewhere else.
+Consider real estate: like time, it is (arbitrarily) divisible but not fungible: If
 a block is too small to build a house, then having a second,
 disconnected block of the same size is of no help (unlike spatial resources in a kernel, which can
 be mapped side-by-side). The implication is
@@ -591,54 +593,51 @@ attractive property of spatial capabilities,
 this delegation is not their defining characteristic, which is actually
 \emph{prima facie evidence of access}; in the case of time
 capabilities, the access is to processor time.
-
-\composite recently introduced temporal capabilities
-(tCaps)~\citep{Gadepalli_GBKP_17} reminiscent of
-the meters of KeyKOS in that they represent a scalar unit of time.
-Unlike KeyKOS, tCaps integrate with user-level scheduling, decoupling access control
-from scheduling. An initial capability \emph{Chronos} provides authority to all time, and this capability
-can used to replenish tCaps by a top-level scheduler. The kernel up calls user-level schedulers 
-which must then provide a tCap and a thread to execute. A tCap is always active in the system with
-any time billed to it. The top-level scheduler delegates fixed amounts of time from the initial,
-infinite tCap, which can then be further delegated and split according to the scheduling policy,
-which could be simple fixed-priority or a more complex scheduling hierarchy, such as that presented
-in \hires~\citep{Parmer_West_11}. If all time
-in a tCap is depleted, other, non-depleted tCaps will be scheduled until eventually the top-level
-tCap is scheduled. For efficiency, tCap delegation is limited to a constant of 16. 
-
-\begin{table}
-\centering
-\rowcolors{2}{}{gray!25}
-\begin{tabular}{lll}\toprule
-  \emph{OS} & \emph{Scheduler}  & \emph{Temporal Isolation} \\\midrule
-Real-Time Mach & \gls{FP}          & \gls{DS}    \\
-EROS        & \gls{FP}             & \gls{DS}    \\
-Tiptoe      & \gls{EDF}            & \gls{CBS} \\
-Barrelfish  & \gls{EDF}            & \gls{RBED}  \\
-DROPS       & \gls{FP}             & \no \\
-NOVA        & \gls{FP}             & \no  \\
-Quest-V     & \gls{FP}             & \gls{SS} \\
-\selfour    & \gls{FP}             & \no                \\
-\composite   & user level           & user level         \\
-    \minix      & \gls{FP} \& \gls{EDF} & \gls{CBS} \\
-\bottomrule
-\end{tabular}
-\label{t:os-summary}
-\caption{Summary of scheduling and isolation mechanisms in surveyed \glspl{OS}.}
-\end{table}
+Previous implementations all have caveats and limitations, which we now detail.
 
 
+KeyKOS provided capabilities to \emph{meters}, which granted the holder
+the right to execute for the unit of time held by the meter, however as established in 
+\cref{s:timeslices-and-meters}, meters are not a suitable mechanism for temporal isolation.
+
+EROS~\citep{Shapiro_SF_99} combined processor capacity reserves with capabilities rather than the
+meters of KeyKOS. Additionally, 
+However, processor capacity reserves were \emph{optional}: a two level scheduler first
+scheduled the reserves with available capacity, then threads without reserves,
+or with exhausted reserves, were scheduled.
+Like any hierarchical scheduling model, this enforces a policy that
+reduces flexibility.
+Furthermore, hierarchical delegation has the significant disadvantage
+of algorithmic utilisation loss~\citep{Lackorzynski_WVH_12}; this is a
+direct result of the unfungible nature of time.
+
+\composite recently introduced temporal capabilities~\citep{Gadepalli_GBKP_17} reminiscent of
+the meters of KeyKOS in that they represent a scalar unit of time. 
+Unlike KeyKOS, temporal capabilities integrate with user-level scheduling, decoupling access control
+from scheduling. An initial capability \emph{Chronos} provides authority to all time, and is used to
+provide an initial allocation of time and for further replenishment. 
+The kernel up calls user-level schedulers 
+which must then provide not only a thread to run, but a temporal capability to drain time from.
+On expiry, the user-level scheduler is also
+invoked, however this is a rare occasion as a well-built scheduler will ensure threads have
+sufficient capabilities on each scheduling decision.
+ A notion of \emph{time quality} supports delegation across
+hierarchically-scheduled subsystems without explicitly mapping all
+local priorities onto a single, global priority space, although for performance reasons, the number
+of supported delegations is statically limited.
+Additionally, time capabilities cannot be revoked unless empty. 
+\composite's mechanism of temporal capabilities is the most promising, and decoupling access
+control from scheduling is surely key to providing mechanisms for temporal isolation without 
+heavily restricting policy freedom. However, the static limit on delegations and lack of revoke
+makes the design incomplete for a production system, revoke is generally the hardest part to
+implement in a capability system. 
 
 \section{Summary}
 % TODO rewrite to reflect update
-In this chapter we have reviewed existing real-time operating systems and techniques applicable to
-treating time as a first class resource, as part of our goal to design microkernel mechanisms for 
-the support of mixed-criticality workloads. 
-As we have seen, many existing systems conflate criticality and time sensitivity 
-in a single value: priority. A further assumption is that high criticality, time sensitive tasks are
-always trusted, one the falls apart in the mixed criticality context.
-
-% TODO factor in\subsection{Summary}
+In this chapter we have reviewed standards and specifications for real-time operation systems,
+commercial and open-source real-time operation systems, and finally, surveyed the state of the art
+research into mechanisms for temporal isolation, resource sharing, and access control to processing
+time.
 
 While real-time literature is divided between which real-time scheduling algorithm should be
 deployed as the core of real-time systems (\gls{EDF} or \gls{FP}), no such divide exists in industry
@@ -649,6 +648,9 @@ Except in a pure research sense, kernels that provide
 research OSes, whilst commercial and open source products are heavily influenced by ARINC 653 and
 provide static partitioning. 
  
+As we have seen, many existing systems conflate criticality and time sensitivity 
+in a single value: priority. A further assumption is that high criticality, time-sensitive tasks are
+always trusted, one the falls apart in the mixed criticality context. 
 
 The \emph{criticality} of a component reflects its importance to the
 overall system mission.
@@ -673,21 +675,6 @@ is trusted. A component is \emph{trustworthy} if it has undergone a process
 that establishes that it can be trusted, the degree of trustworthiness
 being a reflection of the rigour of this process (testing,
 certification, formal verification)~\citep{Verissimo_NC_03}.
-\Cref{plot:ternary} illustrates these axes.
-
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        \begin{ternaryaxis}[
-            xlabel=Criticality,
-            ylabel=Trustworthiness,
-            zlabel=Real-time sensitivity,
-            label style=sloped,]
-        \end{ternaryaxis}
-    \end{tikzpicture}
-    \caption{Commonly conflated attributes of systems software}
-    \label{plot:ternary}
-\end{figure}
 
 In practice, criticality and trust are closely aligned, as the most
 critical parts should be the most trustworthy.

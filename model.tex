@@ -198,6 +198,8 @@ orthogonal will become evident in \cref{s:locking}.
 
 \subsection{Accounting}
 
+Accounting must be done by the kernel -- it's the only one that can do it for performance reasons.
+
 We introduce a new invariant that the currently running thread must have a scheduling context 
 with available budget, as all time consumed is billed to the current scheduling context.
 Any time executed on a processor is billed to the current threads scheduling

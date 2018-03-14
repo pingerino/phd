@@ -19,6 +19,37 @@ Specifically, we make the following contributions:
   of strong spatial isolation.
 \end{itemize}
 
+\section{Related work}
+
+% survey any related work here not covered by the OS chapter?
+
+AUTOBEST~\citep{Zuepke_BL_15} is a separation kernel where the authors demonstrate implementations of
+AUTOSAR and ARINC653 in separate partitions.
+
+\minix is a traditional microkernel with a focus on 
+     reliability rather than performance. \citet{Herder_BGHT_06} implemented temporal isolation in
+     \minix by allowing threads to be selectively switched to \gls{EDF} scheduling, and providing
+     hooks that allowed for a \gls{CBS} implementation at user level. % TODO why bad.
+
+    % already mentioned, refer back, but more detail here?
+    Quest-V~\citep{Danish_LW_11} provides reservations through \gls{SS}, however \IO and normal processes
+are distinguished statically: \IO processes use polling servers and normal processes use sporadic
+servers. In Quest-V, separate partitions are assigned to
+different priority levels, and communication via shared memory and inter-processor interrupts 
+is permitted between partitions.
+
+
+\fiascooc introduced scheduling contexts in order to allow paravirtualised guests to switch between
+scheduling context with different parameters in order to provide flattened hierarchical
+scheduling~\citep{Lackorzynski_WVH_12}, which prevents scheduling integrity violations
+when scheduling multiple real-time guests by exporting scheduling information to the hypervisor.
+Scheduling contexts in \fiascooc contained a budget, a
+replenishment rule, and a priority, and guests 
+can change scheduling contexts on priority switches and interrupt service routines.
+
+% TODO remove passive voice
+An implementation of RBED has also been completed on OKL4~\citep{Petters_LHE_09}.
+
 \section{Future work}
 
 \TODO{Frequency scaling}
@@ -78,7 +109,7 @@ At the end of the project it should be possible to take a full description of a 
 Similarly, for a mixed-criticality system, it must be possible to show that the critical parts of the system are always schedulable.
 
 \subsubsection{Measures of verification potential}
-
+% mention specs
 I have determined that the code follows the verification subset of C and passes through the verification C-Parser.
 I am actively working with the verification team this year to verify the first set of patches. 
 
