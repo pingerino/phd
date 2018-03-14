@@ -439,7 +439,7 @@ Quest-V~\citep{Danish_LW_11} provides reservations through \gls{SS}, however \IO
 are distinguished statically: \IO processes use polling servers and normal processes use sporadic
 servers. 
 
-All of the research OSes that implement reservations have an admission
+All the research OSes that implement reservations have an admission
 test in the kernel which is run on new reservations, and checks that the set of reservations are
 schedulable. Although the testing is done dynamically, providing the admission test in the kernel makes the scheduler used, and the
 schedulability test, an inflexible policy mandated by the kernel. 
@@ -449,7 +449,7 @@ varies between two extremes: either threads cannot be scheduled until the reserv
 replenished, or it is scheduled in slack time. 
 \gls{CBS} approaches enforce an upper bound on execution, not permitting threads to run until 
 replenishment. Real-time Mach, with EROS to follow, allowed threads with exhausted reservations to
-run in a second-level, time sharing scheduler. For RBED-based approaches, enforcement is coded into
+run in a second-level, time-sharing scheduler. For RBED-based approaches, enforcement is coded into
 the classification of the task: rate-based tasks are not scheduled until replenishment, but
 best-effort and \gls{SRT} tasks can run in slack time. 
 \gls{DROPS} allowed processes to reserve a 
@@ -470,7 +470,7 @@ a hierarchical scheduler, but allows for convenient temporal isolation of a set 
 Quest-V, reservations are actually bound to virtual processors, not threads scheduled by that
 processor. 
 
-Reservations are a mechanism that can be used to provide isolation, however, all of the kernels
+Reservations are a mechanism that can be used to provide isolation, however, all the kernels
 surveyed combine this mechanism with a good deal of policy for enforcement, how important
 reservations are, and admission. To build mixed-criticality systems, we
 need high-performance mechanisms for temporal isolation that are decoupled from policy.
@@ -541,7 +541,7 @@ quite different. We look at both in terms of prioritisation, charging, and enfor
 In Real-time Mach, scheduling donation would always occur and the scheduling context of the client
 always charged. In terms of prioritisation, a flag on the message port
 indicated if the server should run at the priority of the scheduling context, or a statically set
-priority. A further flag indicated if \gls{PIP} should be implemented, where the servers priority
+priority. A further flag indicated if \gls{PIP} should be implemented, where the server's priority
 would be increased to the priority of scheduling contexts from further pending requests~\citep{Kitayama_NT_93}. Although this approach provided a fair amount of policy freedom, it introduces performance costs on the 
 critical \gls{IPC} path, on a kernel already notorious for its poor \gls{IPC}
 performance~\citep{Hartig_HLSW_97}. 
@@ -635,14 +635,13 @@ implement in a capability system.
 \section{Summary}
 % TODO rewrite to reflect update
 In this chapter we have reviewed standards and specifications for real-time operation systems,
-commercial and open-source real-time operation systems, and finally, surveyed the state of the art
+commercial and open-source real-time operation systems, and finally, surveyed the state-of-the-art
 research into mechanisms for temporal isolation, resource sharing, and access control to processing
 time.
 
 While real-time literature is divided between which real-time scheduling algorithm should be
 deployed as the core of real-time systems (\gls{EDF} or \gls{FP}), no such divide exists in industry
-where the vast majority of \glspl{OS} provide \gls{FP}.  \gls{FP} is far more dominant due to its
-inclusion in \gls{POSIX} and  % TODO finish
+where the all \glspl{OS} provide \gls{FP}. 
 Except in a pure research sense, kernels that provide
 \gls{EDF} do so in addition to \gls{FP}.  Resource reservations and \gls{EDF} are more common in
 research OSes, whilst commercial and open source products are heavily influenced by ARINC 653 and
