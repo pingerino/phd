@@ -7,20 +7,24 @@ In this chapter we provide a survey of existing operating systems and mechanisms
 mixed-criticality systems. We evaluate
 the scheduling and resource sharing policies and mechanisms available, with a focus on temporal isolation,
 asymmetric protection, policy freedom, and resource sharing.  
-
-First, we look at the \emph{\gls{POSIX}} standard which underlies many commercial and open source operating
-systems. Then we examine what is available in Linux other open source operating systems, before
-examining commercial offerings. Finally, we survey existing relevant operating systems
+% TODO is asymmetric protection still a thing we want to support?
+First we present a number of industry standards, before examining
+Linux other open source operating systems, in addition to
+commercial offerings, in order to establish current industry standards for temporal isolation.
+Finally, we survey existing, relevant operating systems
 from systems research, deeply examining techniques that can be leveraged to build mixed-criticality
 systems, including isolation and resource sharing techniques.
 
 \section{Standards}
 
-\TODO{intro}
+In order to establish standard industry practices, we first present three standards (POSIX, ARINC
+653, and AUTOSAR) and examine their mechanisms for temporal isolation and resource sharing.
 
 \subsection{POSIX}
 
-The \gls{POSIX} standard specifies \gls{RTOS} interfaces~\citep{Harbour_93} for scheduling and
+First, we look at the \emph{\gls{POSIX}} standard which underlies many commercial and open-source operating
+systems. 
+\gls{POSIX} is a family of standards, which includes specifications of \gls{RTOS} interfaces~\citep{Harbour_93} for scheduling and
 resource sharing, which
 influence much \gls{OS} design.  Scheduling policies specified by \gls{POSIX} are shown in
 \Cref{tab:posix-sched}. 
@@ -96,7 +100,9 @@ cache state is flushed to avoid data leakage between partitions~\citep{VanderLee
 a second-level, preemptive, fixed-priority scheduler is used to dispatch threads, with \gls{FIFO}
 ordering for equal priorities. 
 At the end of each partition, all CPU pipeline state and cache
-state is flushed and a partition switch occurs. 
+state is flushed and a partition switch occurs. Temporal isolation under ARINC is therefore
+completely fixed between partitions, and non-existent within partitions. 
+
 The ARINC 653 specification does not consider multiprocessor hardware, although it is possible to
 schedule specific partitions on fixed processors. 
 
@@ -121,7 +127,17 @@ preconfigured exception handlers.
 \subsection{AUTOSAR}
 
 AUTOSAR (AUTomotive Open System ARchitecture) is a set of specifications for developing real-time
-software in the automotive domain, which like ARINC653, has a focus on safety.
+software in the automotive domain, which like ARINC653, has a focus on safety. Unlike ARINC, AUTOSAR
+does not specifically provide for mixed-criticality.
+
+Software in AUTOSAR is either trusted or untrusted, where trusted indicates it can be run in
+privileged mode. This is effectively an all-or-nothing mechanism for spatial isolation, derived
+from the fact that much of the hardware AUTOSAR runs on is embedded without an \gls{MMU}, which
+would allow for more fine-grained spatial isolation.
+In terms of temporal isolation, AUTOSAR provides a mechanism referred to as \emph{timing
+protection}, where tasks execution times, resource access durations and inter-arrival times are
+specified and monitored, such that exceptions can be raised on temporal
+violations~\citep{Zuepke_BL_15}. 
 
 Scheduling in AUTOSAR is partitioned per processor, with a  
 fixed-priority, preemptive scheduler per core, with \gls{FIFO} for equal priorities. Unlike ARINC,
@@ -129,15 +145,31 @@ AUTOSAR allows for inter-processor synchronisation, facilitated by spinlocks.
 
 For resource sharing, AUTOSAR specifies synchronisation through \gls{IPCP}, supported by allowing
 tasks to raise their priority to the resources' configured priority. Additionally, AUTOSAR supports
-nesting of resources. 
+nesting of resources. For synchronisation, events are provided, which threads can block on.
+
+\subsection{Summary}
+
+We have surveyed three standards: POSIX, ARINC and AUTOSAR. All mandate the use of fixed-priority schedulers 
+and provide protocols and mechanisms for resource sharing. Under POSIX, 
+the focus of the resource sharing mechanisms is synchronisation of critical sections for
+correctness not temporal isolation. AUTOSAR provides optional monitoring which can raise an
+exception if a task holds a resource for too long, although this requires an exact scheduling
+details to be provided about the task and resource. ARINC alone provides real temporal isolation for
+tasks sharing resources, however like its scheduler, the support is limited to fixed, static
+partitions with no flexibility.
 
 \section{Existing operating systems}
 
 There is a significant gap between real-time theory, as surveyed in the last chapter, and real-time
-practice. Here we provide a survey of existing open-source and commercial operating systems with
-real-time mechanisms to demonstrate the status quo.
+practice, which we have partially highlighted in the previous section. Now we survey of existing open-source
+and commercial operating systems, which are used in practice, to demonstrate the status quo, and 
+the impact of the discussed specifications and standards on their development.
 
 \subsection{Open source}
+
+Many open source \glspl{OS} are used in real-time settings, although generally not in
+safety-criticality systems, temporal isolation and resource sharing mechanisms remain important to
+guarantee the function of the software.
 
 \subsubsection{Linux}
 
