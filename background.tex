@@ -417,8 +417,8 @@ all threads in the system while any client accesses a critical section.  Consequ
 any single priority inversion is the length of the longest critical section in the system.  Although
 functional, this approach results in a lot of unnecessary blocking of higher priority threads.  The
 maximum bound on priority inversion that a task can experience is the sum of the length of all
-critical sections accessed by that task. 
-\TODO{Explain how the maximum priority bound is deduced}
+critical sections accessed by that task, as these are the only places that specific task can be
+blocked while other tasks run. 
 
 \subsection{Priority Inheritance Protocol}
 \label{sec:pip}
