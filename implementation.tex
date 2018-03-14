@@ -24,6 +24,12 @@ implement our mechanisms.
 
 \subsection{Resume objects}
 \label{s:resume}
+% TODO incorporate
+EROS also introduced the
+idea of a single-use reply capability, termed a \emph{resume} capability, which when invoked would
+be consumed and allows the receiver to reply to the sender. A resume capability is like a temporal
+capability, in that it grants authority to run a thread on the processor, however without an 
+upper bound on execution.
 
 Resume objects, modelled after KeyKOS~\citep{Bomberger_FFHLS_92}, are
 a new object type that generalise
