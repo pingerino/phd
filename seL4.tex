@@ -677,6 +677,9 @@ scheduler, changing the invariant that all runnable thread are in the scheduler,
 threads \emph{except the current thread} are in the scheduler. Consequently, we avoid manipulating the
 scheduling queues when doing a direct switch, reducing the cache footprint and resulting in a performance improvement.
 
+The result of these optimisations is that \selfour, like L4 kernels before it, has very fast
+\gls{IPC}, compared to non-L4 kernels e.g.\ at least a factor of four in CertiKOS~\citep{Gu_SCWKSC_16}.
+
 \subsubsection{Round-robin}
 
 Kernel time is accounted for in ticks, and each TCB has a timeslice field which represents the number of ticks they are eligible to run. 
