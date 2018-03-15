@@ -495,8 +495,8 @@ In this section we present how our mechanisms support each type of task, and how
 
 \subsubsection{Best-effort threads}
 
-Best effort threads, scheduled round-robin, are compatible with our model.
-In the original seL4 kernel, best effort threads would be scheduled for CONFIG\_TIME\_SLICE ticks, before being taken from the start of their run queue and placed at the end of the run queue.
+Best-effort threads, scheduled round-robin, are compatible with our model.
+In the original seL4 kernel, best-effort threads would be scheduled for CONFIG\_TIME\_SLICE ticks, before being taken from the start of their run queue and placed at the end of the run queue.
 This was sufficient for round-robin scheduling.
 
 Scheduling contexts for best-effort threads are assigned an equal budget and period, with the value set to the desired round-robin time slice for the thread.
@@ -938,9 +938,9 @@ This allows user systems to have temporally contained servers without the requir
     \rowcolors{2}{gray!25}{}
     \begin{tabular}{>{\texttt\bgroup}p{0.2\textwidth}<{\egroup}  p{0.8\textwidth} } \toprule
         \textnormal{\emph{Invocation}} & \emph{Description} \\\midrule
-        bind    & Bind an object (TCB or Notification) to a SC. \\
-        unbind  & Unbind all objects from a SC. \\
-        unbindObject & Unbind a specific object from a SC.\\
+        bind    & Bind an object (TCB or Notification) to an SC. \\
+        unbind  & Unbind all objects from an SC. \\
+        unbindObject & Unbind a specific object from an SC.\\
         consumed & Return the amount of time since the last timeout fault, \code{consumed} or
         \code{yieldTo} was
         called.\\ 
