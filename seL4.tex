@@ -417,9 +417,12 @@ Table \cref{t:endpoint-system-calls} summarises \selfour system calls when used 
 capabilities. Essentially, \code{send()} is used to send a message and \code{recv()} used to
 receive one, both having blocking and non-blocking variants. \code{call()} is of particular interest as it represents the caller side of an RPC
 operation critical to microkernel performance, distinguished from a basic pair of \code{send()} and
-\code{recv()} by \emph{resume} capabilities. Pioneered in EROS~\citep{Shapiro_SF_99}, resume
-capabilities are generated once the message sent by \code{call()} is consumed, and consist of the
-thread waiting for a reply message. In \selfour, the resume capability is stored in the \gls{TCB}
+\code{recv()} by \emph{resume} capabilities. Pioneered in KeyKOS~\citep{Bomberger_FFHLS_92} and
+further appearing in EROS~\citep{Shapiro_SF_99}, resume
+capabilities are single-use capabilities, generated when a message is sent by \code{call()} and
+consumed when the reply message is received.  Resume capabilities grant access to a blocked
+thread waiting for a reply message, and allow holders to resume that thread.
+In \selfour, the resume capability is stored in the \gls{TCB}
 \code{cnode}, and \code{reply()} is the operation used to invoke this capability and send the reply
 message back.
 
