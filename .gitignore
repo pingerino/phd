@@ -8,7 +8,6 @@
 *.out
 *.idx
 *.ps
-*.pdf
 *.to?
 *.diff
 *.rel
