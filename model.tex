@@ -149,6 +149,9 @@ their deadlines, while any thread with priority \(<P\) may miss. This
 allows easy analysis of schedulability, including when the system
 criticality changes.
 
+\subsubsection{Maximum control priorities}
+\label{sec:model-maximum-control-priorities}
+
 \subsection{Scheduling contexts}
 \label{sec:model-scheduling-contexts}
 
@@ -526,7 +529,7 @@ overhead compared to other protocols, would violate both our performance and pol
 requirements. 
 
 There is an additional, practical concern, in that the \gls{PIP} does not map well to the existing
-capability system. Recall from \cref{f:ipc} that endpoints have very minimal state\footnote{Which
+capability system. Recall from \cref{p:sel4_ipc} that endpoints have very minimal state\footnote{Which
 again contributes to high performance.}, and once an IPC rendezvous has occurred, the caller is
 blocked on the resume capability. Consequently, there is \emph{no way to reach the caller} after an 
 \gls{IPC} message has been sent. 
@@ -678,6 +681,7 @@ The mechanism is simple: if a
 server is passive, it migrates to the core that the donated scheduling context provides time for. 
 
 \section{Policy and Mechanisms}
+\label{sec:model-policy-and-mechanisms}
 
 We now describe several scheduling and resource-sharing policies that can be implemented the
 mechanisms of scheduling contexts, scheduling-context donation and timeout faults. 
@@ -752,6 +756,30 @@ copied.
 We now describe how different policies can be implemented by user-level systems using the 
 existing mechanisms in the seL4, combined with the new mechanisms of scheduling contexts,
 scheduling context donation, directed yield, IPC forward, and flexible resume capabilities.
+First, we explain how different real-time task models are compatible with our model and show how
+they can be implemented using our mechanisms. 
+
+\subsubsection{Best-effort threads}
+
+Best-effort threads, scheduled round-robin, are compatible with our model, which maintains compatibility
+with the previous, baseline \selfour scheduler. 
+Full scheduling contexts are the mechanism to support best-effort threads, and by setting the budget and period to equal system designers can set a timeslice which determines how long a specific scheduling context
+can be executed upon before preemption.
+
+More complicated, time-sharing schedulers can be built by a user level scheduler, using the directed yield and ability to request the amount of time that a specific scheduling context.
+
+\subsubsection{Rate-limited threads}
+
+Rate-limited threads simply have their scheduling contexts configured with
+parameters that express the desired upper-bound on rate.  No other work is
+required by the user: if there are no higher priority threads and the
+rate-limited thread does not block, it will be runnable at the rate expressed
+in the scheduling context.  Otherwise, the thread will be capped at the rate
+specified, but cannot be guaranteed to get the entire rate allocation if there
+are higher priority threads in the system, or if the priority of the
+rate-limited thread is overloaded .
+
+
 
 \subsubsection{\gls{PIP}/\gls{BWI}}
 \label{sec:model-pip-bwi}

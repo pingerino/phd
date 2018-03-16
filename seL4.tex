@@ -86,6 +86,7 @@ Any individual capability can be deleted, or revoked. The former simply removes 
 capability from a capability space, the latter removes all child capabilities.
 
 \section{System calls and invocations}
+\label{sec:sel4-system-call-and-invocations}
 
 \selfour has a two-level system call structure, based on capabilities. The first level of system
 calls, listed in \cref{t:system-calls}, are distinguishable by system call number.  The majority of
@@ -225,6 +226,7 @@ untyped objects. Page tables and frames have a set of architectural invocations 
 unmapping, and cache flushing operations.
 
 \subsection{Thread control blocks}
+\label{sec:sel4-tcb}
 
 \Glspl{TCB} represent an execution context and manage processor time in \selfour, and consist of a
 base TCB structure and a \code{cnode}. 

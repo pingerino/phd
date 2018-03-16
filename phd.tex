@@ -146,18 +146,21 @@
 \newcommand{\no}{\hspace{1pt}\ding{55}}
 
 % sel4 system call shortcuts
-\newcommand{\call}     {\texttt{Call}\xspace}
-\newcommand{\send}     {\texttt{Send}\xspace}
-\newcommand{\wait}     {\texttt{Wait}\xspace}
-\newcommand{\nbsend}   {\texttt{NBSend}\xspace}
-\newcommand{\reply}    {\texttt{Reply}\xspace}
-\newcommand{\replyrecv}{\texttt{ReplyRecv}\xspace}
-\newcommand{\yield}    {\texttt{Yield}\xspace}
-\newcommand{\sendwait} {\texttt{SendWait}\xspace}
+\newcommand{\code}[1]{\texttt{#1}\xspace}
+\newcommand{\call}{\code{call}}
+\newcommand{\send}{\code{send}}
+\newcommand{\nbsend}{\code{nbsend}}
+\newcommand{\wait}{\code{wait}}
+\newcommand{\nbwait}{\code{nbwait}}
+\newcommand{\recv}{\code{recv}}
+\newcommand{\nbrecv}{\code{nbrecv}}
+\newcommand{\reply}{\code{reply}}
+\newcommand{\replyrecv}{\code{replyrecv}}
+\newcommand{\yield}{\code{yield}}
+\newcommand{\nbsendwait} {\code{nbsendwait}}
+\newcommand{\nbsendrecv} {\code{nbsendrecv}}
+\newcommand{\sendrecv} {\code{sendrecv}}
 
-
-\newcommand{\replywait}{\texttt{ReplyWait}\xspace}
-\newcommand{\recv}{\texttt{Recv}\xspace}
 
 \newcommand{\selfour}{seL4\xspace} % use as normal text, examples below.
 \newcommand{\hires}{\textsc{HiRes}\xspace}
@@ -175,7 +178,6 @@
 \newcommand{\prioinherit}{\texttt{PRIO\_INHERIT}\xspace}
 \newcommand{\prioprotect}{\texttt{PRIO\_PROTECT}\xspace}
 
-\newcommand{\code}[1]{\texttt{#1}\xspace}
 \newcommand{\crit}[1]{\textsc{#1}\xspace}
 % Leave this in here, it is often useful to deal with latexdiff breakage.
 % Put it around breakage-causing segments (in both versions to be diffed!)
