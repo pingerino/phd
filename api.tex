@@ -4,7 +4,7 @@
 
 \newcommand{\apidoc}[6]
 {
-    \subsubsection{\label{api:#1}#2}
+    \subsection{\label{api:#1}#2}
     \texttt{#4}\\
     \vspace{3pt}\\
     \noindent
@@ -28,43 +28,43 @@
 
 For convenience, in this section we present all of the system calls in the MCS api.
 
-\apidoc{api_call}
+\apidoc{call}
 {Call}
 {Invoke the capability provided and block waiting on a reply. Used to communicate with the kernel 
  to invoke objects, or for \gls{IPC} when used on an endpoint capability. When used for \gls{IPC}, 
   the scheduling context of the caller may be lent to the receiver. The caller is blocked on a
   resume object, and wakes once that resume object has been invoked, thus sending a reply and
   returning a lent scheduling context.}
-  {seL4\_MessageInfo\_t seL4\_Call(seL4\_CPtr cap, seL4\_MessageInfo\_t info)}
+  {seL4\_MessageInfo\_t seL4\_Call(seL4\_CPtr cap, \code{seL4\_MessageInfo\_t} info)}
 {
     \param{seL4\_CPtr}{dest}{Capability to invoke}
-    \param{seL4\_CPtr}{info}{A seL4\_MessageInfo\_t structure encoding details about the message}
+    \param{seL4\_CPtr}{info}{A \code{seL4\_MessageInfo\_t} structure encoding details about the message}
 }
-{an seL4\_MessageInfo\_t structure encoding details about the reply message.}
+{an \code{seL4\_MessageInfo\_t} structure encoding details about the reply message.}
 
-\apidoc{api_send}
+\apidoc{send}
 {Send}
 {Invoke the capability provided. If used on an endpoint capability, block until the message has been
 sent.}
-{void seL4\_Send(seL4\_CPtr cap, seL4\_MessageInfo\_t info)}
+{void seL4\_Send(seL4\_CPtr cap, \code{seL4\_MessageInfo\_t} info)}
 {
     \param{seL4\_CPtr}{dest}{Capability to invoke}
-    \param{seL4\_CPtr}{info}{A seL4\_MessageInfo\_t structure encoding details about the message}
+    \param{seL4\_CPtr}{info}{A \code{seL4\_MessageInfo\_t} structure encoding details about the message}
 }
 {none.}
 
-\apidoc{api_nbsend}
+\apidoc{nbsend}
 {NBSend}
 {Invoke the capability provided. If used on an endpoint capability and no receiver is present, do
     not send the message and return immediately.}
-{void seL4\_NBSend(seL4\_CPtr cap, seL4\_MessageInfo\_t info)}
+{void seL4\_NBSend(seL4\_CPtr cap, \code{seL4\_MessageInfo\_t} info)}
 {
     \param{seL4\_CPtr}{dest}{Capability to invoke}
-    \param{seL4\_CPtr}{info}{A seL4\_MessageInfo\_t structure encoding details about the message}
+    \param{seL4\_CPtr}{info}{A \code{seL4\_MessageInfo\_t} structure encoding details about the message}
 }
 {none}
 
-\apidoc{api_recv}
+\apidoc{recv}
 {Recv}
 {Wait for a message on the provided capability. If the provided capability is not an endpoint or
     notification, raise a capability fault. Passive threads may receive scheduling contexts from 
@@ -75,10 +75,10 @@ this system call.}
     \param{seL4\_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
     \param{seL4\_CPtr}{reply}{Capability to the resume object to block callers on.}
 }
-{An seL4\_MessageInfo\_t structure encoding details about the message received.}
+{An \code{seL4\_MessageInfo\_t} structure encoding details about the message received.}
 
 
-\apidoc{api_nbrecv}
+\apidoc{nbrecv}
 {NBRecv}
 {Poll for a message on the provided capability. If the provided capability is not an endpoint or
     notification, raise a capability fault. Passive threads may receive scheduling contexts from 
@@ -89,9 +89,9 @@ this system call.}
     \param{seL4\_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
     \param{seL4\_CPtr}{reply}{Capability to the resume object to block callers on.}
 }
-{An seL4\_MessageInfo\_t structure encoding details about the message received.}
+{An \code{seL4\_MessageInfo\_t} structure encoding details about the message received.}
 
-\apidoc{api_wait}
+\apidoc{wait}
 {Wait}
 {Wait for a message on the provided capability. If the provided capability is not an endpoint or
     notification, raise a capability fault.}
@@ -100,9 +100,9 @@ this system call.}
     \param{seL4\_CPtr}{src}{Capability to wait for a message on.}
     \param{seL4\_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
 }
-{An seL4\_MessageInfo\_t structure encoding details about the message received.}
+{An \code{seL4\_MessageInfo\_t} structure encoding details about the message received.}
 
-\apidoc{api_nbwait}
+\apidoc{nbwait}
 {NBWait}
 {Poll for a message on the provided capability. If the provided capability is not an endpoint or
     notification, raise a capability fault.}
@@ -111,54 +111,54 @@ this system call.}
     \param{seL4\_CPtr}{src}{Capability to wait for a message on.}
     \param{seL4\_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
 }
-{An seL4\_MessageInfo\_t structure encoding details about the message received.}
+{An \code{seL4\_MessageInfo\_t} structure encoding details about the message received.}
 
-\apidoc{api_replyrecv}
+\apidoc{replyrecv}
 {ReplyRecv}
 {Invoke a resume object, sending a reply message, then block on the provided capability, waiting for
 a message on the provided capability, with the now cleared resume object. Passive threads may receive
 scheduling contexts from  this system call.}
-{seL4\_MessageInfo\_t seL4\_ReplyRecv(seL4\_CPtr cap, seL4\_MessageInfo\_t info, seL4\_Word *badge,
+{seL4\_MessageInfo\_t seL4\_ReplyRecv(seL4\_CPtr cap, \code{seL4\_MessageInfo\_t} info, seL4\_Word *badge,
 seL4\_CPtr reply)}
 {
     \param{seL4\_CPtr}{src}{Capability to wait for a message on.}
-    \param{seL4\_CPtr}{info}{A seL4\_MessageInfo\_t structure encoding details about the message}
+    \param{seL4\_CPtr}{info}{A \code{seL4\_MessageInfo\_t} structure encoding details about the message}
     \param{seL4\_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
     \param{seL4\_CPtr}{reply}{Capability to the resume object to block callers on.}
 }
-{An seL4\_MessageInfo\_t structure encoding details about the message received.}
+{An \code{seL4\_MessageInfo\_t} structure encoding details about the message received.}
 
-\apidoc{api_nbsendrecv}
+\apidoc{nbsendrecv}
 {NBSendRecv}
 {Perform a non-blocking send on a capability, then block on the provided capability, waiting for
 a message on the provided capability, with the resume object. Passive threads may receive
 scheduling contexts from this system call.}
-{seL4\_MessageInfo\_t seL4\_NBSendRecv(seL4\_CPtr dest, seL4\_MessageInfo\_t info, seL4\_CPtr src,
+{seL4\_MessageInfo\_t seL4\_NBSendRecv(seL4\_CPtr dest, \code{seL4\_MessageInfo\_t} info, seL4\_CPtr src,
     seL4\_Word *badge, seL4\_CPtr reply)}
 {
     \param{seL4\_CPtr}{dest}{Capability to invoke}
-    \param{seL4\_CPtr}{info}{A seL4\_MessageInfo\_t structure encoding details about the message}
+    \param{seL4\_CPtr}{info}{A \code{seL4\_MessageInfo\_t} structure encoding details about the message}
     \param{seL4\_CPtr}{src}{Capability to wait for a message on.}
     \param{seL4\_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
     \param{seL4\_CPtr}{reply}{Capability to the resume object to block callers on.}
 }
-{An seL4\_MessageInfo\_t structure encoding details about the message received.}
+{An \code{seL4\_MessageInfo\_t} structure encoding details about the message received.}
 
-\apidoc{api_nbsendwait}
+\apidoc{nbsendwait}
 {NBSendWait}
 {Perform a non-blocking send on a capability, then block on the provided capability, waiting for
 a message on the provided capability.}
-{seL4\_MessageInfo\_t seL4\_NBSendWait(seL4\_CPtr dest, seL4\_MessageInfo\_t info, seL4\_CPtr src,
+{seL4\_MessageInfo\_t seL4\_NBSendWait(seL4\_CPtr dest, \code{seL4\_MessageInfo\_t} info, seL4\_CPtr src,
     seL4\_Word *badge)}
 {
     \param{seL4\_CPtr}{dest}{Capability to invoke}
-    \param{seL4\_CPtr}{info}{A seL4\_MessageInfo\_t structure encoding details about the message}
+    \param{seL4\_CPtr}{info}{A \code{seL4\_MessageInfo\_t} structure encoding details about the message}
     \param{seL4\_CPtr}{src}{Capability to wait for a message on.}
     \param{seL4\_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
 }
-{An seL4\_MessageInfo\_t structure encoding details about the message received.}
+{An \code{seL4\_MessageInfo\_t} structure encoding details about the message received.}
 
-\apidoc{api_yield}
+\apidoc{yield}
 {Yield}
 {Exhaust the head replenishment of the current thread and place the thread at the end of the
 scheduling queue, or into the release queue if the next replenishment is not yet available.}

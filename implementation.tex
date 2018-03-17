@@ -227,7 +227,7 @@ there was enough space available. The altered fields are shown in \cref{t:tcb-fi
         \code{BlockedOnReply} or \code{BlockedOnRecv}. \\
         \code{yieldTo} & Pointer to the \gls{SCO} this \gls{TCB} has performed a directed yield to,
         if any.\\
-        \sout{\code{faultEndpoint}} &  moved to the TCB CNode. \\
+        \sout{\code{faultEndpoint}} &  Moved to the TCB CNode. \\
         \bottomrule
     \end{tabularx}
     \caption{Added and removed fields in a \gls{TCB} object.}
@@ -340,19 +340,22 @@ For full scheduling contexts, this is the entire timeslice and is compatible wit
 behaviour of \yield. For partial scheduling contexts, if the next replenishment is not yet ready,
 the thread is blocked until it is replenished.
 
-\begin{table}[h]
+\begin{table}[t]
     \centering
     \rowcolors{2}{gray!25}{}
-    \begin{tabularx}{\textwidth}{llX}\toprule
-    \emph{System Call} & Class         & Donation? \\\midrule
-    \send, \nbsend     & sending          & No, unless used on an active resume object. \\
-    \call              & sending, receiving & \yes \\
-    \wait, \nbwait     & waiting       & \no \\
-    \recv, \nbrecv     & waiting       & \yes \\
-    \nbsendrecv        & sending, receiving & \yes \\
-    \nbsendwait        & sending, waiting & \no \\
-    \replyrecv         & sending, receiving & \yes \\
-    \yield             & \no              & \no \\
+    \begin{tabularx}{\textwidth}{lXll}\toprule
+        \emph{System Call} & Class              & Donation? & Definition\\\midrule
+        \call                  & sending, receiving & \yes & \cref{api:call}\\
+        \send                 & sending            & \no      & \cref{api:send} \\
+        \nbsend                & sending            & \no       & \cref{api:nbsend} \\
+        \recv                  & waiting            & \yes & \cref{api:recv} \\
+        \nbrecv                & waiting            & \yes & \cref{api:nbrecv} \\
+        \wait                 & waiting            & \no & \cref{api:wait}\\
+        \nbwait                & waiting            & \no & \cref{api:nbwait} \\
+        \replyrecv             & sending, receiving & \yes & \cref{api:replyrecv} \\
+        \nbsendrecv            & sending, receiving & \yes & \cref{api:nbsendrecv} \\
+        \nbsendwait            & sending, waiting   & \no & \cref{api:nbsendwait} \\
+        \yield                 & scheduling                & \no & \cref{api:yield} \\
     \end{tabularx}
     \caption{New \selfour system call summary, indicating which system calls can trigger donation.
     and/or receiving messages. }
@@ -364,41 +367,66 @@ descriptions of each system call can be found in \cref{label:appendix-api}.
 
 \subsection{Invocations}
 
+Scheduling contexts have 5 invocations, listed in \cref{tab:sched_context_api}. The new control
+capability, \code{sched\_control}, has only one invocation \code{configure} for setting the parameters of a
+scheduling context (the function definition can be found in \cref{api:schedcontrol_configure}). 
+    
+\begin{table}[b]
+    \centering
+    \rowcolors{2}{gray!25}{}
+    \begin{tabularx}{\textwidth}{>{\texttt\bgroup}l<{\egroup}Xl} \toprule
+        \textnormal{\emph{Invocation}} & \emph{Description} & Definition\\\midrule
+        bind    & Bind an object (TCB or Notification) to an SC. & \cref{api:schedcontext_bind} \\
+        unbind  & Unbind all objects from an SC. & \cref{api:schedcontext_unbind} \\
+        unbindObject & Unbind a specific object from an SC. & \cref{api:schedcontext_unbind_object}\\
+        consumed & Return the amount of time since the last timeout fault, \code{consumed} or
+        \code{yieldTo} was
+        called. & \cref{api:schedcontext_consumed}\\ 
+        yieldTo  & Place the thread bound to this \gls{SCO} at the front of its priority queue and return
+        any time consumed. & \cref{api:schedcontext_yieldto}\\
+        \bottomrule
+    \end{tabularx}
+    \caption{Scheduling context capability invocations.}
+    \label{tab:sched_context_api}
+\end{table}
 
+Because \selfour only supports sending three capabilities in a single message (including to the
+kernel), we add a second method for configuring multiple fields on a TCB in one system call
+(\code{setschedparams}) in addition to the existing method (\code{configure}), as full configuration
+of a TCB requires up to six capabilities to be set. Timeout handlers are left as a setter only, as 
+this is a less common operation. In total, we alter two methods on TCB objects
+and add three new methods, shown in \cref{tab:tcb_api}. 
 
 \begin{table}
     \centering
     \rowcolors{2}{gray!25}{}
-    \begin{tabular}{>{\texttt\bgroup}p{0.2\textwidth}<{\egroup}  p{0.8\textwidth} } \toprule
-        \textnormal{\emph{Invocation}} & \emph{Description} \\\midrule
-        bind    & Bind an object (TCB or Notification) to an SC. \\
-        unbind  & Unbind all objects from an SC. \\
-        unbindObject & Unbind a specific object from an SC.\\
-        consumed & Return the amount of time since the last timeout fault, \code{consumed} or
-        \code{yieldTo} was
-        called.\\ 
-        yieldTo  & Place the thread bound to this \gls{SCO} at the front of its priority queue and return
-        any time consumed.\\
+    \begin{tabularx}{\textwidth}{>{\texttt\bgroup}l<{\egroup}Xll} \toprule
+        \textnormal{\emph{Invocation}} & \emph{Description} & New? & Definition \\\midrule
+        configure & Set the cnode, vspace, and \gls{IPC} buffer. & \no & \cref{api:tcb_configure}\\
+        setmcpriority & Set the \gls{MCP}. & \yes & \cref{api:tcb_setmcpriority} \\
+        setpriority & Set the priority. & \no & \cref{api:tcb_setpriority} \\
+        setschedparams & Set \gls{SCO}, \gls{MCP}, priority and fault endpoint. & \yes &
+        \cref{api:tcb_setschedparams} \\
+        settimeoutep & Set the timeout endpoint. & \yes & \cref{api:tcb_settimeoutep} \\
         \bottomrule
-    \end{tabular}
-    \caption{Scheduling context capability invocations. Further detail is available in \cref{api:sc}.}
-    \label{tab:sched_context_api}
+    \end{tabularx}
+    \caption{New and altered \gls{TCB} capability invocations.}
+    \label{tab:tcb_api}
 \end{table}
-
-
-\TODO{describe the new invocations, changed invocations}
 
 \subsection{Scheduling context donation}
 
 Conceptually there are three types of scheduling context donation: lending, returning, and
-forwarding a scheduling context.
+forwarding a scheduling context. The type of donation that occurs, and if it can occur, depends on
+the system call used. 
 
 Lending a scheduling context occurs between caller and callee on a \call, and
 the semantics are simple: if a thread 
 blocked on an endpoint does not have a scheduling context, the scheduling context is transferred
 from sender (caller) to receiver (the callee), and the resume object is pushed
 onto the call-stack, such that the \gls{SCO} can be returned. If the caller already has a scheduling
-context, scheduling context donation does not occur.
+context, scheduling context donation does not occur. Note that lending also works for
+handling faults, so thread fault handlers can be passive.
 
 Lent scheduling contexts are returned, either when the resume object is invoked. Resume objects 
 can be invoked directly by the send-phase of a system call, or indirectly, by using the
@@ -408,7 +436,7 @@ No matter the state of the callee the \gls{SCO} is returned, which if done
 incorrectly (via a \send), can leave the callee runnable but not blocked on an endpoint, such that 
 the callee cannot receive further scheduling contexts. Correct usage by a passive thread is with \replyrecv,
 \nbsendrecv, blocking the passive thread such that it is ready to receive another scheduling
-context.
+context. Like lending, scheduling contexts can also be returned by a fault handler replying to a fault message.
 
 Forwarding a scheduling context does not establish a call-chain relationship, and allows
 for scheduling contexts to be transferred between threads in non-RPC patterns. The semantics are
@@ -416,7 +444,7 @@ as follows: if a \nbsendrecv is used, and the receiver does not have a schedulin
 the scheduling context is forwarded. 
 
 Scheduling contexts can only be donated and received on specific system calls, indicated in
-\cref{t:system-calls}.
+\cref{t:system-calls}. 
 
 \subsubsection{Passive servers}
 
