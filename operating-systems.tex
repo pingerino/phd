@@ -478,6 +478,7 @@ reservations are, and admission. To build mixed-criticality systems, we
 need high-performance mechanisms for temporal isolation that are decoupled from policy.
 
 \subsection{Timeslice donation}
+\label{sec:os-timeslice-donation}
 
 Reservations alone can be used to provide temporal isolation, however are insufficient without
 further mechanisms for resource sharing. Recall from \cref{p:resource-kernel-resource-sharing} that
@@ -487,7 +488,7 @@ accessing a resource) are key to avoiding priority inversion in a resource kerne
 
 We first examine mechanisms for charging in the context of microkernels.
 Recall from \cref{s:background-ipc} that in a microkernel, \gls{OS} services are implemented at
-user-level where clients use \gls{IPC} to communicate with servers, in an \gls{RPC}-like fashion, as
+user-level where clients use \gls{IPC} to communicate with servers, in an RPC-like fashion, as
 illustrated in \cref{f:os-ipc}. These servers logically map to shared resources, where clients are
 the threads accessing those resources.
 
@@ -618,7 +619,7 @@ the meters of KeyKOS in that they represent a scalar unit of time.
 Unlike KeyKOS, temporal capabilities integrate with user-level scheduling, decoupling access control
 from scheduling. An initial capability \emph{Chronos} provides authority to all time, and is used to
 provide an initial allocation of time and for further replenishment. 
-The kernel up calls user-level schedulers 
+The kernel activates user-level schedulers 
 which must then provide not only a thread to run, but a temporal capability to drain time from.
 On expiry, the user-level scheduler is also
 invoked, however this is a rare occasion as a well-built scheduler will ensure threads have

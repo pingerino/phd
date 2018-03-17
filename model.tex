@@ -680,17 +680,13 @@ their own scheduling context, and passive servers migrate to the scheduling cont
 The mechanism is simple: if a
 server is passive, it migrates to the core that the donated scheduling context provides time for. 
 
-\section{Policy and Mechanisms}
-\label{sec:model-policy-and-mechanism}
+\section{Mechanisms}
+\label{sec:model-mechanisms}
 
-We now describe several scheduling and resource-sharing policies that can be implemented the
-mechanisms of scheduling contexts, scheduling-context donation and timeout faults. 
-First, we introduce three new mechanisms which are required to implement those policies, then we 
-demonstrate their use to build a range of user-level policies. 
+Before exploring how various user-level policies can be implemented using our model, we describe
+four new mechanisms introduced for high-performance implementation of those policies.
 
-\subsection{Mechanisms}
-
-\subsubsection{Directed yield}
+\subsection{Directed yield}
 
 The first is simple: in order to implement user-level schedulers, the kernels scheduling queues
 must be able to be manipulated. For this, we add an operation on scheduling contexts: a
@@ -702,12 +698,12 @@ scheduler if there is a runnable thread bound to the invoked scheduling context.
 yield to threads of higher priorities than their own, as they are by definition, not currently
 running.
 
-\subsubsection{IPC Forwarding}
+\subsection{IPC Forwarding}
 
 We introduce another concept called \emph{forwarding}, which allows callers to
 invoke one capability and block on another capability in the same system call, via
 a new system call \code{nbsendrecv}. This is required to
-facilitate a \emph{forwarding} IPC, and allows passive proxies to seamlessly forward messages,
+facilitate a forwarding IPC, and allows passive proxies to seamlessly forward messages,
 capabilities and scheduling contexts, as shown in \cref{f:model-forward}. 
 
 \begin{figure}
@@ -744,20 +740,32 @@ and the scheduling context passes from $A \rightarrow S_{1} \rightarrow S_{2} \r
 \label{f:model-forward}
 \end{figure}
 
-\subsubsection{Flexible Resume Capabilities}
+\subsection{Flexible Resume Capabilities}
 
 The final mechanism we introduce is the ability to transfer resume capabilities between servers. 
 This means that a blocked thread can be forwarded to other threads, thus allowing the resume
 capability to be moved. Note that this is explicitly not delegation: resume capabilities cannot be
 copied.
 
-\subsection{Policies}
+\subsection{Notification Binding}
+
+Recall from \cref{s:notification-binding} that notification objects can be bound to threads such that single-threaded servers can be 
+constructed which receive IPC messages and signals. We extend this mechanism with passive server
+support by allowing scheduling contexts to be bound to notifications, such that the passive server
+execute using the notification's scheduling context when processing interrupts or signals from other
+threads. 
+
+\section{Policies}
+\label{sec:model-policies}
 
 We now describe how different policies can be implemented by user-level systems using the 
 existing mechanisms in the seL4, combined with the new mechanisms of scheduling contexts,
 scheduling context donation, directed yield, IPC forward, and flexible resume capabilities.
-First, we explain how different real-time task models are compatible with our model and show how
-they can be implemented using our mechanisms. 
+First, we explain how different best-effort, rate-based and real-time tasks are compatible
+with our model and describe their implementation. We subsequently explain how various different 
+resource sharing policies and servers, with and without temporal isolation, can be constructed. 
+
+\subsection{Scheduling policies}
 
 \subsubsection{Best-effort threads}
 
@@ -779,7 +787,19 @@ specified, but cannot be guaranteed to get the entire rate allocation if there
 are higher priority threads in the system, or if the priority of the
 rate-limited thread is overloaded .
 
+\subsubsection{Real-time threads}
 
+\TODO{real time threads}
+
+\subsubsection{EDF scheduling}
+
+\TODO{How to do EDF}
+
+\subsubsection{CFS scheduling}
+
+\TODO{How to do CFS}
+
+\subsection{Resource sharing policies}
 
 \subsubsection{\gls{PIP}/\gls{BWI}}
 \label{sec:model-pip-bwi}
@@ -848,6 +868,21 @@ such that it would only be activated when all worker threads are busy.
 An alternative policy is to build systems with a fixed number of server threads, all waiting on the
 same endpoint. 
 Like the best-effort policy, our model supports this approach but it is not required.
+
+\subsubsection{Blocking Servers}
+
+Some servers need to block in order to function: for example, servers providing \IO may need to wait
+until an operation completes before replying to the client. Consider a disk server, where
+clients make requests of the server to write data to the disk. The server makes the request to the
+disk, but does not reply to the client until the device has signalled that \IO is complete. Rather
+than blocking until the driver responds, preventing the server from taking on further requests, the
+server can block on the endpoint and wait for the interrupt or further RPC requests. If an interrupt
+comes in, the server runs the bound notification objects scheduling context to complete the
+request.
+
+Another option is to use multiple threads, with a passive thread for handling requests and an active
+thread servicing interrupts, however this requires synchronisation between the threads within the
+server.
 
 \subsubsection{Server isolation}
 

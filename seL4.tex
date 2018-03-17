@@ -496,6 +496,7 @@ they are copied by the kernel directly.
 
 % fastpath
 \subsection{Fastpath}
+\label{sec:sel4-fastpath}
 
 Recall from \cref{s:background-ipc} that \gls{IPC} performance is critical to a microkernel, which
 is achieved through optimised fastpaths. A fastpath is an optimised code path for the most
@@ -506,7 +507,7 @@ contains two \gls{IPC} fastpaths which is used when the following, common-case c
     \item the sender is using \texttt{call()} or the receiver is using \texttt{replyrecv()},
     \item there are no threads of higher priority than the receiver in the scheduler,
     \item the receiver has a valid address space and has not faulted,
-    \item and the message fits in registers.
+    \item and the message fits into registers, and thus does not require access to the IPC buffer.
 \end{enumerate}
 
 \subsection{Fault handling}
@@ -686,15 +687,20 @@ The result of these optimisations is that \selfour, like L4 kernels before it, h
 \gls{IPC}, compared to non-L4 kernels e.g.\ at least a factor of four in CertiKOS~\citep{Gu_SCWKSC_16}.
 
 \subsubsection{Round-robin}
+\label{sec:seL4-round-robin}
 
-Kernel time is accounted for in ticks, and each TCB has a timeslice field which represents the number of ticks they are eligible to run. 
-This value is decremented every time a timer tick is handled, and when the timeslice is exhausted the thread is appended to the relevant scheduler queue, with a replenished timeslice.
-Threads can surrender their current tick using the \code{yield} system call, which places the thread
-at the end of the scheduler queue.
+Kernel time is accounted for in fixed-time quanta referred to as ticks, and each TCB has a timeslice
+field which represents the number of ticks that TCB is eligible to execute until preempted.
+The kernel timer driver is configured to fire a periodic interrupt which marks each tick,
+and when the timeslice is exhausted the thread is appended to the relevant scheduler queue,
+with a replenished timeslice.
+Threads can surrender their current tick using the \code{yield} system call, which simulates
+timeslice exhaustion. 
 
+\selfour implements timeslice donation, as discussed in \cref{sec:os-timeslice-donation}. 
 When threads communicate with a service over \gls{IPC}, the TCB of the thread providing the service
-is charged for any ticks that occur while that service is active. As a result isolation in shared
-server is not possible: clients are not charged for their execution time. 
+is charged for any ticks incurred while that service is active. As a result isolation in shared
+server is not possible: clients are not charged for their execution time.
 
 \subsubsection{Priorities}
 
