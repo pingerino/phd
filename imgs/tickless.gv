@@ -1,0 +1,30 @@
+digraph {
+    ratio = "compress"
+    node [fontsize=11,style=solid,fontname="inconsolata"]
+    edge [fontsize=11,fontname="inconsolata"]
+    // box, diamond
+
+    enter [shape=box, label="Enter kernel"]
+    fastpath [shape=diamond, label="Fastpath?"]
+    update [shape=box, label="Update kernel time"]
+    budget [shape=diamond, label="Budget sufficient?"]
+    tick   [shape=box, label="Pretend tick"]
+    syscall [shape=box, label="Do kernel operation"]
+    change [shape=diamond, label="Change SCO?"]
+    commit [shape=box, label="Commit time, charge SC"]
+    rollback [shape=box, label="Rollback kernel time"]
+    exit [shape=box, label="Exit kernel"]
+
+    enter -> fastpath
+    fastpath -> update [label=" no"]
+    update -> budget
+    budget -> tick [label=" no"]
+    budget -> syscall [label=" yes"]
+    tick -> change
+    syscall -> change
+    change -> rollback [label=" no"]
+    change -> commit [label=" yes"]
+    commit -> exit
+    rollback -> exit
+    fastpath -> exit [label=" do fastpath"]
+}

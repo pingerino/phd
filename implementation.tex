@@ -569,50 +569,11 @@ reprogramming the timer which can be expensive on many platforms.
 If there is no \gls{SCO} change, the timestamp update is rolled back by subtracting the
 stored consumed value from the timestamp.
 
-\tikzstyle{decision} = [diamond, draw,
-    text width=4.5em, text badly centered, node distance=3cm, inner sep=0pt]
-\tikzstyle{block} = [rectangle, draw,
-    text width=5em, text centered, rounded corners]
-\tikzstyle{line} = [draw, -latex']
-
-
 \begin{figure}
     \centering 
-\begin{tikzpicture}[node distance = 3cm, auto]
-    % place nodes
-    \node[block    ]                  (entry)    {enter kernel};
-    \node[decision, right of = entry]   (fastpath) {fastpath?};
-    \node[draw=none,fill=none,right of = fastpath] (upper) {};
-    \node[draw=none,fill=none,right of = upper] (upperupper) {};
-    \node[block, below of = fastpath]    (update)   {update kernel time};
-    \node[decision, below of = update ] (enough)   {budget sufficient?};
-    \node[block,    left of  = enough] (tick)     {simulate tick};
-    \node[block,    right of = enough] (op)       {do kernel operation};
-    \node[decision, below of = enough] (sc)       {change SC?};
-    \node[block,    left of  = sc]     (commit)   {commit kernel time};
-    \node[block,    right of = sc]     (rb)       {rollback kernel time};
-    \node[block,    below of = sc]     (exit)     {exit kernel};
-    \node[draw=none,fill=none,right of = exit] (lower) {};
-    \node[draw=none,fill=none,right of = lower] (lowerlower) {};
-
-    % place lines
-    \path [line] (entry)  -- (fastpath);
-    \path [line] (fastpath) -- node [near start] {yes} (upperupper);
-    \path [line] (upperupper) -- node [near end] {do fastpath} (lowerlower);
-    \path [line] (lowerlower) -- (exit);
-    \path [line] (fastpath) -- node [near start] {no} (update);
-    \path [line] (update) -- (enough);
-    \path [line] (enough) -- node [near start, above] {no} (tick);
-    \path [line] (enough) -- node [near start] {yes}(op);
-    \path [line] (tick)   -- (sc);
-    \path [line] (op)     -- (sc);
-    \path [line] (sc)     -- node [near start] {yes} (commit);
-    \path [line] (sc)     -- node [near start, above] {no}  (rb);
-    \path [line] (commit) -- (exit);
-    \path [line] (rb)     -- (exit);
-\end{tikzpicture}
-\caption{Kernel structure}
-\label{figure:tickless}
+    \includegraphics{tickless}
+    \caption{Kernel structure}
+    \label{figure:tickless}
 \end{figure}
 
 \subsubsection{Domain scheduler}
