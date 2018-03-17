@@ -1,0 +1,14 @@
+digraph {
+    ratio = "compress"
+    node [fontsize=11,style=solid,fontname="inconsolata"]
+    edge [fontsize=11,fontname="inconsolata"]
+    //actual nodes
+    Idle [shape=ellipse, label="Idle"]
+    Waiting [shape=ellipse, label="Waiting"]
+    Active [shape=ellipse, label="Active"]
+  
+    Idle -> Waiting[label=" recv() "]
+    Waiting -> Active[label=" call() "]
+    Active -> Idle [label=" reply() "]
+    Active -> Waiting[label= " recv()"]
+}
