@@ -268,16 +268,19 @@ We add a pointer to the scheduling context from the notification context, as wel
 facilitate this mechanism, which increases the size of the notification object from $2^{4}$ to
 $2^{5}$ on 32-bit, and $2^{5}$ to $2^{6}$ on 64-bit. 
 
-\section{System calls and Invocations}
+\section{MCS API}
+\label{s:new-api}
+
+We now present the new \gls{MCS} API for \selfour, which alters the core system call API, 
+as well as adding new invocations and modifying existing ones. In this section we also
+present the semantics of scheduling context donation, which are directly linked to the new API.
+
+\subsection{Waiting system calls}
 
 In \cref{sec:sel4-system-call-and-invocations} we divided the \selfour system call API into two
 classes: sending system calls (\code{send}, \code{nbsend}, \code{call}, \code{reply}),
 receiving system calls (\code{recv}, \code{nbrecv}), plus atomic combinations of both for fast 
 RPC (\code{call}, \code{replyrecv}).  
-
-\TODO{more summary here}
-
-\subsection{Waiting system calls}
 
 Our implementation alters the meaning of a receiving system call, and adds a new class of system
 call: \emph{waiting} system calls. The difference is simple: receiving system calls are expected to
@@ -330,55 +333,38 @@ each \gls{TCB} only blocks on the second endpoint, preventing the possibility of
 
 \subsubsection{Yield}
 
-\TODO{what did we do to yield}
+We alter the semantics of \yield: it now causes the head replenishment of the currently running
+thread to expire immediately, in addition to placing the thread at the end of the scheduling queue
+for its priority. 
+For full scheduling contexts, this is the entire timeslice and is compatible with the previous
+behaviour of \yield. For partial scheduling contexts, if the next replenishment is not yet ready,
+the thread is blocked until it is replenished.
 
-\begin{table}[t] 
+\begin{table}[h]
     \centering
-    \begin{tabularx}{\textwidth}{llXll}\toprule
-\emph{System call}                                  & \emph{Parameter} & \emph{Description}
-        & \emph{Return?} & \emph{Donation?} \\\midrule
-        \rowcolor{gray!25} \texttt{send, nbsend}    & \texttt{dest}    & Capability to invoke.                                  & \no            & \no  \\
-        \rowcolor{gray!25}                          & \texttt{info}    & Description of message.                                &                &      \\
-        \texttt{call}                               & \texttt{dest}    & Capability to invoke.                                  &                &      \\
-                                                    & \texttt{info}    & Description of message.                                & \yes           & \yes \\
-        \rowcolor{gray!25} \texttt{recv, nbrecv}    & \texttt{src}     & Capability to wait on.                                 & \yes           & \yes \\
-        \rowcolor{gray!25}                          & \texttt{badge}   & Destination for badge.                                 &                &      \\
-        \rowcolor{gray!25}                          & \texttt{reply}   & Reply object to block callers on.                      &                &      \\
-        \texttt{wait, nbwait}                       & \texttt{src}     & Capability to wait on.                                 & \yes           & \no  \\
-                                                    & \texttt{badge}   & Destination for badge.                                 &                &      \\
-        \rowcolor{gray!25} \texttt{replyrecv}       & \texttt{src}     & Capability to wait on.                                 & \yes           & \yes \\
-        \rowcolor{gray!25}                          & \texttt{info}    & Description of reply message.                          &                &      \\
-        \rowcolor{gray!25}                          & \texttt{badge}   & Destination for badge.                                 &                &      \\
-        \rowcolor{gray!25}                          & \texttt{reply}   & Reply object to invoke, then block callers on.         &                &      \\
-        \texttt{nbsendrecv}                         & \texttt{dest}    & Capability to invoke.                                  & \yes           & \yes  \\
-                                                    & \texttt{info}    & Description of reply
-        message.                          &            &  \\
-                                                    & \texttt{src}     & Capability to wait on.                                 &                &      \\
-                                                    & \texttt{badge}   & Destination for badge.                                 &                &      \\
-                                                    & \texttt{reply}   & Reply object to block callers on.                      &                &      \\
-
-        \rowcolor{gray!25} \texttt{nbsendwait}      & \texttt{dest}    & Capability to invoke.
-        & \yes           & \no  \\
-        \rowcolor{gray!25}                          & \texttt{info}    & Description of message.                          &  &  \\
-        \rowcolor{gray!25}                          & \texttt{src}     & Capability to wait on.                                 &                &      \\
-        \rowcolor{gray!25}                          & \texttt{badge}   & Destination for badge.                                 &                &      \\
- 
-        \texttt{yield}                              & \no              & \no
-        & \no            &   \no   \\
-        \bottomrule
+    \rowcolors{2}{gray!25}{}
+    \begin{tabularx}{\textwidth}{llX}\toprule
+    \emph{System Call} & Class         & Donation? \\\midrule
+    \send, \nbsend     & sending          & No, unless used on an active resume object. \\
+    \call              & sending, receiving & \yes \\
+    \wait, \nbwait     & waiting       & \no \\
+    \recv, \nbrecv     & waiting       & \yes \\
+    \nbsendrecv        & sending, receiving & \yes \\
+    \nbsendwait        & sending, waiting & \no \\
+    \replyrecv         & sending, receiving & \yes \\
+    \yield             & \no              & \no \\
     \end{tabularx}
-    \caption{\selfour system call summary. All system calls except \code{yield} are based on sending
-    and/or receiving messages. The \emph{return} column indicates if a system call returns a message
-or not.}
+    \caption{New \selfour system call summary, indicating which system calls can trigger donation.
+    and/or receiving messages. }
     \label{t:system-calls}
 \end{table}
 
-
-\TODO{mention the syscall table}
+\cref{t:system-calls} summarises the new MCS system call API, while more detailed 
+descriptions of each system call can be found in \cref{label:appendix-api}.
 
 \subsection{Invocations}
-\section{API}
-\label{s:new-api}
+
+
 
 \begin{table}
     \centering
