@@ -4,10 +4,8 @@
 In the previous chapter we presented our mechanisms for temporal isolation and safe resource sharing
 in a high-assurance microkernel. 
 Now we delve into the implementation details of scheduling contexts, scheduling context donation,
-timeout fault handlers, and IPC forwarding in \selfour.
-
-First we survey new and changed kernel objects, followed by the updated system call API, and ...
-\TODO{update when done}.
+passive servers, timeout fault handlers, and IPC forwarding in \selfour. First we explore new kernel
+objects, followed by new and altered API methods, and finally look at structural changes.
 
 \section{Objects}
 
@@ -19,24 +17,18 @@ addition to IPC messages.
 \subsection{Resume objects}
 \label{s:resume}
 
-Resume objects, modelled after KeyKOS~\citep{Bomberger_FFHLS_92}, are
-a new object type that generalise
-``reply capabilities'' of baseline \selfour introduced in \cref{s:ipc}.
-Recall that in baseline \selfour, the receiver of the message (i.e.\ the
-server) receives the reply capability in a magic ``reply slot'' in its
-capability space. The server replies by invoking that
-capability. Resume objects remove the magic by explicitly representing
-the reply channel, and servers with multiple clients can dedicate a resume object per client.
-Instead of generating a one-shot reply capability in a reply slot on a \call, the operation
-populates a resume object, while \recv de-populates the resume object. 
-They also
-provide more efficient support for stateful servers that handle
-concurrent client sessions, which we expand on further when we introduce the changed system call \gls{API} in \cref{s:new-api}.
+Resume objects, modelled after KeyKOS~\citep{Bomberger_FFHLS_92}, are a new object type that
+generalise ``reply capabilities'' of baseline \selfour introduced in \cref{s:ipc}.  Recall that in
+baseline \selfour, the receiver of the message (i.e.\ the server) receives the reply capability in a
+magic ``reply slot'' in its capability space. The server replies by invoking that capability. Resume
+objects remove the magic by explicitly representing the reply channel, and servers with multiple
+clients can dedicate a resume object per client.  Instead of generating a one-shot reply capability
+in a reply slot on a \call, the operation populates a resume object, while \recv de-populates the
+resume object.  They also provide more efficient support for stateful servers that handle concurrent
+client sessions, which we expand on further when we introduce the changed system call \gls{API} in
+\cref{s:new-api}.
 
-Resume objects are small (16 bytes on 32-bit platforms, and 32 bytes on 64-bit platforms), and
-contain the fields shown in \cref{tab:reply_object}.
-
-\begin{table}[h]
+\begin{table}[b]
     \centering
     \rowcolors{2}{gray!25}{}
     \begin{tabularx}{\textwidth}{lX}\toprule
@@ -53,11 +45,15 @@ contain the fields shown in \cref{tab:reply_object}.
     \label{tab:reply_object}
 \end{table}
 
+
+Resume objects are small (16 bytes on 32-bit platforms, and 32 bytes on 64-bit platforms), and
+contain the fields shown in \cref{tab:reply_object}.
+
 There are three states a resume object can be in: idle, meaning it is not currently being used,
 waiting, meaning it is being used by a thread blocked and waiting for a message, or active,
 which means the resume object currently has a thread blocked waiting for a reply associated with it.
 
-\begin{figure}[h]
+\begin{figure}[t]
     \centering
     \includegraphics[width=0.6\textwidth]{resume}
     \caption{State diagram of resume objects.}
@@ -97,7 +93,7 @@ is popped.  Reply objects also point to the thread which donated the \gls{SCO} a
 allowing the SCO to be returned to that thread when a reply message is sent.  This process is
 illustrated in \cref{f:reply-stack}, where $A$ has called $S_{1}$ which has called  $S_{2}$.
 
-\begin{figure}
+\begin{figure}[t]
     \centering
     \includegraphics[width=0.7\textwidth]{replychain}
     \caption{The state of the reply stack when a nested server $S_{2}$ is
@@ -134,7 +130,7 @@ populated from an original execution budget ($C$), representing the reserved rat
 ($U$) = $\frac{C}{T}$.
 Fields in an \glspl{SCO} are shown in \cref{t:sc-fields}.
 
-\begin{table}[h] 
+\begin{table}[t] 
     \centering
     \rowcolors{2}{gray!25}{}
     \begin{tabularx}{\textwidth}{lX}\toprule
@@ -212,7 +208,7 @@ that is invoked: only one exists per core.
 
 The \code{configure} operation behaves differently depending on the state of the target scheduling
 context and can be used not only to configure \glspl{SCO} but to migrate threads across cores, and
-change the available bandwidth of a currently runnable thread. The semantics are as follows:
+change the available bandwidth of a currently runnable thread. Semantics are as follows:
 
 \begin{itemize}
 \item If the scheduling context is not bound
@@ -297,8 +293,8 @@ context change.  `check\_budget` If the budget is not completely consumed by \te
 \texttt{split\_budget} as shown in Listing \ref{list:split-check} is called to schedule the
 subsequent refill for the chunk of time just consumed.  If the replenishment buffer is full, or the
 amount consumed is less than the minimum budget, the amount used is merged into the next
-replenishment.  The scheduling context being switched to has \texttt{unblock\_check} Listing
-(\ref{list:unblock-check}) called on it, which merges an replenishments that are already available,
+replenishment.  When a new scheduling context is switch to, \texttt{unblock\_check} 
+(\ref{list:unblock-check}) is used, which merges any replenishments that are already available,
 avoiding unnecessary preemptions.
 
 \begin{listing}[h]
@@ -404,7 +400,7 @@ Recall from \cref{sec:sel4-tcb} that \glspl{TCB} are the abstraction of an execu
 that thread. We make several alterations to this structure, but do not impact the \gls{TCB} size, as
 there was enough space available. The altered fields are shown in \cref{t:tcb-fields}.
 
-\begin{table}[h] 
+\begin{table}[b] 
     \centering
     \rowcolors{2}{gray!25}{}
     \begin{tabularx}{\textwidth}{lX}\toprule
@@ -451,7 +447,7 @@ confused deputy problem~\citep{Hardy_88}.
 \subsection{Notification objects}
 
 A scheduling context object can be associated with notification object, which allows a passive
-servers with bound notifications to receive signals and run on the notification's
+server with bound notifications to receive signals and run on the notification's
 scheduling context to process those signals.
 We add a pointer to the scheduling context from the notification context, as well as vice-versa, to 
 facilitate this mechanism, which increases the size of the notification object from $2^{4}$ to
@@ -489,7 +485,7 @@ immediately---because it needed to block on I/O, for example---would save the re
 capability, moving it from the special TCB slot to a standard slot in the \code{cspace}. Later, when
 the server replied to the client, it would invoke the saved reply capability with \send, then block
 for new messages with \recv, avoiding the IPC fastpath for \replyrecv. Resume objects avoid the save
-fastpath, should the conditions detailed in \cref{sec:sel4-fastpath} be satisified.
+fastpath, should the conditions detailed in \cref{sec:sel4-fastpath} be satisfied.
 
 \subsection{IPC Forwarding}
 
@@ -561,7 +557,7 @@ methods are for binding \glspl{SCO} to \gls{TCB} and notification objects, while
 \code{consumed} others facilitate user-level scheduling, allowing the user to manipulate
 the kernel scheduling queues and to query the amount of time consumed by a specific \gls{SCO}.
 Both functions return the amount of CPU time the scheduling context has executed for since it was last
-clearer: reading the consumed value by either system call clears the it, as does a timeout
+clearer: reading the consumed value by either system call clears it, as does a timeout
 exception.
 
 The new control
@@ -627,7 +623,7 @@ handling faults, so thread fault handlers can be passive.
 
 Lent scheduling contexts are returned, either when the resume object is invoked. Resume objects 
 can be invoked directly by the send-phase of a system call, or indirectly, by using the
-resume object in the receive phase of a system call, thereby clearing it for another client to block
+resume object in the receive-phase of a system call, thereby clearing it for another client to block
 on, or deleting the resume object.
 No matter the state of the callee the \gls{SCO} is returned, which if done
 incorrectly (via a \send), can leave the callee runnable but not blocked on an endpoint, such that 
@@ -649,7 +645,7 @@ Forwarding is required to initialise passive servers, as passive servers must fi
 server state before blocking and being rendered passive. Example user-level code for this process is 
 provided in \cref{list:passive-server}. 
 
-\begin{listing}[h]
+\begin{listing}[t]
 \begin{ccode}
     void initialiser(seL4_CPtr server_tcb, seL4_CPtr init_sc, seL4_CPtr init_endpoint) 
 {
@@ -700,16 +696,11 @@ rendered passive again.
 
 \section{Data Structures and Algorithms}
 
-\TODO{fix intro to this section}
-Now we discuss changes to the data structures and algorithms in the kernel 
-in order to implement the mechanisms.  kernel scheduler and how the new \glspl{SCO} interact which the
-scheduling algorithm to provide temporal isolation and asymmetric protection.
-
-
-We make changes to the scheduler and structure of the scheduler to support temporal isolation: we
-convert the scheduler to tickless, add a release queue of threads waiting for budget replenishment
-and introduce the invariant that threads without scheduling contexts are not eligible for
-scheduling.
+Now we discuss changes to the data structures and algorithms in the kernel in order to provide
+accounting and enforcement mechanisms. We convert the scheduler to tickless, and add another
+invariant: any thread in the kernel, even if blocked, must have twice the kernel's WCET available,
+otherwise they must be in the release queue of threads waiting for budget replenishment. Finally, we
+add the new timeout fault type.
 
 \subsection{Accounting}
 
@@ -761,7 +752,7 @@ We add a new invariant over the kernel scheduler: any thread in the
 scheduling queues must have enough budget to exit the kernel. The budget required is twice the
 kernel's WCET, enough to get into the kernel and block, and enough to get out of the kernel 
 when woken. 
-Consequently the scheduler precision becomes twice the kernel's WCET.
+Consequently, the scheduler precision becomes twice the kernel's WCET.
 
 This invariant is required as it simplifies the kernel design and actually minimises the WCET: when
 a
@@ -773,7 +764,7 @@ paths in the kernel.
 If the available budget is insufficient, the kernel pretends the timer has already fired,
 resets the budget and adds the thread to the release queue. If the entry was due to a system call,
 the thread will retry that call once it wakes with further budget.
-Once the thread is awoken it will retry the system call.
+Once the thread is awoken, it will retry the system call.
 
 Threads are only charged when the scheduling context changes or expires, in order to avoid
 reprogramming the timer which can be expensive on many platforms. 
@@ -790,7 +781,8 @@ stored consumed value from the timestamp.
 \subsubsection{Domain scheduler}
 
 We retain the domain scheduler, as the proof of confidentiality currently requires
-it~\citep{Murray_MBGBSLGK_13}, but convert the implementation to tickless.
+it~\citep{Murray_MBGBSLGK_13}, but convert the implementation to tickless, such that domains are
+configured with CPU cycles to execute, rather than kernel ticks.
 
 \subsection{Enforcement}
 
@@ -838,8 +830,8 @@ time consumed by that scheduling context since the last reset.
 In this chapter we have presented the new kernel objects, system call API, invocations and 
 structural changes made to provide mechanisms for temporal isolation. 
 The implementation adds roughly 2,000 lines of code to \selfour (14\% increase), as measured
-by SLOC~\citep{Wheeler_01} on the pre-processed code for the \textsc{Sabre}, the verified platform.
-In the next chapter, we evaluate our implementation with a series of microbenchmarks, system benchmarks and case 
-studies.
+by source lines of code (SLOC)~\citep{Wheeler_01} on the pre-processed code for the \textsc{Sabre}, the verified platform.
+In the next chapter, we evaluate our implementation with a series of microbenchmarks, 
+system benchmarks and case studies.
 
 
