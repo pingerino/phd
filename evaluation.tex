@@ -1,17 +1,24 @@
 \chapter{Evaluation}
 \label{chap:evaluation}
 
-Questions the evaluation needs to answer:
+We now evaluate our model through a series of microbenchmarks, system benchmarks and case studies on
+a series of ARM and x86 hardware.
+First, we present the hardware platforms used in addition to the cost of timer operations on those
+platforms. Then we demonstrate the minimal performance overhead of our mechanisms using a set of 
+microbenchmarks which measure the overheads of the MCS kernel versus the existing \selfour kernel, 
+which is referred to as \emph{baseline}.  
 
-\begin{enumerate}
-\item Show the implementations do not impose undue performance overheads on standard microkernel
-operations.
-\item Show that criticality mode switch is bounded by high criticality threads.
-\item Show the cost of various timeout exception recovery mechanisms.
-\item Show that temporal isolation is achieved.
-\item Show that deadlines can be met during and after a mode switch.
-\item Show the model is practical and consistent with existing frameworks for critical software.
-\end{enumerate}
+We then run a several system benchmarks, first comparing a Redis~\citep{redis:url} 
+implementation to baseline \selfour, Linux and NetBSD to show that our kernel is competitive.
+We then demonstrate temporal
+isolation in two scenarios, using Redis again, followed by ipbench. Finally, we show isolation in a
+shared server, and measure the cost of various timeout fault handling policies. 
+
+In addition, we evaluate two user-level scheduler implementations: one which implements a static
+criticality switch, and a user-level \gls{EDF} implementation which we show is
+competitive with an in-kernel \gls{EDF} scheduling from \litmus. Lastly, we use an \gls{IPC}
+throughput benchmark to demonstrate minimal, multicore scalability overhead, and we show how server threads can
+migrate between processing cores.
 
 \section{Hardware}
 
@@ -413,13 +420,6 @@ indicates that the MCS model comes with low overhead.
     \label{t:redis}
 \end{table}
 
-\subsection{Summary}
-
-All in all, we have demonstrated via micro- and macro- benchmarks that our overheads are
-reasonable given the speed of the baseline kernel and the extend of the provided
-functionality. 
-\clearpage
-
 \section{Temporal Isolation}
 
 We now evaluate the temporal isolation properties achieved by the model described in TODO. We use
@@ -704,17 +704,10 @@ we have the expected near perfect proportionality between throughput and
 budget (with slight wiggles due to the rollbacks), showing isolation between clients. In the cases where there is headspace (centre of the right
 graphs), both clients achieve their desired throughput.
 
-\subsection{Summary}
+\section{Practicality}
 
-%TODO rewrite to align with goals at start of chapter
-Through two system benchmarks and one shared-server benchmark, we have shown that our approach
-guarantees processor isolation and that threads cannot exceed their budget allocation via their
-scheduling context. Additionally we have shown that isolation can be achieved in a shared server via
-a timeout fault handler and demonstrated several alternatives for handling such faults,
-demonstrating the feasibility of the model. 
 
-\section{Asymmetric Protection}
-
+\TODO{update - user level criticality not kernel}
 We evaluate our kernel mechanism for changing criticality
 with two benchmarks: A
 microbenchmark measuring the cost of a mode switch, and another showing deadline misses of threads sets over several mode changes.
@@ -808,7 +801,6 @@ utilisation for each stage respectively. Standard deviations are shown in parent
 \end{table}
 
 
-\section{Practicality}
 
 \TODO{intro}
 
@@ -937,9 +929,19 @@ we run two variants.
 
 \section{Summary}
 
+All in all, we have demonstrated via micro- and macro- benchmarks that our overheads are
+reasonable given the speed of the baseline kernel and the extent of the provided
+functionality. 
+
+%TODO rewrite to align with goals at start of chapter
+Through two system benchmarks and one shared-server benchmark, we have shown that our approach
+guarantees processor isolation and that threads cannot exceed their budget allocation via their
+scheduling context. Additionally, we have shown that isolation can be achieved in a shared server via
+a timeout fault handler and demonstrated several alternatives for handling such faults,
+demonstrating the feasibility of the model. 
+
+
+
 % TODO summarise eval
-Our evaluation demonstrates our model has minimal overheads, achieves isolation,  provides a notion
-of criticality orthogonal to priority, and allows for efficient user-level scheduling.
-In total, we add 2,245 lines of SLOC~\citep{Wheeler_01} to the preprocessed kernel code for the \textsc{sabre}
-(the verified platform), representing a 16\% increase.
+Our evaluation demonstrates our model has minimal overheads, achieves isolation, and allows for efficient user-level scheduling.
 
