@@ -19,6 +19,13 @@ Specifically, we make the following contributions:
   of strong spatial isolation.
 \end{itemize}
 
+The implementation is complete, and the functional correctness proof is already underway, with the
+verification engineering team at Data61, CSIRO. The maximum controlled
+priority feature has already been merged to the master kernel, while the rest of the features have
+specifications written and first-level refinement proofs are currently in progress. Verification is
+beyond the scope of this PhD, although we continue to work closely with the team to assist in
+verification. 
+
 \section{Related work}
 
 % survey any related work here not covered by the OS chapter?
@@ -26,36 +33,43 @@ Nemesis~\citep{Leslie_MBRBEFH_96} was a single-address-space microkernel designe
 performance, however this architecture is not suitable for mixed-criticality systems as all the
 code must be at the highest criticality.
 
+AUTOBEST~\citep{Zuepke_BL_15} is a separation kernel where the authors demonstrate implementations
+of AUTOSAR and ARINC653 in separate partitions.
 
+\minix is a traditional microkernel with a focus on reliability rather than performance.
+\citet{Herder_BGHT_06} implemented temporal isolation in \minix by allowing threads to be
+selectively switched to \gls{EDF} scheduling, and providing hooks that allowed for a \gls{CBS}
+implementation at user level. % TODO why bad.
 
-AUTOBEST~\citep{Zuepke_BL_15} is a separation kernel where the authors demonstrate implementations of
-AUTOSAR and ARINC653 in separate partitions.
-
-\minix is a traditional microkernel with a focus on 
-     reliability rather than performance. \citet{Herder_BGHT_06} implemented temporal isolation in
-     \minix by allowing threads to be selectively switched to \gls{EDF} scheduling, and providing
-     hooks that allowed for a \gls{CBS} implementation at user level. % TODO why bad.
-
-    % already mentioned, refer back, but more detail here?
-    Quest-V~\citep{Danish_LW_11} provides reservations through \gls{SS}, however \IO and normal processes
-are distinguished statically: \IO processes use polling servers and normal processes use sporadic
-servers. In Quest-V, separate partitions are assigned to
-different priority levels, and communication via shared memory and inter-processor interrupts 
-is permitted between partitions.
-
+% already mentioned, refer back, but more detail here?
+Quest-V~\citep{Danish_LW_11} provides reservations through \gls{SS}, however \IO and normal
+processes are distinguished statically: \IO processes use polling servers and normal processes
+use sporadic servers. In Quest-V, separate partitions are assigned to different priority levels,
+and communication via shared memory and inter-processor interrupts is permitted between
+partitions.
 
 \fiascooc introduced scheduling contexts in order to allow paravirtualised guests to switch between
 scheduling context with different parameters in order to provide flattened hierarchical
-scheduling~\citep{Lackorzynski_WVH_12}, which prevents scheduling integrity violations
-when scheduling multiple real-time guests by exporting scheduling information to the hypervisor.
-Scheduling contexts in \fiascooc contained a budget, a
-replenishment rule, and a priority, and guests 
-can change scheduling contexts on priority switches and interrupt service routines.
+scheduling~\citep{Lackorzynski_WVH_12}, which prevents scheduling integrity violations when
+scheduling multiple real-time guests by exporting scheduling information to the hypervisor.
+Scheduling contexts in \fiascooc contained a budget, a replenishment rule, and a priority, and
+guests can change scheduling contexts on priority switches and interrupt service routines.
 
-% TODO remove passive voice
-An implementation of RBED has also been completed on OKL4~\citep{Petters_LHE_09}.
+\citet{Petters_LHE_98} completed an implementation of RBED in OKL4.
 
 \section{Future work}
+
+This thesis has covered treating time as a first-class resource, and defined a minimal set of
+mechanisms that can be leveraged to implement temporal isolation between threads, even within shared
+servers. Our primitives also allow for more complex, application specific user-level schedulers to
+be constructed efficiently, as we showed in the evaluation. Although many attempts at integrating a
+capability system with the non-fungible resource that is time have existed before, we believe this is
+the first complete implementation which provides permission to time while not imposing policy
+restrictions. 
+
+We have not considered how frequency scaling should integrate with our model, and not experimented
+with multicore scheduling and locking protocols, which we expect can be implemented at user-level.
+Both of these topics are promising areas of future research.
 
 \TODO{Frequency scaling}
 \TODO{multicore locking and scheduling}
@@ -94,10 +108,6 @@ We are currently at the middle of the evaluation phase, having completed the fol
         \item built several examples including an AES encryption server, and built a variety of timeout exception handling 
 \end{itemize}
 
-Throughout the evaluation, I've discovered problems with the design that have faciliated entire redesigns, tweaks and revaluations. 
-
-The next stage is run the benchmark suite on the newest kernel and complete the case studies.
-
 \subsection{Ongoing Evaluation}
 
 Our design and will be evaluated according to the following qualities over the next 12 months:
@@ -114,30 +124,21 @@ Designs must be conscious of minimising actual and estimated \gls{WCET} as in or
 At the end of the project it should be possible to take a full description of a closed system and irrefutably show that the system is always schedulable.
 Similarly, for a mixed-criticality system, it must be possible to show that the critical parts of the system are always schedulable.
 
-\subsubsection{Measures of verification potential}
-% mention specs
-I have determined that the code follows the verification subset of C and passes through the verification C-Parser.
-I am actively working with the verification team this year to verify the first set of patches. 
-
-\subsection{Case studies}
-
-Case studies will demonstrate that the scheduling and resource sharing mechanisms are practical.
-So far I have built user level schedulers, an AES server for measuring rollback costs. 
-I need to finish a network case study and the SMACCM case study. 
-
-\subsubsection{SMACCM}
-
-Another ideal case study for mixed-criticality systems is an autonomous helicopter.
-Our research group is currently working on building a high-assurance system for such a helicopter (\url{www.ssrg.nicta.com.au/projects/TS/SMACCM}), which I should be able to test running my scheduler.
-I have already been involved with the SMACCM project, advising on real-time scheduling, resource sharing and analysis.
-
 \section{Conclusion}
 
-Mixed-criticality real-time systems that provide isolation and hard guarantees at the operating system level are desirable, due to the unscalable nature of hardware isolation.
-Much research has been conducted into how to schedule workloads for real-time, mixed-criticality systems, however the implications for operating systems are yet to be examined, with most implementations falling short of what is required in a highly critical environment.
+Mixed-criticality real-time systems that provide isolation and hard guarantees at the operating
+system level are desirable, due to the unscalable nature of hardware isolation.  Much research has
+been conducted into how to schedule workloads for real-time, mixed-criticality systems, however the
+implications for operating systems are yet to be examined, with most implementations falling short
+of what is required in a highly critical environment.
 
-As a result, this ongoing research investigates the implications of mixed-criticality, real-time scheduling in the context of a high-assurance operating system, driven by the rise of mixed-criticality systems in safety-critical environments.
-The research investigates the trade-offs between verification potential, performance and policy-mechanism separation with respect to mixed-criticality scheduling and resource sharing.
-In addition to a real-time iteration of seL4 that offers full-system schedulability analysis including the kernel and scheduler, the contributions are expected to provide a model for future L4 real-time scheduling primitives and a novel approach to applying fine-grained permissions to time without sacrificing performance.
+As a result, this ongoing research investigates the implications of mixed-criticality, real-time
+scheduling in the context of a high-assurance operating system, driven by the rise of
+mixed-criticality systems in safety-critical environments.  The research investigates the trade-offs
+between verification potential, performance and policy-mechanism separation with respect to
+mixed-criticality scheduling and resource sharing.  In addition to a real-time iteration of seL4
+that offers full-system schedulability analysis including the kernel and scheduler, the
+contributions are expected to provide a model for future L4 real-time scheduling primitives and a
+novel approach to applying fine-grained permissions to time without sacrificing performance.
 
 
