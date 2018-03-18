@@ -436,17 +436,19 @@ actually achieve slightly better performance than NetBSD. This
 indicates that the MCS model comes with low overhead.
 
 \begin{table}[t]\centering
-    \rowcolors{3}{}{gray!25}
-      \begin{tabular}{lcccc}\toprule
-        \emph{System (IRQ)}  & \emph{Throughput} & \emph{Utilisation} &  \emph{Latency} \\
-                               & (k ops/s)     &  (\%)            &   (ms)            \\
+      \rowcolors{3}{}{gray!25}
+      \begin{tabularx}{\textwidth}{Xrrrrr}\toprule
+          \emph{System}   & \emph{IRQ} & \emph{Throughput} & \emph{Utilisation} & \emph{Cost} & \emph{Latency} \\
+                          &            & (k ops/s)         & (\%)               & per op.     & (ms)            \\
         \midrule
+
       \input{data/ycsb-redis.inc}
       \bottomrule
-    \end{tabular}
+    \end{tabularx}
     \caption{Throughput (k\,ops/s) achieved by Redis using the YCSB
       workload A with 2 clients.  Latency is the average Read and Update,
-      standard deviations in brackets.}
+      standard deviations in parentheses and omitted where less than the least
+      significant digit shown.}
     \label{t:redis}
 \end{table}
 
