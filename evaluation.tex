@@ -95,7 +95,7 @@ hardware used on the specific platform.
     \bottomrule\hline
 \end{tabularx}
 \caption{Latency of timer operations per platform in cycles. Standard deviations shown
-in parenthesis.}
+in parentheses.}
 \label{t:evaluation-timer}
 \end{table}
 
@@ -142,7 +142,7 @@ done 16 times for each result value to prime the cache, then record the next val
 presented are for performing this a total of 16 times. Additionally, we measure the overhead of
 system calls stubs in the same way and subtract this from the measurement, to obtain only the kernel
 cost of the operation\footnote{The \gls{IPC} benchmarks already existed for \selfour, but were modified to
-    support the \gls{MCS} kernel during the work for this thesis}. The message sent is zero length, so not
+    support the \gls{MCS} kernel during the work for this thesis}. The message sent is zero length, so 
 neither the caller or callee's \gls{IPC} buffer accessed.
 This is done for both directions of IPC, as described in \Cref{sec:seL4-api}. 
 
@@ -222,7 +222,7 @@ the resume capability, the ordered IPC checks, and accessing the \gls{SCO} and r
 
 \subsubsection{Active slowpath}
 
-Finally we show the cost of slowpath IPC between two active threads, where both caller and
+Finally, we show the cost of slowpath IPC between two active threads, where both caller and
 callee have a scheduling context. In addition to the
 overheads of \cref{eval:slowpath}, we must bill and change the scheduling context and reprogram the
 timer. On \textsc{x64}, reprogramming the timer uses \gls{TSC}-deadline mode, which is programmed via the
@@ -264,7 +264,7 @@ side. The fault handler then increments the instruction pointer past the undefin
 instruction, and the benchmark continues. The fault handler is passive, so no scheduling context
 switch occurs. 
 
-We measure both directions of the fault, as well as the round trip cost of from the fault  handlers
+We measure both directions of the fault, both the round trip cost of from the fault  handlers
 side. Similar to standard slowpath-IPC, the largest impact is on the reply path, where ordered IPC
 and the extra lookup of the resume object add overhead.
 
@@ -346,7 +346,8 @@ that when the scheduler is not used and a thread switch does not occur, there is
 \label{t:micro-schedule}
 \end{table}
 
-The \code{schedule} benchmark measures the cost of a signal to a higher priority thread, which forces a reschedule.
+The \code{schedule} benchmark measures the cost of a signal to a higher priority thread, which forces 
+a reschedule operation.
 Scheduling cost increases noticeably due to the need for first reading
 and then reprogramming the timer for budget enforcement. Furthermore,
 the sporadic replenishment logic is far more complicated than the
@@ -378,8 +379,8 @@ two for servicing interrupts (network, timer) and one for Rump, as shown in
 followed by Redis and a low-priority idle thread (not shown) for measuring CPU utilisation;
 this setup forces frequent invocations of the scheduler and interrupt path.
 
-We compare against bare-metal Rump,and
-NetBSD (version 7.0.2) itself, which both use the same drivers. Additionally we compare to Linux 
+We compare against bare-metal Rump, and
+NetBSD (version 7.0.2) itself, which both use the same drivers. Additionally, we compare to Linux 
 in single-user mode. \Cref{f:redis-arch} shows the architecture of the benchmark for each system. 
 
  \begin{figure}[ht]
@@ -422,9 +423,9 @@ indicates that the MCS model comes with low overhead.
 
 \section{Temporal Isolation}
 
-We now evaluate the temporal isolation properties achieved by the model described in TODO. We use
+We now evaluate the temporal isolation properties achieved by the model. We use
 two system benchmarks to show that processes attain and do not exceed their
-CPU allocation provided by their scheduling context. We then evaluate and demonstrate different
+CPU allocation provided by their scheduling context. Finally, we evaluate and demonstrate different
 techniques to restore server state after a timeout exception and finally show temporal isolation between
 clients in a shared server scenario.
 
@@ -443,7 +444,7 @@ competing for \gls{CPU} time.  All scheduling contexts in the system are configu
 for the server configuration. \autoref{f:redis} shows the throughput
 achieved by the YCSB-A workload as a function of the available CPU
 bandwidth (i.e \ the complement of the bandwidth granted to the hog
-thread). Each data point is the average of three benchmark runs.
+thread). All data points are the average of three benchmark runs.
 
 \begin{figure}[h]
   \centering
@@ -528,7 +529,7 @@ fault \gls{IPC} messages on endpoint $E_{2}$.}
 
 The server itself runs the AES-256 algorithm with a block size of 16~bytes. The server alternates between two
 buffers using an atomic swap, of which one always contains consistent state, the other is
-dirty during processing. When a timeout fault occurs only the dirty buffer is lost due to
+dirty during processing. When a timeout fault occurs, only the dirty buffer is lost due to
 inconsistency. 
 
 Both clients request 4\,MiB of data to be encrypted, and have a budget insufficient to
@@ -547,7 +548,8 @@ emergency and extend.
 While each technique is evaluated separately, combinations of such techniques could be used for
 different clients depending on their requirements. For example, trusted clients may get special
 treatment. Note that in all cases of blocking IPC, clients must trust the server as discussed in
-TODO. Additionally, although out experiment places the timeout fault handler in the server's address
+\cref{s:locking}. Additionally, although out experiment places 
+the timeout fault handler in the server's address
 space, this is not necessary: for approaches that require access to scheduling contexts and
 scheduling control capabilities, the timeout handler may be placed in a scheduling servers address
 space, separate from the server itself.
@@ -581,12 +583,12 @@ object that the server is using, and the servers \gls{TCB}, meaning the timeout 
 trusted by the server. In our example the server and timeout handler run at the same priority, in
 all cases both must run at higher priorities than the clients. 
 
-Once the budget of the faulting client is replenished it can then continue the request based on the
+Once the budget of the faulting client is replenished, it can then continue the request based on the
 content of the reply message sent by the timeout handler. Clients are guaranteed progress as long as
 their budget is sufficient to complete a single batch of progress.
 
 If rollback is not suitable, the server can be similarly reset to the initial state and an error
-returned to the client. However this does not guarantee progress for clients with insufficient
+returned to the client. However, this does not guarantee progress for clients with insufficient
 budgets.
 
 \subsubsection{Kill}
@@ -614,10 +616,10 @@ An example emergency protocol follows:
     \item Unbind client scheduling context from server. \TODO{clarify who does what}
     \item Bind server with emergency budget.
     \item Reply to the timeout fault, which restarts the server.
-    \item Enqueue the timeout handler itself, with an empty sized request, in the servers
+    \item Enqueue the timeout handler itself, with an empty sized request, in the server's
           endpoint queue, by invoking $E_{1}$
     \item Server finishes request with extra budget and replies to the client.
-    \item Timeout handler is highest priority, so it overtakes other clients and wakes up after the 
+    \item The timeout handler is highest priority, so it overtakes other clients and wakes up after the 
           server processes its empty request. The handler then converts the server back to passive.
     \item Handler blocks on $E_{2}$, ready for further timeout faults.
 \end{enumerate}
@@ -759,7 +761,7 @@ MiBench~\citep{Guthaus_REAMB_01} to act as workloads. Each benchmark runs in its
 with an in-memory file system, and shares a timer and serial server.
 
 We altered the benchmarks to run periodically in multiple stages. To obtain
-execution times long enough, some of the benchmarks iterate a fixed number of times per
+execution times long enough, some benchmarks iterate a fixed number of times per
 stage. Each benchmark process executes its workload and then waits for the next period to start.
 Deadlines are implicit: if a periodic job finishes before the start of the next period it is
 considered successful, otherwise the deadline is missed.
@@ -774,7 +776,7 @@ increment the system criticality level at stage transition. The parameters are a
 rate-monotonic priorities are inverse to the criticalities.
 
 Results are shown in \autoref{t:modeswitch}. For stage one, the entire workload is schedulable and
-there are no deadline misses. For stage two, the workload is not
+no deadlines are missed. For stage two, the workload is not
 schedulable, and the criticality switch boosts the priorities of
 \textit{susan} and \textit{jpeg}, such that they meet
 their deadlines, but
@@ -861,15 +863,18 @@ implementing different policies on top of the base scheduler is quite feasible.
     \label{f:edf}
 \end{figure}
 
-\subsection{Multicore}
+\section{Multiprocessor benchmarks}
 
-We run two multicore benchmarks, the first evaluating multicore throughput of the MCS kernel vs. the
+We run two multicore benchmarks, the first evaluating multicore throughput of the MCS kernel versus the
 baseline kernel, the second based on our shared server \gls{AES} case study to demonstrate the
 multicore model. 
 
+We run multiprocessor benchmarks on two of our platforms, \textsc{Sabre} and \textsc{x64}. Both 
+are symmetric multiprocessors with four cores. 
+
 \subsubsection{Throughput}
 
-We run an multicore throughput benchmark to show that our MCS model
+We run a multicore throughput benchmark to show that our MCS model
 avoids introducing scalability problems on multiple cores compared to the baseline kernel.
 We modify the
 existing multicore IPC throughput benchmark for \selfour to run on the MCS kernel. 
@@ -881,7 +886,7 @@ pinned to the same processor, sending fastpath, 0 length IPC messages of via \ca
 and \replyrecv. One pair of client and server is set up per core. Both threads are
 the same priority and the messages are 0 length. Each thread spins for a random amount
 with an upper bound \textit{N} between each subsequent IPC. As \textit{N} increases so does
-IPC throughput, as less calls are made.
+IPC throughput, as fewer calls are made.
 
 We modify the benchmark such that each server thread is passive on the MCS kernel.
 Results are displayed in \Cref{f:evaluation-smp} and show a minor impact on IPC throughput
