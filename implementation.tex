@@ -167,10 +167,12 @@ which consist of a \code{timestamp} and \code{amount}. These are used for both r
 sporadic threads. For round-robin threads we simply use the head replenishment to track how much
 time is left in that \glspl{SCO} timeslice. 
 
-Sporadic threads are more complex; the amount of replenishments is limited by both a variable
+Sporadic threads are more complex; the replenishments form a circular buffer used to track 
+how much time a thread can execute for (\code{amount}) and when that time can be used (\code{timestamp}).
+The size of the circular buffer is limited by both a variable
 provided on configuration and the size of the \gls{SCO}, configured on creation. This allows system
 designers to control the preemption and fragmentation of sporadic replenishments as discussed in
-\cref{sec:model-sporadic}.
+\cref{sec:model-sporadic}. 
 
 Each \gls{SCO} is minimum $2^{8}$ bytes in size, which can hold eight or ten replenishments for 32
 and 64-bit processors respectively. This is sufficient for most uses, but more replenishments can
@@ -207,6 +209,193 @@ all set to zero. To configure a scheduling context, the new \code{sched\_control
 invoked, which allows the period, initial sporadic replenishment, maximum number of refills, and
 badge fields to be set. The processing core is derived from the \code{sched\_control} capability
 that is invoked: only one exists per core. 
+
+The \code{configure} operation behaves differently depending on the state of the target scheduling
+context and can be used not only to configure \glspl{SCO} but to migrate threads across cores, and
+change the available bandwidth of a currently runnable thread. The semantics are as follows:
+
+\begin{itemize}
+\item If the scheduling context is not bound
+to a currently runnable thread, or does not represent any time currently, the operation is 
+a basic configure: the fields are
+simply set and the first replenishment is configured with budget provided and timestamp of the
+kernel entry. The function \code{refill\_new} is used to \cref{list:refill-init}
+\item If the scheduling context is bound to a currently runnable thread, but that scheduling
+context is for a different processing core than the \code{sched\_control} capability, the fields are
+set and the thread is migrated to the new core.  
+\item Finally, if the scheduling context is bound to a currently running thread and the
+    \code{sched\_control} capability is for the same core, we update the replenishment list without
+    allowing the sliding window constraint to be violated. The function \code{refill\_update} shows the
+    algorithm used.
+\end{itemize}
+
+\begin{listing}[h!]
+\begin{ccode}
+/* Short hand for accessing refill queue items */
+#define REFILL_INDEX(sc, index) (((refill_t *) ((word_t) (sc) \
+                                + sizeof(sched_context_t)))[index])
+#define REFILL_HEAD(sc) REFILL_INDEX((sc), (sc)->head)
+#define REFILL_TAIL(sc) REFILL_INDEX((sc), (sc)->tail)
+
+void refill_new(sched_context_t *sc, word_t max_refills, ticks_t budget, ticks_t period)
+{
+    sc->period = period;
+    sc->head = 0;
+    sc->tail = 0;
+    sc->max = max_refills;
+    /* full budget available */
+    REFILL_HEAD(sc).amount = budget;
+    /* budget can be used from now */
+    REFILL_HEAD(sc).time = current_time;
+}
+
+void refill_update(sched_context_t *sc, ticks_t new_period, ticks_t new_budget, 
+                   word_t new_max_refills)
+{
+    /* move the head refill to the start of the list */
+    REFILL_INDEX(sc, 0) = REFILL_HEAD(sc);
+    sc->head = 0;
+    /* truncate refill list to size 1 */
+    sc->tail = sc->head;
+    /* update max refills */
+    sc->max = new_max_refills;
+    /* update period */
+    sc->period = new_period;
+
+    if (REFILL_HEAD(sc).time < current_time) {
+        REFILL_HEAD(sc).time = current_time;
+    }
+
+    if (REFILL_HEAD(sc).amount >= new_budget) {
+        /* if the heads budget exceeds the new budget just trim it */
+        REFILL_HEAD(sc).amount = new_budget;
+    } else {
+        /* otherwise schedule the rest for the next period */
+        refill_t new = { .amount = (new_budget - REFILL_HEAD(sc).amount),
+                         .time = REFILL_HEAD(sc).time + new_period
+                       };
+        refill_add_tail(sc, new);
+    }
+}
+\end{ccode}
+\caption{Code to initialise a scheduling context that is not bound to a currently active thread.}
+\label{list:refill-init}
+\end{listing}
+
+\subsubsection{Sporadic Servers}
+\label{sec:impl-sporadic}
+
+Configured scheduling contexts with zero extra refills behave like polling servers (\cref{p:polling-servers}),
+otherwise they behave as sporadic servers (\cref{p:sporadic}), allowing application developers to
+tune the behaviour of threads depending on their preemption levels and execution durations.
+
+The algorithms to manage replenishments are taken from \citet{Danish_LW_11}, with adjustments to
+support periods of 0 (for round robin threads) and to implement a minimum budget.  Whenever the
+current scheduling context is changed, \texttt{check\_budget} as shown in Listing
+\ref{list:check-budget} is called to bill the amount of time consumed since the last scheduling
+context change.  `check\_budget` If the budget is not completely consumed by \texttt{check\_budget},
+\texttt{split\_budget} as shown in Listing \ref{list:split-check} is called to schedule the
+subsequent refill for the chunk of time just consumed.  If the replenishment buffer is full, or the
+amount consumed is less than the minimum budget, the amount used is merged into the next
+replenishment.  The scheduling context being switched to has \texttt{unblock\_check} Listing
+(\ref{list:unblock-check}) called on it, which merges an replenishments that are already available,
+avoiding unnecessary preemptions.
+
+\begin{listing}[h]
+\begin{ccode}
+
+uint_64_t check_budget(sched_context_t *sc, uint64_t usage) {
+  while (REFILL_HEAD(sc).amount <= usage) {
+    // exhaust and schedule replenishment
+    old_head = pop_head(sc);
+    usage -= old_head.amount;
+    old_head.time += sc->period;
+    add_tail(sc, old_head)
+  }
+
+  /* handle budget overrun */
+  if (usage > 0 && sc->period > 0) {
+    // delay refill by overrun
+    REFILL_HEAD(sc).time += usage;
+    // merge replenishments if time overlaps
+    if (refill_size(sc) > 1 &&
+        REFILL_HEAD(sc).time + REFILL_HEAD(sc).amount
+        >= refill_next(sc).time) {
+
+      refill_t old_head = pop_head(sc);
+      REFILL_HEAD(sc).amount += old_head.amount;
+    }
+  }
+}
+\end{ccode}
+\caption{Check budget routine used to implement sporadic servers.}
+\label{list:check-budget}
+\end{listing}
+
+\begin{listing}[h]
+\begin{ccode}
+
+
+void split_check(sched_context_t *sc, uint64_t usage) {
+  uint64_t remnant = REFILL_HEAD(sc).amount - usage;
+  if (remnant < MIN_BUDGET && refill_size(sc) == 1) {
+    // delay entire replenishment
+    // refill too small to use and nothing to merge with */
+    REFILL_HEAD(sc).time += sc->period;
+    return;
+  }
+
+  if (refill_size(sc) == sc->refill_max || remnant < MIN_BUDGET) {
+    // merge remnant - out of space or its too small
+    pop_head(sc);
+    REFILL_HEAD(sc).amount += remant;
+  } else {
+    // split the head refill
+    REFILL_HEAD(sc).amount = remnant;
+  }
+
+  // schedule the used amount
+  refill_t split;
+  split.amount = usage;
+  split.time = REFILL_HEAD(sc).time + sc->period;
+  add_tail(sc, split);
+}
+\end{ccode}
+\caption{Split check routine used to implement sporadic servers.}
+\label{list:split-check}
+\end{listing}
+
+
+\begin{listing}[h]
+\begin{ccode}
+void unblock_check(sched_context_t *sc) {
+  if (!REFILL_HEAD(sc).time > now)) {
+    return;
+  }
+
+  REFILL_HEAD(sc).time = now;
+  // merge available replenishments
+  while (refill_size(sc) > 1) {
+    if (refill_next(sc).time < now + REFILL_HEAD(sc).amount) {
+      refill_t old_head = pop_head(sc);
+      REFILL_HEAD(sc).amount += old_head.amount;
+      REFILL_HEAD(sc).time = now;
+    } else {
+      break;
+    }
+
+    if (REFILL_HEAD(sc).amount < MIN_BUDGET) {
+      // second part of split_check can leave refills
+      // with less than MIN_BUDGET amount.
+      // detect them here and merge.
+      refill_t old_head = pop_head(sc);
+      REFILL_HEAD(sc).amount += old_head.amount;
+    }
+}
+\end{ccode}
+\caption{Unblock check routine used to implement sporadic servers.}
+\label{list:unblock-check}
+\end{listing}
 
 \subsection{Thread control blocks}
 
@@ -367,7 +556,15 @@ descriptions of each system call can be found in \cref{label:appendix-api}.
 
 \subsection{Invocations}
 
-Scheduling contexts have 5 invocations, listed in \cref{tab:sched_context_api}. The new control
+Scheduling contexts have five invocations, listed in \cref{tab:sched_context_api}. Three of those
+methods are for binding \glspl{SCO} to \gls{TCB} and notification objects, while \code{yieldTo} and 
+\code{consumed} others facilitate user-level scheduling, allowing the user to manipulate
+the kernel scheduling queues and to query the amount of time consumed by a specific \gls{SCO}.
+Both functions return the amount of CPU time the scheduling context has executed for since it was last
+clearer: reading the consumed value by either system call clears the it, as does a timeout
+exception.
+
+The new control
 capability, \code{sched\_control}, has only one invocation \code{configure} for setting the parameters of a
 scheduling context (the function definition can be found in \cref{api:schedcontrol_configure}). 
     
@@ -585,236 +782,64 @@ stored consumed value from the timestamp.
 
 \begin{figure}
     \centering 
-    \includegraphics{tickless}
+    \includegraphics[width=0.8\textwidth]{tickless}
     \caption{Kernel structure}
     \label{figure:tickless}
 \end{figure}
 
 \subsubsection{Domain scheduler}
 
-\TODO{update}
-
-While the real-time amendments to the scheduler are compatible with the domain scheduler, either the domain scheduler or the real-time amendments should be used for real-time scheduling.
-This is because domains are non-preemptive and as a result can only be used for non-preemptive real-time scheduling, where domain parameters exactly match real-time scheduling parameters.
-Using more than one domain when preemptive real-time scheduling is will result in missed deadlines.
-
+We retain the domain scheduler, as the proof of confidentiality currently requires
+it~\citep{Murray_MBGBSLGK_13}, but convert the implementation to tickless.
 
 \subsection{Enforcement}
 
 % timeout exceptions, release queue, sporadic servers
+The enforcement mechanisms require the most significant changes to the kernel, which we now detail.
+
 The main change required to the existing scheduler is the addition of a \emph{release queue} per
 processing core. If a
 preempted thread does not have any available replenishments, the kernel removes the thread from the
 ready queue to the release queue, retaining the invariant for the ready queue, which the release
 queue is characterised as holding all threads that would be runnable but are presently out of
-budget. The queue is ordered by the timer when the next replenishment is available.
+budget. The queue is ordered by the time the next replenishment is available.
 
 \subsubsection{Priority queues}
-\TODO{for replenishment queues and IPC}
-Priority queues for both scheduling algorithms are implemented as ordered lists, with $O(n)$ insertion and removal complexity.
-The most frequent operation on the lists is to remove the head, which is $O(1)$.
-We choose a list over a heap for increased performance and reduced verification burden.
 
-A list-based priority queue out performs a heap-based priority queue for small $n$ in our implementation up to around $n = 100$.
-This $n$ is larger than one would expect in a traditional \gls{OS}, where heap implementations are array-based in contiguous memory with layouts optimised for cache usage.
-However, in order to provide isolation and confidentiality, \selfour kernel memory is managed at user-level, as discussed in %TODO{section}.
-Consequently, to put a \selfour kernel object into a heap, the pointers for the heap implementation must be contained within the object, which could be anywhere in memory as chosen by the user.
-This means that \selfour heap implementations are non-contiguous, and must be pointer based, resulting in a much larger cache footprint with worse performance than an array-based approach.
+In addition to the release queue, we also change endpoint and notification object queues
+to priority queues, ordered by \gls{TCB} priority. All queues are implemented as ordered, doubly-linked
+lists, where all operations complete in $O(1)$ except for insertion, which is $O(n)$, where $n$ 
+is the number of threads in the queue. 
+We chose the list data structure over a heap for increased performance and reduced verification
+burden.
 
-verification.
-Of course, even if the heap implementation is slower, given a sufficient number of tasks a heap will scale better than a list.
-However, we do not expect systems to run a large amount of real-time tasks, as \selfour target applications generally run virtualised Linux along-side a few critical real-time tasks.
-Additionally, the reduced complexity of a list compared to a heap will result in faster verification, so consequently a list implementation looks favourable.
+A list-based priority queue out performs a heap-based priority queue for small $n$ in our
+implementation up to around $n = 100$.  This $n$ is larger than one would expect in a traditional
+\gls{OS}, where heap implementations are array-based in contiguous memory with layouts optimised for
+cache usage.  However, because \selfour kernel memory is
+managed at user-level (as discussed in \cref{sec:sel4-memory}), data structures must be dynamic, 
+resulting in much higher code complexity, and poorer performance than a static heap. 
+We do not expect systems to run a large amount of tasks, however if scalability becomes a problem in
+practice this implementation could be reconsidered. \citet{Brandenburg:phd} used
+binomial heaps for schedulers in \litmus, however Linux does not provide the guarantees, or
+implementation requirements of \selfour.
 
 \subsubsection{Timeout Exception Handlers}
 
-\subsection{Sporadic Servers}
-\label{sec:impl-sporadic}
-
-Scheduling contexts contain a circular buffer for sporadic task replenishments.
-Each replenishment has an amount of time that stands to be replenished, and the absolute time from when that replenishment can be used, as shown in \cref{tab:refill}.
-When \texttt{seL4\_SchedControl\_Configure} is called on an inactive scheduling context, the amount is set to the budget and the replenishment time to the current time.
-At all times, the sum of the amounts in the replenishment buffer is equal to the configured budget.
-The maximum size of this buffer is statically configurable, and the minimum size is one.
-Users can specify the amount of extra refills a scheduling context can have, up to the static maximum.
-This extends the approach used by Quest-V~\citep{Danish_LW_11}, which has as static limit of 32
-replenishments % TODO expand, specify IO or find elsewhere. 
-
-
-Scheduling contexts with zero extra refills behave like polling servers (\cref{p:polling-servers}), otherwise they behave as sporadic servers (\cref{p:sporadic}), allowing application developers to tune the behaviour of threads depending on their preemption levels and execution durations.
-
-The algorithms to manage replenishments are taken from \citet{Danish_LW_11}, with adjustments to support periods of 0 (for round robin threads) and to implement a minimum budget.
-Whenever the current scheduling context is changed, \texttt{check\_budget} as shown in Listing \ref{list:check-budget} is called to bill the amount of time consumed since the last scheduling context change.
-`check\_budget`
-If the budget is not completely consumed by \texttt{check\_budget}, \texttt{split\_budget} as shown in Listing \ref{list:split-check} is called to schedule the subseqeunt refill for the chunk of time just consumed.
-If the replenishment buffer is full, or the amount consumed is less than the minimum budget, the amount used is merged into the next replenishment.
-The scheduling context being switched to has \texttt{unblock\_check} Listing (\ref{list:unblock-check}) called on it, which merges an replenishments that are already available, avoiding unneccessary preemptions.
-
-When \texttt{seL4\_SchedControl\_Configure} is called on an active scheduling context, the refills are adjusted to reflect the new budget and period but respect the sliding window constraint.
-
-Round-robin threads have full reservations: $T = C$, entitling them to 100\% of the processor but subject to preemption every time $C$ is used.
-Clearly we don't want to track replenishments for round-robin threads, so the kernel detects if round robin scheduling contexts when \texttt{seL4\_SchedControl\_Configure} is called, and sets the period to 0.
-This avoids much special casing in the replenishment code, as round-robin threads are always ready (we always add 0 to the replenishment time).
-
-\TODO{Say what head refill does}
-\begin{listing}[b]
-\begin{ccode}
-
-uint_64_t check_budget(sched_context_t *sc, uint64_t usage) {
-  while (head_refill(sc).amount <= usage) {
-    // exhaust and schedule replenishment
-    old_head = pop_head(sc);
-    usage -= old_head.amount;
-    old_head.time += sc->period;
-    add_tail(sc, old_head)
-  }
-
-  /* handle budget overrun */
-  if (usage > 0 && sc->period > 0) {
-    // delay refill by overrun
-    head_refill(sc).time += usage;
-    // merge replenishments if time overlaps
-    if (refill_size(sc) > 1 &&
-        head_refill(sc).time + head_refill(sc).amount
-        >= refill_next(sc).time) {
-
-      refill_t old_head = pop_head(sc);
-      head_refill(sc).amount += old_head.amount;
-    }
-  }
-}
-\end{ccode}
-\caption{Check budget routine.}
-\label{list:check-budget}
-\end{listing}
-
-\begin{listing}
-    \begin{ccode}
-void split_check(sched_context_t *sc, uint64_t usage) {
-  uint64_t remnant = head_refill(sc).amount - usage;
-  if (remnant < MIN_BUDGET && refill_size(sc) == 1) {
-    // delay entire replenishment
-    // refill too small to use and nothing to merge with */
-    head_refill(sc).time += sc->period;
-    return;
-  }
-
-  if (refill_size(sc) == sc->refill_max || remnant < MIN_BUDGET) {
-    // merge remnant - out of space or its too small
-    pop_head(sc);
-    head_refill(sc).amount += remant;
-  } else {
-    // split the head refill
-    head_refill(sc).amount = remnant;
-  }
-
-  // schedule the used amount
-  refill_t split;
-  split.amount = usage;
-  split.time = head_refill(sc).time + sc->period;
-  add_tail(sc, split);
-}
-\end{ccode}
-\caption{Split check routine.}
-\label{list:split-check}
-\end{listing}
-
-\begin{listing}
-    \begin{ccode}
-void unblock_check(sched_context_t *sc) {
-  if (!head_refill(sc).time > now)) {
-    return;
-  }
-
-  head_refill(sc).time = now;
-  // merge available replenishments
-  while (refill_size(sc) > 1) {
-    if (refill_next(sc).time < now + head_refill(sc).amount) {
-      refill_t old_head = pop_head(sc);
-      head_refill(sc).amount += old_head.amount;
-      head_refill(sc).time = now;
-    } else {
-      break;
-    }
-
-    if (head_refill(sc).amount < MIN_BUDGET) {
-      // second part of split_check can leave refills
-      // with less than MIN_BUDGET amount.
-      // detect them here and merge.
-      refill_t old_head = pop_head(sc);
-      head_refill(sc).amount += old_head.amount;
-    }
-}
-\end{ccode}
-\caption{Unblock check routine.}
-\label{list:unblock-check}
-\end{listing}
-
-
-\TODO{FINISH THIS CHAPTER -- everything beyond here is stale}
-% Yield behaviour
-
-
-
-
-
-
-
-\subsubsection{Real-time threads}
-
-The scheduling of real-time threads is more complicated than that of rate-limited or best-effort
-threads, as the concept of a sporadic job, including job release time and job completion, need to be
-supported by the kernel API.
-
-We define the initial job release as when a thread is resumed: the available budget is set to the
-total budget in the reservation for that thread.
-
-Job completion is more complicated.  As described in section \Cref{sec:sporadic-task-model}, job
-completion occurs when a job blocks waiting for the next job to be released.  Any budget left by the
-current job is released as slack into the system, which means the available reservation budget drops
-to 0.  If a job is time-triggered, such that it only relies on time for job release, then next job
-will be released once the period has passed.  If a job is event-triggered, then the next job should
-be released once the period has passed \textit{and} an external event occurs, such as an interrupt.
-
-Simply defining job completion as when a task blocks is not sufficient as jobs can also block for
-other reasons, like polling I/O, or waiting for an asynchronous server.  Unintentionally completing
-a job by blocking is incorrect, as it would result in real-time threads receiving less processing
-time than they have reserved.
-
-One design option we considered was to use the yield system call to complete the current job.
-However this approach would not enable a thread to receive a notification on job release, requiring
-more system calls to retrieve notifications.
-
-\begin{listing}
-\begin{ccode}
-    for (;;) {
-        // job is released
-        doJob();
-        // job completes before deadline or is postponed by CBS
-        // sleep until next job is ready
-        seL4_Word badge;
-        seL4_Wait(bound_async_endpoint, &badge);
-    }
-\end{ccode}
-\caption{Example of a basic sporadic real-time task on sel4}
-\label{list:sporadic-sel4}
-\end{listing}
-
-
-
-\subsubsection{Exception}
-
-Temporal faults allow the user to implement custom handling for budget expiry.
-A temporal fault endpoint for budget expiry is set per thread, so a server can set up a dedicated thread to wait for temporal faults.
-The dedicated thread must be assigned its own reservation for handling faults.
-The thread can be used to complete the request (as an emergency reservation), to rollback the request and return an error from the server, or for other purposes.
-Of course, servers then must be thread safe such that the fault handling thread does not corrupt state.
-
-
+Timeout exceptions are only triggered for threads with non-empty timeout handling slots in the
+\gls{TCB} \code{cnode}, configured with \code{settimeoutep}. The implementation is the same as for
+fault handlers with one exception: while fault \gls{IPC} messages can trigger scheduling context
+donation, allowing fault handling threads to be passive, timeout messages cannot. The timeout
+message contains the badge of the scheduling context which triggered the fault, and the amount of
+time consumed by that scheduling context since the last reset.
 
 \section{Summary}
 
-This section has outlined the details of integrating resource kernel concepts of enforcement, admission and scheduling into \selfour.
-We also outlined our approach to resource sharing, using scheduling context donation over IPC, and showed how this supports servers using reservation-per-thread, migrating-threads, temporal exceptions or bandwidth inheritance.
+In this chapter we have presented the new kernel objects, system call API, invocations and 
+structural changes made to provide mechanisms for temporal isolation. 
+The implementation adds roughly 2,000 lines of code to \selfour (14\% increase), as measured
+by SLOC~\citep{Wheeler_01} on the pre-processed code for the \textsc{Sabre}, the verified platform.
+In the next chapter, we evaluate our implementation with a series of microbenchmarks, system benchmarks and case 
+studies.
 
 

@@ -28,7 +28,7 @@ benchmarks that require a network.
 \TODO{Appendix listing exact hardware details}
 \begin{table}[ht]
 \rowcolors{2}{gray!25}{white}
-\begin{tabular}{*7l}\toprule
+\begin{tabularx}{\textwidth}{llXlccc}\toprule
     \emph{Platform} & \emph{Arch.} & \emph{Microarchictecture} & \emph{CPU} & \emph{Clock (GHz)} &
     \emph{Mode} & \emph{Cores} \\\midrule
     \textsc{KZM}  & ARMv6          & ARM1136JF-S          & i.MX31       & 1.00         & 32  &  1 \\
@@ -40,7 +40,7 @@ benchmarks that require a network.
     \textsc{ia32} & x86            & i7-4770             & Haswell      & 3.10         & 32  & 4 \\
     \textsc{x64}  & x86            & i7-4770             & Haswell      & 3.10         & 64  & 4
 \\\bottomrule\hline
-\end{tabular}
+\end{tabularx}
 \caption{Hardware platforms and specifications used in benchmarks. \textsc{Hikey32/Hikey64}
     and \textsc{ia32/x64} are the
 same platform in 32 and 64 bit mode respectively.}
@@ -69,7 +69,7 @@ hardware used on the specific platform.
 
 \begin{table}[ht]\centering
 \rowcolors{2}{gray!25}{white}
-\begin{tabular}{*5l}\toprule
+\begin{tabularx}{\textwidth}{lXccc}\toprule
     \emph{Platform} & \emph{Timer} & \emph{Read time} & \emph{Set timeout} & \emph{Sum}
     \\\midrule
     \textsc{KZM}               & General purpose timer    & 83 (0)   & 203(0)  & 286   \\
@@ -80,7 +80,7 @@ hardware used on the specific platform.
     \textsc{ia32}              & TSC deadline mode        & 12 (2.2) & 220 (1.0) & 232 \\
     \textsc{x64}               & TSC deadline mode        & 11 (2.3) & 217 (2.0) & 228 \\
     \bottomrule\hline
-\end{tabular}
+\end{tabularx}
 \caption{Latency of timer operations per platform in cycles. Standard deviations shown
 in parenthesis.}
 \label{t:evaluation-timer}
