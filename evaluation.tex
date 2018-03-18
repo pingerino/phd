@@ -22,23 +22,30 @@ the verified platform for \selfour, although at the time of writing verification
 ongoing. Currently, the only platforms that support more than one core are \textsc{Sabre},
 \textsc{ia32} and \textsc{x64}.
 
-Additionally, we use several load generators running Linux on an isolated network for several
+Two of our platforms, \textsc{x64} and \textsc{Hikey} support both 32- and 64-bit execution modes.
+We use both, referring to them as \textsc{ia32} and \textsc{Hikey32} when in 32-bit mode and
+\textsc{x64} and \textsc{Hikey64} otherwise. All platforms have out of order execution, except
+\textsc{Hikey}, which is in-order.
+
+Additionally, we use several load generators running Linux on an isolated network for 
 benchmarks that require a network.
 
 \TODO{Appendix listing exact hardware details}
 \begin{table}[ht]
-\rowcolors{2}{gray!25}{white}
-\begin{tabularx}{\textwidth}{llXlccc}\toprule
-    \emph{Platform} & \emph{Arch.} & \emph{Microarchictecture} & \emph{CPU} & \emph{Clock (GHz)} &
-    \emph{Mode} & \emph{Cores} \\\midrule
-    \textsc{KZM}  & ARMv6          & ARM1136JF-S          & i.MX31       & 1.00         & 32  &  1 \\
-    \textsc{Sabre} & ARMv7          & Cortex-A9           & i.MX6        & 1.00         & 32  & 4 \\
-    \textsc{Hikey32} & ARMv8          & Cortex-A53          & Kirin 620    & 1.20         & 32  & 8 \\
-    \textsc{Hikey64} & ARMv8          & Cortex-A53          & Kirin 620    & 1.20         & 64  & 8 \\
-    \textsc{TX1}  & ARMv8          & Cortex-A57          & Jetson TX1   & 1.91        & 64  & 4 \\
-    \textsc{atom} & x86            & E3825               & Atom         & 1.33         & 32  & 2 \\
-    \textsc{ia32} & x86            & i7-4770             & Haswell      & 3.10         & 32  & 4 \\
-    \textsc{x64}  & x86            & i7-4770             & Haswell      & 3.10         & 64  & 4
+\rowcolors{3}{gray!25}{white}
+\begin{tabularx}{\textwidth}{llXlccccc}\toprule
+    \emph{Platform}          & \emph{Arch.} & \emph{Microarch.} & \emph{CPU} & \emph{Clock } & L1 & L2 & L3 & TLB  \\
+                             &              &                   &            &        GHz    & KiB,$\times$ & KiB, $\times$ & KiB, $\times$ & entries, $\times$ \\\midrule
+    \textsc{KZM} (32-bit)    & ARMv6        & ARM1136JF-S       & i.MX31     & 1.0           & 16,4 &
+    128,8 & N/A & 32,2\\
+    \textsc{Sabre} (32-bit)  & ARMv7        & Cortex-A9         & i.MX6      & 1.0           &
+    32+32,4 & 1024, 16 & N/A, 64,2           \\
+    \textsc{Hikey} (64-bit)  & ARMv8        & Cortex-A53        & Kirin 620  & 1.2           &
+    32+32,4+2 & 512,16 & N/A, 128,4          \\
+    \textsc{TX1}   (64-bit)  & ARMv8        & Cortex-A57        & Jetson TX1 & 1.9           &
+    32+48,2+3 & 2,048,16 & N/A & 256,4          \\
+    \textsc{x64}    (64-bit) & x86          & i7-4770           & Haswell    & 3.1           &
+    32+32,8 & 256,8 * 8,192,16, 128,8 \\          
 \\\bottomrule\hline
 \end{tabularx}
 \caption{Hardware platforms and specifications used in benchmarks. \textsc{Hikey32/Hikey64}
@@ -76,7 +83,6 @@ hardware used on the specific platform.
     \textsc{Sabre}             & ARM MPCore global timer  & 23 (0)   & 36 (0)  & 59    \\
     \textsc{Hikey32/64}        & ARM generic timers       &  6 (0)   &  6 (0)  & 12    \\
     \textsc{TX1}               & ARM generic timers       &  8 (0)   &  1 (0)  & 9     \\
-    \textsc{atom}              & TODO                     & TODO     & TODO    & TODO  \\
     \textsc{ia32}              & TSC deadline mode        & 12 (2.2) & 220 (1.0) & 232 \\
     \textsc{x64}               & TSC deadline mode        & 11 (2.3) & 217 (2.0) & 228 \\
     \bottomrule\hline
@@ -152,8 +158,6 @@ active threads.
     \ipcmicro{x64}{haswell}{fastpath}
     \ipcmicro{ia32}{ia32}{fastpath}
     \bottomrule
-% TODO atom
-% TODO ia32
 \end{tabular}
 \caption{Time in cycles for \selfour fastpath \gls{IPC}.}
 \label{t:fastpath-ipc-micro}
@@ -204,8 +208,6 @@ the resume capability, the ordered IPC checks, and accessing the \gls{SCO} and r
     \ipcmicro{x64}{haswell}{slowpath}
     \ipcmicro{ia32}{ia32}{slowpath}
     \bottomrule
-% TODO atom
-% TODO ia32
 \end{tabular}
 \caption{Time in cycles \selfour slowpath \gls{IPC} between passive threads.}
 \label{t:slowpath-ipc-micro}
@@ -237,8 +239,6 @@ with a hot cache as 36 cycles.
     \ipcmicro{x64}{haswell}{slowpath-active}
     \ipcmicro{ia32}{ia32}{slowpath-active}
     \bottomrule
-% TODO atom
-% TODO ia32
 \end{tabular}
 \caption{Time in cycles for \selfour slowpath \gls{IPC} between active threads.}
 \label{t:slowpath-ipc-active-micro}
