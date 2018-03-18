@@ -31,8 +31,8 @@ set multiplot
 set key at screen 0.25, screen 0.6 left maxrows 1
 set origin 0, NY*2
 set size SX, SY
-plot file using ($1):($2/div):($3/div) title "1-passive" with errorlines, \
-     file using ($1):($4/div):($5/div) title "N-passive" with errorlines
+plot file using ($1):($2/div):($3/div) title "Single" with errorlines, \
+     file using ($1):($4/div):($5/div) title "Multiple" with errorlines
 
 
 unset key
@@ -43,15 +43,15 @@ set ylabel "Throughput MiB/s"
 set title "x64"
 set size SX,SY
 set origin DX,DY      
-plot file using ($1):($2/div):($3/div) title "1-passive" with errorlines, \
-     file using ($1):($4/div):($5/div) title "N-passive" with errorlines
+plot file using ($1):($2/div):($3/div) title "Single" with errorlines, \
+     file using ($1):($4/div):($5/div) title "Multiple" with errorlines
 
 # arm plot
 set ylabel
 set format y ''
 set origin DX+SX,DY
 set title "Sabre"
-plot arm_file using ($1):($2/div):($3/div) title "1-passive" with errorlines, \
-     arm_file using ($1):($4/div):($5/div) title "N-passive" with errorlines
+plot arm_file using ($1):($2/div):($3/div) title "Single" with errorlines, \
+     arm_file using ($1):($4/div):($5/div) title "Multiple" with errorlines
 
 unset multiplot

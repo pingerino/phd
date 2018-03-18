@@ -353,45 +353,6 @@ recent addition to \selfour: scheduling used to be far more expensive.
 \TODO{mention this in the seL4 chapter}. 
 
 
-\subsection{Multicore}
-
-We run two multicore benchmarks, the first evaluating multicore throughput of the MCS kernel vs. the
-baseline kernel, the second based on our shared server \gls{AES} case study to demonstrate the
-multicore model. 
-
-\subsubsection{Throughput}
-
-We run an multicore throughput benchmark to show that our MCS model
-avoids introducing scalability problems on multiple cores compared to the baseline kernel.
-We modify the
-existing multicore IPC throughput benchmark for \selfour to run on the MCS kernel. 
-At time of writing, only \textsc{x64} and \textsc{sabre} have \selfour multiprocessor support, 
-consequently these are the platforms used for the benchmark.
-
-The existing multicore benchmark measures IPC throughput of a client and server, both 
-pinned to the same processor, sending fastpath, 0 length IPC messages of via \call
-and \replyrecv. One pair of client and server is set up per core. Both threads are
-the same priority and the messages are 0 length. Each thread spins for a random amount
-with an upper bound \textit{N} between each subsequent IPC. As \textit{N} increases so does
-IPC throughput, as less calls are made.
-
-We modify the benchmark such that each server thread is passive on the MCS kernel.
-Results are displayed in \Cref{f:evaluation-smp} and show a minor impact on IPC throughput
-for high values of \textit{N}. Scalability is not impacted on \textsc{sabre}, but is on \textsc{x64},
-with the curve flattening slightly more aggressively on the MCS kernel
-due to the fastpath overhead. This is expected as the MCS model only introduces extra 
-per-core state, with no extra shared state between cores.
-
-\begin{figure}[ht] 
-    \centering
-    \includegraphics{smp}
-    \caption{Results of the multicore IPC throughput benchmark, baseline \selfour vs MCS. 
-        Each series is named \textit{name-N}, where \textit{name} is \textit{base} and \textit{mcs} for 
-        the baseline and MCS kernel respectively, and \textit{N} is the upper
-        bound on the number of cycles between each IPC for that series.}
-    \label{f:evaluation-smp}
-\end{figure}
-
 \subsection{Full system benchmark}
 \label{s:evaluation-redis-overhead}
 
@@ -908,34 +869,68 @@ implementing different policies on top of the base scheduler is quite feasible.
     \label{f:edf}
 \end{figure}
 
-\subsection{multicore}
+\subsection{Multicore}
 
-\TODO{diagrams}
+We run two multicore benchmarks, the first evaluating multicore throughput of the MCS kernel vs. the
+baseline kernel, the second based on our shared server \gls{AES} case study to demonstrate the
+multicore model. 
 
-We use the \gls{AES} shared server from \cref{s:server-isolation} to demonstrate how our MCS
-mechanisms can be deployed in an multicore scenario with shared servers with each client requesting 1MB of 
-data to be encrypted. We set up the following case studies:
+\subsubsection{Throughput}
 
-\TODO{update to multi and single}
+We run an multicore throughput benchmark to show that our MCS model
+avoids introducing scalability problems on multiple cores compared to the baseline kernel.
+We modify the
+existing multicore IPC throughput benchmark for \selfour to run on the MCS kernel. 
+At time of writing, only \textsc{x64} and \textsc{sabre} have \selfour multiprocessor support, 
+consequently these are the platforms used for the benchmark.
+
+The existing multicore benchmark measures IPC throughput of a client and server, both 
+pinned to the same processor, sending fastpath, 0 length IPC messages of via \call
+and \replyrecv. One pair of client and server is set up per core. Both threads are
+the same priority and the messages are 0 length. Each thread spins for a random amount
+with an upper bound \textit{N} between each subsequent IPC. As \textit{N} increases so does
+IPC throughput, as less calls are made.
+
+We modify the benchmark such that each server thread is passive on the MCS kernel.
+Results are displayed in \Cref{f:evaluation-smp} and show a minor impact on IPC throughput
+for high values of \textit{N}. Scalability is not impacted on \textsc{sabre}, but is on \textsc{x64},
+with the curve flattening slightly more aggressively on the MCS kernel
+due to the fastpath overhead. This is expected as the MCS model only introduces extra 
+per-core state, with no extra shared state between cores.
+
+\begin{figure}[ht] 
+    \centering
+    \includegraphics{smp}
+    \caption{Results of the multicore IPC throughput benchmark, baseline \selfour vs MCS. 
+        Each series is named \textit{name-N}, where \textit{name} is \textit{base} and \textit{mcs} for 
+        the baseline and MCS kernel respectively, and \textit{N} is the upper
+        bound on the number of cycles between each IPC for that series.}
+    \label{f:evaluation-smp}
+\end{figure}
+
+\subsubsection{Shared server}
+
+We adapt our \gls{AES} case study (\cref{s:server-isolation}) to demonstrate how our MCS model 
+applies to multiprocessors. The AES server is configured without a timeout fault handler, and
+we run two variants. 
+
 \begin{description}
-    \item[1-passive] the AES server has a single passive thread, which waits on a single endpoint
+    \item[Single:] the AES server has a single passive thread, which waits on a single endpoint
         and migrates to the core of the active client over IPC, effectively serialising access to the server.
-    \item[N-passive] the AES server has one passive thread per core, and an endpoint is set up for
-        each core, demonstrating a parallel server.   
+        Consequently, \cref{f:evaluation-smp-aes} shows there is no gain in throughput when further cores are
+        added. 
+    \item[Multiple:] the AES server has one passive thread per core, and an endpoint is set up for
+        each core, demonstrating a parallel server. Due to minimal bottlenecks in the stateless 
+        AES server, this results in near perfect scalability.
 \end{description}
-
-Results are shown in \cref{f:evaluation-smp-aes}. As expected, the serialised server (1-passive) achieves the
-same throughput regardless of the number of clients. N-passive scales nearly perfectly, as the
-benchmark does not have any bottlenecks: the server does minimal system calls and the workload does
-not involve synchronisation. 
 
 \begin{figure}[ht] 
     \centering
     \includegraphics{smp_aes}
-    \caption{Results of the AES shared server multicore case study. 1-passive shows results for a single
-        passive server thread migrating between cores to service clients while N-passive has one
-        passive thread per core. For both series, the number of clients is equal to the number of
-        cores. }
+    \caption{Results of the AES shared server multicore case study. \emph{Single} shows results for a 
+        passive server thread migrating between cores to service clients, while \emph{Multiple} has one
+        passive server thread per core. For both series, the number of clients is equal to the number of
+        cores and each client requests 1MiB of data encrypted. }
     \label{f:evaluation-smp-aes}
 \end{figure}
 
