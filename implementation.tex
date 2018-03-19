@@ -226,7 +226,7 @@ set and the thread is migrated to the new core.
 \end{itemize}
 
 \begin{listing}[h!]
-\begin{ccode}
+\begin{minted}{c}
 /* Short hand for accessing refill queue items */
 #define REFILL_INDEX(sc, index) (((refill_t *) ((word_t) (sc) \
                                 + sizeof(sched_context_t)))[index])
@@ -273,7 +273,7 @@ void refill_update(sched_context_t *sc, ticks_t new_period, ticks_t new_budget,
         refill_add_tail(sc, new);
     }
 }
-\end{ccode}
+\end{minted}
 \caption{Code to initialise a scheduling context that is not bound to a currently active thread.}
 \label{list:refill-init}
 \end{listing}
@@ -298,7 +298,7 @@ replenishment.  When a new scheduling context is switch to, \texttt{unblock\_che
 avoiding unnecessary preemptions.
 
 \begin{listing}[h]
-\begin{ccode}
+\begin{minted}{c}
 
 uint_64_t check_budget(sched_context_t *sc, uint64_t usage) {
   while (REFILL_HEAD(sc).amount <= usage) {
@@ -323,13 +323,13 @@ uint_64_t check_budget(sched_context_t *sc, uint64_t usage) {
     }
   }
 }
-\end{ccode}
+\end{minted}
 \caption{Check budget routine used to implement sporadic servers.}
 \label{list:check-budget}
 \end{listing}
 
 \begin{listing}[h]
-\begin{ccode}
+\begin{minted}{c}
 
 
 void split_check(sched_context_t *sc, uint64_t usage) {
@@ -356,14 +356,14 @@ void split_check(sched_context_t *sc, uint64_t usage) {
   split.time = REFILL_HEAD(sc).time + sc->period;
   add_tail(sc, split);
 }
-\end{ccode}
+\end{minted}
 \caption{Split check routine used to implement sporadic servers.}
 \label{list:split-check}
 \end{listing}
 
 
 \begin{listing}[h]
-\begin{ccode}
+\begin{minted}{c}
 void unblock_check(sched_context_t *sc) {
   if (!REFILL_HEAD(sc).time > now)) {
     return;
@@ -388,7 +388,7 @@ void unblock_check(sched_context_t *sc) {
       REFILL_HEAD(sc).amount += old_head.amount;
     }
 }
-\end{ccode}
+\end{minted}
 \caption{Unblock check routine used to implement sporadic servers.}
 \label{list:unblock-check}
 \end{listing}
@@ -647,7 +647,7 @@ server state before blocking and being rendered passive. Example user-level code
 provided in \cref{list:passive-server}. 
 
 \begin{listing}[t]
-\begin{ccode}
+\begin{minted}{c}
     void initialiser(seL4_CPtr server_tcb, seL4_CPtr init_sc, seL4_CPtr init_endpoint) 
 {
     /* start server */
@@ -681,7 +681,7 @@ void client(seL4_CPtr endpoint, seL4_MessageInfo_t message) {
     /* send a message to the passive server */
     seL4_Call(endpoint, message);
 }
-\end{ccode}
+\end{minted}
 \caption{Example initialiser, passive server, and client.}
 \label{list:passive-server}
 \end{listing}

@@ -12,6 +12,13 @@
 \usepackage[english=british]{csquotes}
 \usepackage[bf,sf]{titlesec}
 
+% fix a bug in titlesec
+\makeatletter
+\patchcmd{\ttlh@hang}{\parindent\z@}{\parindent\z@\leavevmode}{}{}
+\patchcmd{\ttlh@hang}{\noindent}{}{}{}
+\makeatother
+
+
 \usepackage{microtype}
 \usepackage{algorithm}
 \usepackage[dvipsnames,table,xcdraw]{xcolor}
@@ -80,7 +87,7 @@
 
 % code - note you need to install pygmentize (sudo apt-get install python-pygments)
 % and invoke pdflatex as follows: pdflatex -shell-escape phd.tex
-\usepackage{minted}
+\usepackage[newfloat=true]{minted}
 \usemintedstyle{borland}
 
 % captions
@@ -231,7 +238,7 @@
     []
 
 
-\setsecnumdepth{subsection}
+\setsecnumdepth{subsubsection}
 
 \widowpenalty10000
 \clubpenalty10000
@@ -251,8 +258,10 @@
 \input{glossary}
 \begin{document}
 
+% code style
+\setminted{baselinestretch=1.2,fontsize=\footnotesize,linenos,framesep=6mm,xleftmargin=6mm,xrightmargin=6mm,breaklines,breakautoindent,tabsize=2}
+\setmintedinline{breaklines}
 
-\newminted{c}{baselinestretch=1.2,fontsize=\footnotesize,linenos,framesep=6mm,xleftmargin=6mm,xrightmargin=6mm,breaklines=true,breakautoindent=true}
 
 % tell latex this is the preamble
 \frontmatter

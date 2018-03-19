@@ -790,7 +790,7 @@ rate-limited thread is overloaded .
 \subsubsection{Real-time threads}
 
 \begin{listing}
-  \begin{ccode}
+  \begin{minted}{c}
       for (;;) {
           // job is released
           doJob();
@@ -799,7 +799,7 @@ rate-limited thread is overloaded .
           seL4_Word badge;
           seL4_Wait(bound_async_endpoint, &badge);
       }
-  \end{ccode}
+  \end{minted}
   \caption{Example of a basic sporadic real-time task on sel4}
   \label{list:sporadic-sel4}
   \end{listing}

@@ -622,7 +622,7 @@ $1 * 32 + 5 = 37$ as the highest priority.
 \cref{list:two-lvl-bitmap} shows the logic for the scheduler bit field on 32-bit systems.
 
 \begin{listing}
-    \begin{ccode}
+    \begin{minted}{c}
 uint32_t top_level_index = 0;
 uint32_t bottom_level_index[256 / (1u << 5u)];
 
@@ -637,7 +637,7 @@ word_t getHighestPrio(void) {
     l2index = 31 - CLZ(bottom_level_bitmap[l1index]));
     return (l1index << 5 | l2index);
 }
-    \end{ccode}
+    \end{minted}
     \caption{Example algorithms for adding a priority to the scheduler bitmap and extracting the highest
         active priority, on a 32-bit system. Both operations are $O(1)$ and involve two memory
         accesses. 
