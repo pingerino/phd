@@ -1,21 +1,19 @@
 
 \chapter{MCS API}
 \label{appendix:api}
-
 \newcommand{\apidoc}[6]
 {
     \subsection{\label{api:#1}#2}
     \mintinline{c}{#4}
-
-    %    \vspace{3pt}\\
+    \vspace{3pt}
     \noindent
     #3\\
     \vspace{3pt}\\
-    \begin{tabularx}{\textwidth}{llX}\toprule
+    \begin{tabular}{p{0.15\textwidth}p{0.15\textwidth}p{0.7\textwidth}}\toprule
         \emph{Type} & \emph{Parameter} & \emph{Description} \\\midrule
          #5
         \bottomrule
-    \end{tabularx}
+    \end{tabular}
     \vspace{3pt}\\
     \noindent
     \textit{Return value:} #6 
@@ -23,7 +21,7 @@
 
 \newcommand{\param}[3]
 {
-\texttt{#1} & \texttt{#2} & #3 \\
+    \mintinline{c}{#1} & \mintinline{c}{#2} & #3 \\
 }
 \section{System calls}
 
@@ -38,10 +36,10 @@ For convenience, in this section we present all of the system calls in the MCS a
   returning a lent scheduling context.}
   {seL4_MessageInfo_t seL4_Call(seL4_CPtr cap, seL4_MessageInfo_t info)}
 {
-    \param{seL4\_CPtr}{dest}{Capability to invoke}
-    \param{seL4\_CPtr}{info}{A \code{seL4\_MessageInfo\_t} structure encoding details about the message}
+    \param{seL4_CPtr}{dest}{Capability to invoke}
+    \param{seL4_CPtr}{info}{A \mintinline{c}{seL4_MessageInfo_t} structure encoding details about the message}
 }
-{an \code{seL4\_MessageInfo\_t} structure encoding details about the reply message.}
+{an \mintinline{c}{seL4_MessageInfo_t} structure encoding details about the reply message.}
 
 \apidoc{send}
 {Send}
@@ -49,8 +47,8 @@ For convenience, in this section we present all of the system calls in the MCS a
 sent.}
 {void seL4_Send(seL4_CPtr cap, seL4_MessageInfo_t info)}
 {
-    \param{seL4\_CPtr}{dest}{Capability to invoke}
-    \param{seL4\_CPtr}{info}{A \code{seL4\_MessageInfo\_t} structure encoding details about the message}
+    \param{seL4_CPtr}{dest}{Capability to invoke}
+    \param{seL4_CPtr}{info}{A \mintinline{c}{seL4_MessageInfo_t} structure encoding details about the message}
 }
 {none.}
 
@@ -60,8 +58,8 @@ sent.}
     not send the message and return immediately.}
 {void seL4_NBSend(seL4_CPtr cap, seL4_MessageInfo_t info)}
 {
-    \param{seL4\_CPtr}{dest}{Capability to invoke}
-    \param{seL4\_CPtr}{info}{A \code{seL4\_MessageInfo\_t} structure encoding details about the message}
+    \param{seL4_CPtr}{dest}{Capability to invoke}
+    \param{seL4_CPtr}{info}{A \mintinline{c}{seL4_MessageInfo_t} structure encoding details about the message}
 }
 {none}
 
@@ -72,11 +70,11 @@ sent.}
 this system call.}
     {seL4_MessageInfo_t seL4_Recv(seL4_CPtr cap, seL4_Word *badge, seL4_CPtr reply)}
 {
-    \param{seL4\_CPtr}{src}{Capability to wait for a message on.}
-    \param{seL4\_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
-    \param{seL4\_CPtr}{reply}{Capability to the resume object to block callers on.}
+    \param{seL4_CPtr}{src}{Capability to wait for a message on.}
+    \param{seL4_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
+    \param{seL4_CPtr}{reply}{Capability to the resume object to block callers on.}
 }
-{An \code{seL4\_MessageInfo\_t} structure encoding details about the message received.}
+{An \mintinline{c}{seL4_MessageInfo_t} structure encoding details about the message received.}
 
 
 \apidoc{nbrecv}
@@ -86,11 +84,11 @@ this system call.}
 this system call.}
     {seL4_MessageInfo_t seL4_NBRecv(seL4_CPtr cap, seL4_Word *badge, seL4_CPtr reply)}
 {
-    \param{seL4\_CPtr}{src}{Capability to wait for a message on.}
-    \param{seL4\_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
-    \param{seL4\_CPtr}{reply}{Capability to the resume object to block callers on.}
+    \param{seL4_CPtr}{src}{Capability to wait for a message on.}
+    \param{seL4_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
+    \param{seL4_CPtr}{reply}{Capability to the resume object to block callers on.}
 }
-{An \code{seL4\_MessageInfo\_t} structure encoding details about the message received.}
+{An \mintinline{c}{seL4_MessageInfo_t} structure encoding details about the message received.}
 
 \apidoc{wait}
 {Wait}
@@ -98,10 +96,10 @@ this system call.}
     notification, raise a capability fault.}
     {seL4_MessageInfo_t seL4_Wait(seL4_CPtr cap, seL4_Word *badge)}
 {
-    \param{seL4\_CPtr}{src}{Capability to wait for a message on.}
-    \param{seL4\_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
+    \param{seL4_CPtr}{src}{Capability to wait for a message on.}
+    \param{seL4_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
 }
-{An \code{seL4\_MessageInfo\_t} structure encoding details about the message received.}
+{An \mintinline{c}{seL4_MessageInfo_t} structure encoding details about the message received.}
 
 \apidoc{nbwait}
 {NBWait}
@@ -109,10 +107,10 @@ this system call.}
     notification, raise a capability fault.}
     {seL4_MessageInfo_t seL4_NBWait(seL4_CPtr cap, seL4_Word *badge)}
 {
-    \param{seL4\_CPtr}{src}{Capability to wait for a message on.}
-    \param{seL4\_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
+    \param{seL4_CPtr}{src}{Capability to wait for a message on.}
+    \param{seL4_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
 }
-{An \code{seL4\_MessageInfo\_t} structure encoding details about the message received.}
+{An \mintinline{c}{seL4_MessageInfo_t} structure encoding details about the message received.}
 
 \apidoc{replyrecv}
 {ReplyRecv}
@@ -122,12 +120,12 @@ scheduling contexts from  this system call.}
 {seL4_MessageInfo_t seL4_ReplyRecv(seL4_CPtr cap, seL4_MessageInfo_t info, seL4_Word *badge,
 seL4_CPtr reply)}
 {
-    \param{seL4\_CPtr}{src}{Capability to wait for a message on.}
-    \param{seL4\_CPtr}{info}{A \code{seL4\_MessageInfo\_t} structure encoding details about the message}
-    \param{seL4\_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
-    \param{seL4\_CPtr}{reply}{Capability to the resume object to block callers on.}
+    \param{seL4_CPtr}{src}{Capability to wait for a message on.}
+    \param{seL4_CPtr}{info}{A \mintinline{c}{seL4_MessageInfo_t} structure encoding details about the message}
+    \param{seL4_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
+    \param{seL4_CPtr}{reply}{Capability to the resume object to block callers on.}
 }
-{An \code{seL4\_MessageInfo\_t} structure encoding details about the message received.}
+{An \mintinline{c}{seL4_MessageInfo_t} structure encoding details about the message received.}
 
 \apidoc{nbsendrecv}
 {NBSendRecv}
@@ -137,13 +135,13 @@ scheduling contexts from this system call.}
 {seL4_MessageInfo_t seL4_NBSendRecv(seL4_CPtr dest, seL4_MessageInfo_t info, seL4_CPtr src,
     seL4_Word *badge, seL4_CPtr reply)}
 {
-    \param{seL4\_CPtr}{dest}{Capability to invoke}
-    \param{seL4\_CPtr}{info}{A \code{seL4\_MessageInfo\_t} structure encoding details about the message}
-    \param{seL4\_CPtr}{src}{Capability to wait for a message on.}
-    \param{seL4\_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
-    \param{seL4\_CPtr}{reply}{Capability to the resume object to block callers on.}
+    \param{seL4_CPtr}{dest}{Capability to invoke}
+    \param{seL4_CPtr}{info}{A \mintinline{c}{seL4_MessageInfo_t} structure encoding details about the message}
+    \param{seL4_CPtr}{src}{Capability to wait for a message on.}
+    \param{seL4_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
+    \param{seL4_CPtr}{reply}{Capability to the resume object to block callers on.}
 }
-{An \code{seL4\_MessageInfo\_t} structure encoding details about the message received.}
+{An \mintinline{c}{seL4_MessageInfo_t} structure encoding details about the message received.}
 
 \apidoc{nbsendwait}
 {NBSendWait}
@@ -152,12 +150,12 @@ a message on the provided capability.}
 {seL4_MessageInfo_t seL4_NBSendWait(seL4_CPtr dest, seL4_MessageInfo_t info, seL4_CPtr src,
     seL4_Word *badge)}
 {
-    \param{seL4\_CPtr}{dest}{Capability to invoke}
-    \param{seL4\_CPtr}{info}{A \code{seL4\_MessageInfo\_t} structure encoding details about the message}
-    \param{seL4\_CPtr}{src}{Capability to wait for a message on.}
-    \param{seL4\_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
+    \param{seL4_CPtr}{dest}{Capability to invoke}
+    \param{seL4_CPtr}{info}{A \mintinline{c}{seL4_MessageInfo_t} structure encoding details about the message}
+    \param{seL4_CPtr}{src}{Capability to wait for a message on.}
+    \param{seL4_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
 }
-{An \code{seL4\_MessageInfo\_t} structure encoding details about the message received.}
+{An \mintinline{c}{seL4_MessageInfo_t} structure encoding details about the message received.}
 
 \apidoc{yield}
 {Yield}
@@ -184,10 +182,10 @@ scheduling context has available budget, this operation will place the TCB in th
 TCB's priority.}
 {seL4_Error seL4_SchedContext_Bind(seL4_CPtr sc, seL4_CPtr cap)}
 {
-    \param{seL4\_CPtr}{sc}{Capability to the SC to bind an object to.}
-    \param{seL4\_CPtr}{cap}{Capability to a TCB or Notification object to bind to this SC.}
+    \param{seL4_CPtr}{sc}{Capability to the SC to bind an object to.}
+    \param{seL4_CPtr}{cap}{Capability to a TCB or Notification object to bind to this SC.}
 }
-{0 on success, seL4\_Error code on error.}
+{0 on success, \mintinline{c}{seL4_Error} code on error.}
 
 \apidoc
 {schedcontext_unbind}
@@ -195,9 +193,9 @@ TCB's priority.}
 { Remove any objects bound to a specific scheduling context.}
 {seL4_Error seL4_SchedContext_Unbind(seL4_CPtr sc)}
 {
-    \param{seL4\_CPtr}{sc}{Capability to the SC to unbind an object to.}
+    \param{seL4_CPtr}{sc}{Capability to the SC to unbind an object to.}
 }
-{0 on success, seL4\_Error code on error.}
+{0 on success, \mintinline{c}{seL4_Error} code on error.}
 
 \apidoc
 {schedcontext_unbind_object}
@@ -205,10 +203,10 @@ TCB's priority.}
 { Remove a specific object bound to a specific scheduling context.}
 {seL4_Error seL4_SchedContext_UnbindObject(seL4_CPtr sc, seL4_CPtr cap)}
 {
-    \param{seL4\_CPtr}{sc}{Capability to the SC to unbind an object to.}
-    \param{seL4\_CPtr}{cap}{Capability to a TCB or Notification object to unbind from this SC.}
+    \param{seL4_CPtr}{sc}{Capability to the SC to unbind an object to.}
+    \param{seL4_CPtr}{cap}{Capability to a TCB or Notification object to unbind from this SC.}
 }
-{0 on success, seL4\_Error code on error.}
+{0 on success, \mintinline{c}{seL4_Error} code on error.}
 
 \apidoc
 {schedcontext_consumed}
@@ -217,9 +215,9 @@ TCB's priority.}
     was last called or a timeout fault triggered.}
     {seL4_Error seL4_SchedContext_Consumed(seL4_CPtr sc)}
 {
-    \param{seL4\_CPtr}{sc}{Capability to the SC to act on.}
+    \param{seL4_CPtr}{sc}{Capability to the SC to act on.}
 }
-{An error code and a \code{uint64\_t} consumed value.}
+{An error code and a \mintinline{c}{uint64_t} consumed value.}
 
 \apidoc
 {schedcontext_yieldto}
@@ -232,32 +230,32 @@ TCB's priority.}
 }
 {seL4_Error seL4_SchedContext_YieldTo(seL4_CPtr sc)}
 {
-    \param{seL4\_CPtr}{sc}{Capability to the SC to act on.}
+    \param{seL4_CPtr}{sc}{Capability to the SC to act on.}
 }
-{An error code and a \code{uint64\_t} consumed value.}
+{An error code and a \mintinline{c}{uint64_t} consumed value.}
 
 \subsection{Sched\_control Invocations}
 \apidoc
 {schedcontrol_configure}
 {SchedControl - Configure}
-{ Configure a scheduling context by invoking a \code{sched\_control} capability. The scheduling
-context will inherit the affinity of the provided \code{sched\_control}.}
+{ Configure a scheduling context by invoking a \mintinline{c}{sched_control} capability. The scheduling
+context will inherit the affinity of the provided \mintinline{c}{sched_control}.}
 {seL4_Error seL4_SchedControl_Configure(seL4_CPtr sched_control, seL4_CPtr sc, uint64_t
 budget, uint64_t period, seL4_Word extra_refills, seL4_Word badge)}
 {
-    \param{seL4\_CPtr}{sched\_control}{\code{sched\_control} capability to invoke to configure
+    \param{seL4_CPtr}{sched_control}{\mintinline{c}{sched_control} capability to invoke to configure
     the SC.}
-    \param{seL4\_CPtr}{sc}{Capability to the SC to configure.}
-    \param{uint64\_t}{budget}{Timeslice in microseconds.}
-    \param{uint64\_t}{period}{Period in microseconds, if equal to budget, this thread will be
+    \param{seL4_CPtr}{sc}{Capability to the SC to configure.}
+    \param{uint64_t}{budget}{Timeslice in microseconds.}
+    \param{uint64_t}{period}{Period in microseconds, if equal to budget, this thread will be
         treated as a round-robin thread. Otherwise, sporadic servers will be used to assure the
     scheduling context does not exceed the budget over the specified period.}
-    \param{seL4\_Word}{extra\_refills}{Number of extra sporadic replenishments this scheduling
+    \param{seL4_Word}{extra_refills}{Number of extra sporadic replenishments this scheduling
     context should use. Ignored for round-robin threads. The maximum value is determined by the size
 of the SC that is being configured.}
-    \param{seL4\_Word}{badge}{Badge value that is delivered to timeout fault handlers}
+    \param{seL4_Word}{badge}{Badge value that is delivered to timeout fault handlers}
 }
-{0 on success, seL4\_Error code on error.}
+{0 on success, \mintinline{c}{seL4_Error} code on error.}
 
 \subsection{TCB Invocations}
 
@@ -268,15 +266,15 @@ of the SC that is being configured.}
 {seL4_Error seL4_TCB_Configure(seL4_CPtr tcb, seL4_CPtr cnode, seL4_Word guard, seL4_CPtr
 vspace, seL4_Word vspace_data, seL4_Word buffer, seL4_CPtr buffer_cap)}
 {
-    \param{seL4\_CPtr}{tcb}{Capability to the TCB to configure.}
-    \param{seL4\_CPtr}{cnode}{Root cnode for this TCB.}
-    \param{seL4\_Word}{guard}{Optionally set the guard and guard size of the new root CNode. If set to zero, this parameter has no effect.}
-    \param{seL4\_CPtr}{vspace}{Top level paging structure for this TCB.}
-    \param{seL4\_Word}{vspace\_data}{Has no effect on x86 or ARM processors.}
-    \param{seL4\_Word}{buffer}{Location of the thread's IPC buffer.}
-    \param{seL4\_CPtr}{buffer\_cap}{Capability to the frame containing the thread's IPC buffer.}
+    \param{seL4_CPtr}{tcb}{Capability to the TCB to configure.}
+    \param{seL4_CPtr}{cnode}{Root cnode for this TCB.}
+    \param{seL4_Word}{guard}{Optionally set the guard and guard size of the new root CNode. If set to zero, this parameter has no effect.}
+    \param{seL4_CPtr}{vspace}{Top level paging structure for this TCB.}
+    \param{seL4_Word}{vspace_data}{Has no effect on x86 or ARM processors.}
+    \param{seL4_Word}{buffer}{Location of the thread's IPC buffer.}
+    \param{seL4_CPtr}{buffer_cap}{Capability to the frame containing the thread's IPC buffer.}
 }
-{0 on success, seL4\_Error code on error.}
+{0 on success, \mintinline{c}{seL4_Error} code on error.}
 
 \apidoc
 {tcb_setmcpriority}
@@ -284,11 +282,11 @@ vspace, seL4_Word vspace_data, seL4_Word buffer, seL4_CPtr buffer_cap)}
 {Set the maximum control priority of a TCB.}
 {seL4_Error seL4_TCB_SetMCPriority(seL4_CPtr tcb, seL4_CPtr auth, seL4_Word mcp)}
 {
-    \param{seL4\_CPtr}{tcb}{Capability to the TCB to configure.}
-    \param{seL4\_CPtr}{auth}{Capability to the TCB to use the MCP from when setting the new MCP.}
-    \param{seL4\_Word}{mcp}{Value for the new MCP.}
+    \param{seL4_CPtr}{tcb}{Capability to the TCB to configure.}
+    \param{seL4_CPtr}{auth}{Capability to the TCB to use the MCP from when setting the new MCP.}
+    \param{seL4_Word}{mcp}{Value for the new MCP.}
 }
-{0 on success, seL4\_Error code on error.}
+{0 on success, \mintinline{c}{seL4_Error} code on error.}
 
 \apidoc
 {tcb_setpriority}
@@ -296,27 +294,27 @@ vspace, seL4_Word vspace_data, seL4_Word buffer, seL4_CPtr buffer_cap)}
 {Set the priority of a TCB.}
 {seL4_Error seL4_TCB_SetPriority(seL4_CPtr tcb, seL4_CPtr auth, seL4_Word prio)}
 {
-    \param{seL4\_CPtr}{tcb}{Capability to the TCB to configure.}
-    \param{seL4\_CPtr}{auth}{Capability to the TCB to use the MCP from when setting the new MCP.}
-    \param{seL4\_Word}{prio}{Value for the new priority.}
+    \param{seL4_CPtr}{tcb}{Capability to the TCB to configure.}
+    \param{seL4_CPtr}{auth}{Capability to the TCB to use the MCP from when setting the new MCP.}
+    \param{seL4_Word}{prio}{Value for the new priority.}
 }
-{0 on success, seL4\_Error code on error.}
+{0 on success, \mintinline{c}{seL4_Error} code on error.}
 
 \apidoc
 {tcb_setschedparams}
 {TCB - SetSchedParams}
 {Set the scheduling parameters of a TCB.}
-{seL4\_Error seL4_TCB_SetSchedParams(seL4_CPtr tcb, seL4_CPtr auth, seL4_Word mcp,
+{seL4_Error seL4_TCB_SetSchedParams(seL4_CPtr tcb, seL4_CPtr auth, seL4_Word mcp,
                                        seL4_Word prio, seL4_CPtr sc, seL4_CPtr fault_ep)}
 {
-    \param{seL4\_CPtr}{tcb}{Capability to the TCB to configure.}
-    \param{seL4\_CPtr}{auth}{Capability to the TCB to use the MCP from when setting the new MCP.}
-    \param{seL4\_Word}{mcp}{Value for the new MCP.}
-    \param{seL4\_Word}{prio}{Value for the new priority.}
-    \param{seL4\_CPtr}{sc}{Capability of the sc to bind to this TCB.}
-    \param{seL4\_CPtr}{fault\_ep}{Capability to the endpoint to set as the fault endpoint for this TCB.}
+    \param{seL4_CPtr}{tcb}{Capability to the TCB to configure.}
+    \param{seL4_CPtr}{auth}{Capability to the TCB to use the MCP from when setting the new MCP.}
+    \param{seL4_Word}{mcp}{Value for the new MCP.}
+    \param{seL4_Word}{prio}{Value for the new priority.}
+    \param{seL4_CPtr}{sc}{Capability of the sc to bind to this TCB.}
+    \param{seL4_CPtr}{fault_ep}{Capability to the endpoint to set as the fault endpoint for this TCB.}
 }
-{0 on success, seL4\_Error code on error.}
+{0 on success, \mintinline{c}{seL4_Error} code on error.}
 
 \apidoc
 {tcb_settimeoutep}
@@ -324,7 +322,7 @@ vspace, seL4_Word vspace_data, seL4_Word buffer, seL4_CPtr buffer_cap)}
 {Set the timeout endpoint of a TCB.}
 {seL4_Error seL4_TCB_SetTimeoutEndpoint(seL4_CPtr tcb, seL4_CPtr ep)}
 {
-    \param{seL4\_CPtr}{tcb}{Capability to the TCB to configure.}
-    \param{seL4\_CPtr}{ep}{Capability to the endpoint to set as the timeout endpoint for this TCB.}
+    \param{seL4_CPtr}{tcb}{Capability to the TCB to configure.}
+    \param{seL4_CPtr}{ep}{Capability to the endpoint to set as the timeout endpoint for this TCB.}
 }
-{0 on success, seL4\_Error code on error.}
+{0 on success, \mintinline{c}{seL4_Error} code on error.}

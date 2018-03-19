@@ -228,8 +228,7 @@ set and the thread is migrated to the new core.
 \begin{listing}[h!]
 \begin{minted}{c}
 /* Short hand for accessing refill queue items */
-#define REFILL_INDEX(sc, index) (((refill_t *) ((word_t) (sc) \
-                                + sizeof(sched_context_t)))[index])
+#define REFILL_INDEX(sc, index) (((refill_t *) ((word_t) (sc) + sizeof(sched_context_t)))[index])
 #define REFILL_HEAD(sc) REFILL_INDEX((sc), (sc)->head)
 #define REFILL_TAIL(sc) REFILL_INDEX((sc), (sc)->tail)
 
@@ -245,17 +244,14 @@ void refill_new(sched_context_t *sc, word_t max_refills, ticks_t budget, ticks_t
     REFILL_HEAD(sc).time = current_time;
 }
 
-void refill_update(sched_context_t *sc, ticks_t new_period, ticks_t new_budget, 
-                   word_t new_max_refills)
+void refill_update(sched_context_t *sc, ticks_t new_period, ticks_t new_budget, word_t new_max_refills)
 {
     /* move the head refill to the start of the list */
     REFILL_INDEX(sc, 0) = REFILL_HEAD(sc);
     sc->head = 0;
     /* truncate refill list to size 1 */
     sc->tail = sc->head;
-    /* update max refills */
     sc->max = new_max_refills;
-    /* update period */
     sc->period = new_period;
 
     if (REFILL_HEAD(sc).time < current_time) {
@@ -299,7 +295,6 @@ avoiding unnecessary preemptions.
 
 \begin{listing}[h]
 \begin{minted}{c}
-
 uint_64_t check_budget(sched_context_t *sc, uint64_t usage) {
   while (REFILL_HEAD(sc).amount <= usage) {
     // exhaust and schedule replenishment
@@ -308,16 +303,12 @@ uint_64_t check_budget(sched_context_t *sc, uint64_t usage) {
     old_head.time += sc->period;
     add_tail(sc, old_head)
   }
-
-  /* handle budget overrun */
+  // handle budget overrun
   if (usage > 0 && sc->period > 0) {
     // delay refill by overrun
     REFILL_HEAD(sc).time += usage;
     // merge replenishments if time overlaps
-    if (refill_size(sc) > 1 &&
-        REFILL_HEAD(sc).time + REFILL_HEAD(sc).amount
-        >= refill_next(sc).time) {
-
+    if (refill_size(sc) > 1 && REFILL_HEAD(sc).time + REFILL_HEAD(sc).amount >= refill_next(sc).time) {
       refill_t old_head = pop_head(sc);
       REFILL_HEAD(sc).amount += old_head.amount;
     }
@@ -330,17 +321,13 @@ uint_64_t check_budget(sched_context_t *sc, uint64_t usage) {
 
 \begin{listing}[h]
 \begin{minted}{c}
-
-
 void split_check(sched_context_t *sc, uint64_t usage) {
   uint64_t remnant = REFILL_HEAD(sc).amount - usage;
   if (remnant < MIN_BUDGET && refill_size(sc) == 1) {
-    // delay entire replenishment
-    // refill too small to use and nothing to merge with */
+    // delay entire replenishment refill too small to use and nothing to merge with
     REFILL_HEAD(sc).time += sc->period;
     return;
   }
-
   if (refill_size(sc) == sc->refill_max || remnant < MIN_BUDGET) {
     // merge remnant - out of space or its too small
     pop_head(sc);
@@ -349,7 +336,6 @@ void split_check(sched_context_t *sc, uint64_t usage) {
     // split the head refill
     REFILL_HEAD(sc).amount = remnant;
   }
-
   // schedule the used amount
   refill_t split;
   split.amount = usage;
@@ -365,25 +351,21 @@ void split_check(sched_context_t *sc, uint64_t usage) {
 \begin{listing}[h]
 \begin{minted}{c}
 void unblock_check(sched_context_t *sc) {
-  if (!REFILL_HEAD(sc).time > now)) {
+  if (!REFILL_HEAD(sc).time > current_time)) {
     return;
   }
-
-  REFILL_HEAD(sc).time = now;
+  REFILL_HEAD(sc).time = current_time;
   // merge available replenishments
   while (refill_size(sc) > 1) {
-    if (refill_next(sc).time < now + REFILL_HEAD(sc).amount) {
+    if (refill_next(sc).time < current_time + REFILL_HEAD(sc).amount) {
       refill_t old_head = pop_head(sc);
       REFILL_HEAD(sc).amount += old_head.amount;
-      REFILL_HEAD(sc).time = now;
+      REFILL_HEAD(sc).time = current_time;
     } else {
       break;
     }
-
     if (REFILL_HEAD(sc).amount < MIN_BUDGET) {
-      // second part of split_check can leave refills
-      // with less than MIN_BUDGET amount.
-      // detect them here and merge.
+      // second part of split_check can leave refills with less than MIN_BUDGET amount, detect them here and merge.
       refill_t old_head = pop_head(sc);
       REFILL_HEAD(sc).amount += old_head.amount;
     }
@@ -548,7 +530,7 @@ the thread is blocked until it is replenished.
 \end{table}
 
 \cref{t:system-calls} summarises the new MCS system call API, while more detailed 
-descriptions of each system call can be found in \cref{label:appendix-api}.
+descriptions of each system call can be found in \cref{appendix:api}.
 
 \subsection{Invocations}
 
