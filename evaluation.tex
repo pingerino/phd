@@ -708,6 +708,18 @@ graphs), both clients achieve their desired throughput.
 
 \section{Practicality}
 
+Fundamental to the microkernel philosophy is keeping policy out of the
+kernel as much as possible, and instead providing general mechanisms
+that allow the implementation of arbitrary policies
+\citep{Heiser_Elphinstone_16}.  As on the face of it, our
+fixed-priority-based model seems to violate this principle,  we
+demonstrate that the model is general enough to support the efficient
+implementation of alternate policies at user level. Specifically, we
+implement two user-level schedulers: first, a static mixed criticality
+scheduler~\citep{Baruah_BD_11}, which we also compare to an in-kernel implementation and secondly
+an \gls{EDF} scheduler, which we compare to \litmus.
+
+
 
 \TODO{update - user level criticality not kernel}
 We evaluate our kernel mechanism for changing criticality
@@ -807,16 +819,6 @@ utilisation for each stage respectively. Standard deviations are shown in parent
 \TODO{intro}
 
 \subsection{User-level scheduling}\label{s:edf-impl}
-
-Fundamental to the microkernel philosophy is keeping policy out of the
-kernel as much as possible, and instead providing general mechanisms
-that allow the implementation of arbitrary policies
-\citep{Heiser_Elphinstone_16}.  As on the face of it, our
-fixed-priority-based model seems to violate this principle,  we
-demonstrate that the model is general enough to support the efficient
-implementation of alternate policies at user level. Specifically, we
-show that we can efficiently implement \gls{EDF}, the popular and  optimal dynamic-priority policy (see \autoref{s:theory}).
-
 We implement the EDF scheduler as an active server with active
 clients which run at an \selfour priority below the scheduler.
 The scheduler waits on an endpoint on which it receives messages from
