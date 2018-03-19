@@ -23,13 +23,15 @@ This thesis draws on all of these fields in order to support real-time and mixed
 \label{sec:real-time-theory}
 
 Real-time systems have timing constraints, where the correctness of the system is dependent not only
-on the results of computations, but on the time at which those results
-arrive~\citep{Stankovic_88}.  Essentially all software is real-time: if the software never gets
-access to processing time, no results will ever be obtained.  However, for a system
-to be considered real-time it must be sensitive to timing behaviour---how much processing time is
-allocated and when it is allocated. For much software, time is
-fungible: it does not matter when the software is run, as long as it does get run. For 
-real-time software this is not the case.
+on the results of computations, but on the time at which those results arrive~\citep{Stankovic_88}.
+Essentially all software is real-time: if the software never gets access to processing time, no
+results will ever be obtained.  However, for a system to be considered real-time it must be
+sensitive to timing behaviour---how much processing time is allocated and when it is allocated. For
+most software, time is fungible: it does not matter when the software is run, as long as it does get
+run. For real-time software this is not the case.  Consider the case of software that deploys the
+brakes on a train: the routine must run in time for the train to stop at the platform. Or, in a more
+critical scenario, software that deploys the landing gear on a plane: it must run and the gear must
+be fully down before the plane hits the runway.
 
 There are many ways to model real-time systems, which we touch on in the coming chapters. 
 
@@ -61,7 +63,8 @@ considered correct in the presence of some defined level of deadline misses. Alt
 can be known for {\gls{SRT}} tasks, less precise but more optimistic time estimates are generally
 used for practicality.  Examples of \gls{SRT} tasks can be found in multimedia and video game platforms,
 where deadline misses may result in some non-critical effect such as performance degradation.
-\gls{SRT} tasks can also be found in safety-critical systems where the result degrades if enough time is not
+\gls{SRT} tasks can also be found in safety-critical systems where the result degrades if not enough
+time has been
 allocated by the deadline, but the result remains useful \eg image recognition and object detection
 in autonomous vehicles. In such tasks, a minimum allocation of time to the task might be \gls{HRT},
 while further allocations are \gls{SRT}.
@@ -107,7 +110,7 @@ for (;;) {
 The sporadic task model considers a real-time system as a set of tasks, $A_{1},A_{2},\ldots,A_{n}$.
 Each $A_{i}$ refers to a specific task in the task set, usually each for a different functionality.
 The infinite series of jobs is per task, and represented by $A_{i1},A_{i2},\ldots,A{in}$. Each task has
-an execution time, $C_{i}$, and period, $T_{i}$, which represents the minimum inter-arrival time
+an \gls{WCET}, $C_{i}$, and period, $T_{i}$, which represents the minimum inter-arrival time
 between jobs. When a $T_{i}$ has passed and a job can run again, it is said to be \emph{released}.
 When a job is ready to run, it is said to have \emph{arrived} and when a job finishes and blocks until
 the next arrival, it is said to be \emph{completed}. 
@@ -147,9 +150,10 @@ Sporadic tasks have deadlines relative to their arrival time, which may be \emph
 \emph{implicit}.  An \emph{implicit} deadline means the job must finish before the period elapses.
 \emph{Constrained} deadlines are relative to the release time, but before the period elapses.  Other
 task models allow for \emph{arbitrary} deadlines, which can be after the period elapses, however
-arbitrary deadlines are not compatible with the sporadic task model as they allow multiple jobs from
-one task to be active at one time.  However, tasks with arbitrary deadlines can be modelled by the
-sporadic task model by splitting tasks into multiple, different tasks with larger periods and
+arbitrary deadlines are not compatible with the sporadic task model without adjustment, as they allow multiple jobs from
+one task to be active at one time.  In order to model tasks with arbitrary deadlines with the
+sporadic task model, they must be split 
+into multiple, different tasks with larger periods and
 constrained deadlines.
 
 \begin{figure}[h!tb]
@@ -181,8 +185,8 @@ calculated whenever a scheduling decision is required. In dynamic systems, the t
 allowing task parameters to be adjusted, and allowing tasks to be added and removed while the system
 is running.
 
-A task set is schedulable by a scheduling algorithm if all temporal requirements are satisfied.
-If at least one scheduling algorithm can schedule a task set, it is said to be \emph{feasible}.
+A task set is \emph{feasible} if it can be scheduled by at least one scheduling algorithm such that
+all temporal requirements are satisfied.
 An \emph{optimal} scheduling algorithm can schedule every feasible task set.
 To test if a task set is schedulable by a scheduling algorithm, a \emph{schedulability test} is applied.
 The complexity of schedulability tests is important for both dynamic and static schedulers. For
@@ -237,16 +241,17 @@ attempt to gain performance by reclaiming or stealing slack.
 Scheduling algorithms are classed as either dynamic or fixed priority. A scheduling algorithm 
 is \emph{fixed priority} if all the jobs in each task run at the same priority, which never changes. 
 \emph{Dynamic priority} scheduling algorithms assign priorities to jobs not tasked, based on some criteria. 
-There are two definitive scheduling algorithms: \gls{FPRM}, which has fixed priorities, and
+There are two definitive dynamic scheduling  algorithms: \gls{FPRM}, which has fixed priorities, and
 \gls{EDF}, which has dynamic priorities. Each is optimal for its respective scheduling class,  and both algorithms are defined along with
 schedulability tests for the periodic task model in the seminal paper by \citet{Liu_Layland_73}. We
-describe them briefly here. 
+describe them briefly here, after covering the dominant static scheduling algorithm: cyclic
+executives. 
 
 \subsection{Cyclic executives}
 \label{s:cyclic-executive}
 
-A cyclic-executive scheduler dispatches tasks according to a pre-computed schedule, and is only
-suitable for static, closed systems. Each task
+A \emph{cyclic-executive} is an offline, static scheduler that dispatches tasks according to a pre-computed schedule, and is only
+suitable for closed systems. Each task
 has one or more entries in the pre-computed schedule, referred to as \emph{frames}, which specify a
 \gls{WCET}. Frames are never preempted while running, resulting in a completely deterministic
 schedule. The cyclic executive completes in a
@@ -273,7 +278,7 @@ The scheduler is invoked when a job is released or a job ends.
 The job with the highest priority is always scheduled.
 
 Priority assignment such that all tasks meet their deadlines is the core challenge of \gls{FP} scheduling.
-Two well-established techniques are \gls{RM} and deadline monotonic, both of which are optimal with respect to \gls{FP} scheduling.
+Two well-established techniques are \gls{RM} and \gls{DM}, both of which are optimal with respect to \gls{FP} scheduling.
 \Gls{RM} priority assignment~\citep{Liu_Layland_73} allocates higher priorities to tasks with higher
 rates---where \emph{rate} is determined by the period, as shown in \cref{eq:2}.
 \begin{equation}
@@ -309,7 +314,7 @@ towards infinity.
 \end{figure}
 
 \subsection{Earliest Deadline First Scheduling}
-\cref{sec:background-edf}
+\label{sec:background-edf}
 
 The \gls{EDF} algorithm is theoretically optimal for scheduling a single resource, with no
 algorithmic capacity loss; that is 100\% of processing time can be scheduled. This is because
@@ -335,12 +340,15 @@ language~\citep{Burns_Wellings:crtpa}, often used to build real-time systems.
 
 \subsection{Earliest Deadline First versus Fixed Priority Scheduling}
 \label{s:overload}
+\TODO{Clarify what is and isn't a misconception: main one is overload, rest are BS}
 
 \gls{EDF} is less popular in commercial practice than \gls{FP} for a number of reasons.  \gls{EDF}
 is considered more complex to implement and to have higher overhead-related capacity loss.
 Both algorithms have different behaviour under overload, and many consider the \gls{FP} behaviour
-preferable. \gls{FP}
-is mandated by the POSIX standard, possibly due to these misconceptions. One common argument for
+preferable.  Consequently, \gls{FP}
+is mandated by the POSIX standard.
+
+One common argument for
 \gls{FPRM} is the idea that the algorithmic capacity loss is mediated by the overhead related
 capacity loss of \gls{EDF}, and much easier to implement. 
 
@@ -463,7 +471,7 @@ priority ceiling of any currently locked resource. When a task locks a resource,
 is not changed until another task attempts to acquire that resource, at which point the resource
 holder's priority is boosted to the resource's ceiling. By delaying the priority boost the excessive 
 preemption of \gls{PIP} is avoided. Additionally, tasks can only lock resources
-if when priority is higher than the system ceiling, otherwise they block until this condition is
+when their priority is higher than the system ceiling, otherwise they block until this condition is
 true, thus avoiding the risk of deadlock. \gls{OPCP} results in less blocking overall than \gls{IPCP},
 however requires global state to be tracked across all tasks, even those that do not share
 resources, increasing the complexity of an implementation.
@@ -473,6 +481,8 @@ like \gls{EDF}, however analogous algorithms exist, namely the \gls{SRP}~\citep{
 
 \subsection{Other locking protocols}
 
+\TODO{Is there a reference for this subsection / I don't get why lock-free and wait-free can't be
+used?}
 We do not consider lock-free and wait-free algorithms in detail in this chapter, but note while
 these may be deployed in real time systems there are always resources that need true blocking in
 order to access them; in a word, stateful devices. For memory based resources, there is no need for 
@@ -555,7 +565,7 @@ conducted around a theoretical model introduced by \citet{Vestal_07}. In this mo
 a specific range of criticality levels, $L_{min}-L_{max}$ and a current criticality level
 $L_{now}$. Each task in the system is assigned a criticality level, $L_{i}$, and has a vector of
 execution times of size $L_{i}-L_{min}$. When the system undergoes a mode change, should $L_{i}
-\leq L_{now}$ the execution time required by that task is set to the value in the vector
+\geq L_{now}$ the execution time required by that task is set to the value in the vector
 corresponding to the new $L_{now}$. If a task's criticality is less than $L_{now}$, it may be dropped
 or scheduled with much lower priority until a mode switch increases $L_{now}$. 
 
@@ -565,7 +575,7 @@ estimates for a system. Theoretically, if the system designer could show that th
 of the \gls{CA} can be met by such a mode change, they could schedule less criticality tasks when in
 a low criticality mode. 
 
-However, while this model, and many variations upon it have been subject too much research in the
+However, while this model, and many variations upon it have been subject to much research in the
 real-time community, questions have been raised as to its practicality in industry.
 \citet{Ernst_DiNatale_16} claim that a \gls{CA} would be unlikely to accept multiple \gls{WCET}
 definitions and state that the focus of mixed-criticality research should be on providing systems
@@ -607,8 +617,9 @@ systems and other services in the kernel, resulting in a large \emph{trusted com
 Interpretations of the minimality principle varies, 
 consequently which services and utilities are included in the privileged kernel varies. In
 larger kernels thread scheduling, memory allocation and some device drivers are included in the kernel.
-For example, \selfour~\citep{Klein_EHACDEEKNSTW_09} contains a scheduling, \gls{IPC}; 
-\composite~\citep{Parmer:phd} does not provide a scheduler. 
+For example, \selfour~\citep{Klein_EHACDEEKNSTW_09} contains a scheduling and \gls{IPC}; 
+\composite~\citep{Parmer:phd} does not provide a scheduler, or any blocking semantics, but does
+provide \gls{IPC}. 
 
 Microkernels are far more amenable for deployment in areas where security is a primary concern,
 due to their small trusted computing base.
@@ -650,7 +661,7 @@ processes. Because the microkernel model provides services encapsulated into use
 \glspl{OS}. Originally, microkernels were criticised as impractical due to inefficient IPC
 implementations of first-generation microkernels. However, this was demonstrated to be
 false~\citep{Hartig_HLSW_97} due to the high cache footprint and poor design of the original
-microkernels. Second-generation microkernels were built much leaner, with less services in the
+microkernels. Second-generation microkernels were built much leaner, with fewer services in the
 kernel and fast, optimised code paths for IPC, referred to as \emph{fastpaths}. 
 \emph{Third-generation} microkernels follow the pattern of minimality and speed, whilst also
 promoting security as a first-class concern, which resulted in the incorporation of capability
