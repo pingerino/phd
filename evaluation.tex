@@ -2,7 +2,7 @@
 \label{chap:evaluation}
 
 We now evaluate our model through a series of microbenchmarks, system benchmarks and case studies on
-a series of ARM and x86 hardware.
+a both and ARM and x86 hardware.
 First, we present the hardware platforms used in addition to the cost of timer operations on those
 platforms. Then we demonstrate the minimal performance overhead of our mechanisms using a set of 
 microbenchmarks which measure the overheads of the MCS kernel versus the existing \selfour kernel, 
@@ -11,14 +11,15 @@ which is referred to as \emph{baseline}.
 We then run a several system benchmarks, first comparing a Redis~\citep{redis:url} 
 implementation to baseline \selfour, Linux and NetBSD to show that our kernel is competitive.
 We then demonstrate temporal
-isolation in two scenarios, using Redis again, followed by ipbench. Finally, we show isolation in a
-shared server, and measure the cost of various timeout fault handling policies. 
+isolation between threads sharing the same CPU in two scenarios,
+using Redis again, followed by ipbench~\citep{Wienand_Macpherson_04}. Finally, we show isolation in a
+shared encryption server, and measure the cost of various timeout fault handling policies. 
 
 In addition, we evaluate two user-level scheduler implementations: one which implements a static
 criticality switch, and a user-level \gls{EDF} implementation which we show is
 competitive with an in-kernel \gls{EDF} scheduling from \litmus. Lastly, we use an \gls{IPC}
-throughput benchmark to demonstrate minimal, multicore scalability overhead, and we show how server threads can
-migrate between processing cores.
+throughput benchmark to demonstrate minimal, multicore scalability overhead, and we show 
+how resource server threads can migrate between processing cores.
 
 \section{Hardware}
 
@@ -27,7 +28,7 @@ We ran microbenchmarks on a variety of hardware to show the overheads of the mod
 baseline \selfour. \Cref{t:evaluation-hardware} summarises the hardware platforms. \textsc{Sabre} is
 the verified platform for \selfour, although at the time of writing verification for \textsc{x64} is
 ongoing. Currently, the only platforms that support more than one core are \textsc{Sabre},
-\textsc{ia32} and \textsc{x64}.
+and \textsc{x64}.
 
 Two of our platforms, \textsc{x64} and \textsc{Hikey} support both 32- and 64-bit execution modes.
 We use both, referring to them as \textsc{ia32} and \textsc{Hikey32} when in 32-bit mode and
@@ -37,7 +38,6 @@ We use both, referring to them as \textsc{ia32} and \textsc{Hikey32} when in 32-
 Additionally, we use several load generators running Linux on an isolated network for 
 benchmarks that require a network.
 
-\TODO{Appendix listing exact hardware details}
 \begin{table}[ht]
 \rowcolors{3}{gray!25}{white}
 \begin{tabularx}{\textwidth}{llXlccccc}\toprule
@@ -71,15 +71,16 @@ without activating it such that the kernel will cease switching the FPU context.
 overheads on IPC operations, signalling and interrupts, and finally scheduling. 
 
 For each of the benchmarks in this section, we measure the cost of measurement, which is reading the
-cycle counter, and subtract that from the final measurement.
+cycle counter on ARM platforms, and the \gls{TSC} on x86, and subtract the value obtained
+from the final result.
 
 \subsection{Timer}
 \label{s:eval-timer}
 
-Two of the main sources of overhead introduced by our model are related to the need to read and reprogram the timer on
-non-fastpath kernel entries, and when performing a scheduling context switch. We show the results of
-microbenchmarks of both of these operations in \Cref{t:evaluation-timer}, and note the timer
-hardware used on the specific platform. 
+Two of the main sources of overhead introduced by our model are related to the need to read and
+reprogram the timer on non-fastpath kernel entries, and when performing a scheduling context switch.
+We show the results of microbenchmarks of both of these operations in \Cref{t:evaluation-timer}, and
+note the timer hardware used on the specific platform. 
 
 \begin{table}[ht]\centering
 \rowcolors{2}{gray!25}{white}
@@ -105,29 +106,30 @@ counts, and subtract the cost of measuring the cycle counter itself. The results
 both operations separately, and then their sum, which is the total measured overhead introduced by timers on
 scheduling context switch.
 
-All platforms excluding \textsc{KZM} have a 64-bit timer available, making \textsc{KZM} the only platform requiring
-timer overflow interrupts, which are not measured as \textsc{KZM} is a deprecated platform provided for comparison
-with modern ARM versions.
+All platforms excluding \textsc{KZM} have a 64-bit timer available, making \textsc{KZM} the only
+platform requiring timer overflow interrupts, which are not measured as \textsc{KZM} is a deprecated
+platform provided for comparison with modern ARM versions.
 
-\textsc{Sabre} and \textsc{KZM} both use memory mapped timers, the 32-bit general purpose timer for the former and
-64-bit ARM global timer for the latter. \textsc{Sabre} has four cores and the timer registers are banked,
-making access fast for each core. Timer access on \textsc{Sabre} is significantly faster than the
-\textsc{KZM}. 
+\textsc{Sabre} and \textsc{KZM} both use memory mapped timers, the 32-bit general purpose timer for
+the former and 64-bit ARM global timer for the latter. \textsc{Sabre} has four cores and the timer
+registers are banked, making access fast for each core. Timer access on \textsc{Sabre} is
+significantly faster than the \textsc{KZM}. 
 
 For all other ARM platforms, the ARM generic timers are available, which are accessed via the
-coprocessor. The vast majority of new ARM platforms support the generic timers. 
+coprocessor. The majority of new ARM platforms support the generic timers. 
 
 On \textsc{x64} we use the \gls{TSC} with \gls{TSC}-deadline
 mode~\citep{Intel_64_IA-32:asdmspg_325384}, an architectural \gls{MSR} available since
 Intel SandyBridge by which a local-APIC timer interrupt is triggered when the \gls{TSC} matches the
 programmed value. 
 
-While \Cref{t:evaluation-timer} shows the instruction latency of each timer operation. In practice, especially
+\Cref{t:evaluation-timer} shows the instruction latency of each timer operation. In practice, especially
 for \textsc{x64}, these operations are subject to pipeline parallelism and out-of-order execution, which
 reduces the overhead.
 
 Results on both architectures show that the overhead of a tickless kernel, which requires the timers
-to be frequently read and reprogrammed, is practical on modern hardware.
+to be frequently read and reprogrammed, is practical on modern hardware. On ARM, timer costs have
+reduced by an order of magnitude from ARMv6 through to ARMv8. 
 
 \subsection{IPC performance}
 
@@ -136,15 +138,14 @@ microkernel~\citep{Liedtke_95}. We benchmark our \gls{IPC} operations against ba
 which has an established efficient \gls{IPC} fastpath~\citep{Elphinstone_Heiser_13}. 
 
 To evaluate IPC performance we set up a client (the caller) and server (the callee) in different
-address spaces. We take
-timestamps on either side of the IPC operation being benchmarked and record the difference. This is
-done 16 times for each result value to prime the cache, then record the next value. Results
-presented are for performing this a total of 16 times. Additionally, we measure the overhead of
-system calls stubs in the same way and subtract this from the measurement, to obtain only the kernel
-cost of the operation\footnote{The \gls{IPC} benchmarks already existed for \selfour, but were modified to
-    support the \gls{MCS} kernel during the work for this thesis}. The message sent is zero length, so 
-neither the caller or callee's \gls{IPC} buffer accessed.
-This is done for both directions of IPC, as described in \Cref{sec:seL4-api}. 
+address spaces. We take timestamps on either side of the IPC operation being benchmarked and record
+the difference. This is done 16 times for each result value to prime the cache, then record the next
+value. Results presented are for performing this a total of 16 times. Additionally, we measure the
+overhead of system calls stubs in the same way and subtract this from the measurement, to obtain
+only the kernel cost of the operation\footnote{The \gls{IPC} benchmarks already existed for
+ \selfour, but were modified to support the \gls{MCS} kernel during the work for this thesis}.
+    The message sent is zero length, so neither the caller or callee's \gls{IPC} buffer accessed.
+    This is done for both directions of IPC, as described in \Cref{sec:seL4-api}. 
 
 We evaluate the \gls{IPC} fastpath and two slowpath variants: slowpath between passive threads and
 active threads.
@@ -356,32 +357,25 @@ dealing with scheduling contexts. Note that \selfour IPC,
 particularly scheduler-context donation (and its predecessor, the
 undisciplined timeslice donation), is designed to minimise the need for
 invoking the scheduler, therefore this increase is unlikely to have
-a noticeable effect in practice. In fact, the \(O(1)\) scheduler is a
-recent addition to \selfour: scheduling used to be far more expensive.
-\TODO{mention this in the seL4 chapter}. 
-
+a noticeable effect in practice. 
 
 \subsection{Full system benchmark}
 \label{s:evaluation-redis-overhead}
 
-To demonstrate the impact of the overheads measured in this chapter in a real system,
+To demonstrate the impact of the overheads in a real system scenario, 
 we measure the performance of the Redis key value store~\citep{redis:url} using 
 \gls{YCSB}~\citep{Cooper_STRS_10} on baseline and MCS \selfour, and compare this
 against Linux, the Rump unikernel~\citep{Kantee_Cormack_14} and 
 NetBSD~\citep{NetBSD:url} all on the \textsc{x64} machine.
 
 For \selfour, we use a single-core Rump library OS~\citep{Kantee_Cormack_14} to provide 
-NetBSD~\citep{NetBSD:url} network drivers at user level. The system architecture is 
-shown in \cref{f:redis-arch}. 
+NetBSD~\citep{NetBSD:url} network drivers at user level, by leveraging an existing port of this infrastructure
+to \selfour~\citep{McCleod:be}.
 The system consists of Redis/Rump running on three active \selfour threads: 
 two for servicing interrupts (network, timer) and one for Rump, as shown in
 \cref{f:redis-arch}. Interrupt threads run at the highest priority,
 followed by Redis and a low-priority idle thread (not shown) for measuring CPU utilisation;
 this setup forces frequent invocations of the scheduler and interrupt path.
-
-We compare against bare-metal Rump, and
-NetBSD (version 7.0.2) itself, which both use the same drivers. Additionally, we compare to Linux 
-in single-user mode. \Cref{f:redis-arch} shows the architecture of the benchmark for each system. 
 
  \begin{figure}[ht]
     \centering
@@ -391,17 +385,23 @@ in single-user mode. \Cref{f:redis-arch} shows the architecture of the benchmark
     \label{f:redis-arch}
 \end{figure}
 
+\autoref{t:redis} shows the achieved throughput of Redis+Rump
+running  bare-metal (BMK), and Redis on the seL4 baseline and as well as the MCS
+branch, plus Linux and NetBSD (7.0.2) for comparison.
 
-\cref{t:redis} shows the achieved throughput of Redis+Rump
-running  bare-metal, and Redis on the \selfour baseline and as well as the MCS
-branch, plus Linux and NetBSD for comparison.
+The table indicates the interrupt handling method used, as there is no single method supported
+across all four scenarios. BMK only supports the legacy
+programmable interrupt controller (PIC),
+while NetBSD only supports message-signalled interrupts (MSI). Linux and seL4 both support the
+advanced PIC (APIC).
+
 
 The utilisation figures show that the system is fully loaded, except
 in the Linux case, where there is a small amount of idle time. The
 cost per operation (utilisation over throughput) is best on Linux, a
 result of its highly optimised drivers and network stack. Our
 bare-metal and \selfour-based setups use Rump's NetBSD drivers, and
-actually achieve slightly better performance than NetBSD. This
+actually performance within a few percent of native NetBSD. This
 indicates that the MCS model comes with low overhead.
 
 \begin{table}[t]\centering
@@ -423,21 +423,23 @@ indicates that the MCS model comes with low overhead.
 
 \section{Temporal Isolation}
 
-We now evaluate the temporal isolation properties achieved by the model. We use
-two system benchmarks to show that processes attain and do not exceed their
-CPU allocation provided by their scheduling context. Finally, we evaluate and demonstrate different
-techniques to restore server state after a timeout exception and finally show temporal isolation between
-clients in a shared server scenario.
+We have demonstrated our model has little overhead and is competitive with existing monolithic
+kernels. Now we evaluate temporal isolation properties, between processes and in a shared-server
+scenario. 
+In addition, we evaluate and demonstrate different
+techniques to restore server state after a timeout exception.
 
 % Show isolation between processes using different scheduling contexts
 \subsection{Process isolation} 
 
 We evaluate process isolation, where processes do not share resources, indirectly via network
-throughput and network latency in two separate benchmarks. 
+throughput and network latency in two separate benchmarks. Note that the Rump unikernel only
+currently supports x86 platforms, consequently these experiments are only carried out on
+the \textsc{x64} platform. 
 
 \subsubsection{Network throughput}
 
-First, we demonstrate our isolation properties with the Redis setup described in
+First, we demonstrate our isolation properties with the Redis architecture described in
 \Cref{s:evaluation-redis-overhead} with an additional, high-priority active CPU-hog thread
 competing for \gls{CPU} time.  All scheduling contexts in the system are configured with a
 5\,ms period. We use the budget of the hog to control the amount of time left over
@@ -449,7 +451,7 @@ thread). All data points are the average of three benchmark runs.
 \begin{figure}[h]
   \centering
   \includegraphics{redis}
-  \caption{Throughput of Redis YCSB workload A and idle time vs available bandwidth.}
+  \caption{Throughput of Redis YCSB workload A and idle time versus available bandwidth.}
   \label{f:redis}
 \end{figure}
 
@@ -495,7 +497,8 @@ ten runs at each budget setting. We can see that the maximum latencies
 follow exactly the budget of the Linux server (black line) up to 9\,ms. Only
 when Linux has a full budget (10\,ms), and thus able to monopolise the
 processor, does the UDP server miss its deadlines, resulting in a
-latency blowout.  This result shows that our sporadic server implementation is effective in bounding interference of a high-priority process.
+latency spike.  This result shows that our sporadic server implementation is effective in bounding
+interference of a high-priority process.
 
 \begin{figure}[h]
   \centering
@@ -509,8 +512,10 @@ latency blowout.  This result shows that our sporadic server implementation is e
 \label{s:server-isolation}
 
 To demonstrate temporal isolation in a shared server, we use a case study of an encryption service
-using \gls{AES} to encrypt client data. We measure both the overhead of different recovery techniques, and the
-throughput achieved when two clients constantly run out of budget in the server.
+using \gls{AES} to encrypt client data. We measure both the overhead of different
+recovery techniques, and the throughput achieved when two clients constantly run out of budget in the server. 
+We port an existing, open-source \gls{AES} implementation to a shared server running on \selfour, and run
+benchmarks on both \textsc{x86} and \textsc{Sabre}.
 
 \Cref{f:aes-arch} shows the architecture of the case study. Both clients $A$ and $B$ are single
  threaded and exist in separate address spaces to the server. The server has two threads, a passive
@@ -528,22 +533,19 @@ fault \gls{IPC} messages on endpoint $E_{2}$.}
 \end{figure}
 
 The server itself runs the AES-256 algorithm with a block size of 16~bytes. The server alternates between two
-buffers using an atomic swap, of which one always contains consistent state, the other is
+buffers, using an atomic swap, of which one always contains consistent state, the other is
 dirty during processing. When a timeout fault occurs, only the dirty buffer is lost due to
-inconsistency. 
-
-Both clients request 4\,MiB of data to be encrypted, and have a budget insufficient to
+inconsistency. Both clients request 4\,MiB of data to be encrypted, and have a budget insufficient to
 complete the request. When the server is running on the clients scheduling context and the budget
 expires, a timeout exception, which is a fault IPC message from the kernel, is delivered to the timeout
 handler. 
 
 \subsection{Timeout handling techniques}
 
-If client scheduling context is depleted while the server is servicing the request, a timeout fault is raised and
-sent to the timeout handler.
-The appropriate protocol for handling such faults depends ultimately on the requirements of the system.
-Consequently, we implement and evaluate four different timeout fault handling techniques: rollback, error,
-emergency and extend. 
+If client scheduling context is depleted while the server is servicing the request, a timeout fault
+is raised and sent to the timeout handler.  The appropriate protocol for handling such faults
+depends ultimately on the requirements of the system.  Consequently, we implement and evaluate four
+different timeout fault handling techniques: rollback, error, emergency and extend. 
 
 While each technique is evaluated separately, combinations of such techniques could be used for
 different clients depending on their requirements. For example, trusted clients may get special
@@ -561,21 +563,21 @@ safe servers, this may require rolling back an entire request. However, algorith
 which can easily be batched can make progress. The process for rollback involves is as follows:
 
 \begin{enumerate}\label{e:rollback}
-    \item Fault is received by timeout handler.
-    \item Handler replies to the client by sending a message to the client reply
-        object, with an indication of how much progress has been made. In the case of \gls{AES} this
-        is how much data is left to encrypt. By invoking the reply object, the client's
-        scheduling context is returned from the server to the client.
-    \item Server is restored to a known state by the timeout handler (restoring registers, stack
-        frames and any global state. 
-    \item Handler binds a scheduling context to the server for it to execute on.
-    \item Handler blocks waiting for a message from the server.
-    \item Now the server runs from its checkpoint. In the case study, the server is checkpoint just
-        before it initiates the passive initialisation protocol (TODO ref to passive init figure), so this system call is
-        repeated. The server signals the timeout handler and blocks on $E_{1}$, ready for client
-        requests.
-    \item Handler wakes and converts the server back to passive.
-    \item Handler blocks on $E_{2}$, ready for further timeout faults.
+    \item A timeout fault is received by timeout handler, $T$ over $E_{2}$.
+    \item $T$ constructs a reply message to the client from the last clean state, and sends this 
+        message to the client by invoking the resume capability that the server has used for that client. 
+        Because the resume object tracks the donation, the client's scheduling context is returned.
+    \item $T$ then restores the server, $S$ to a known state by the timeout handler (restoring registers,
+        stack frames and any global state). $S$ is restored to the point before it made its
+        last system call, usually an \nbsendrecv, which it used to indicate to the initialiser that
+        $S$ should be made passive, as part of the passive server initialisation protocol presented
+        in \cref{sec:impl-passive-servers}.
+    \item Now the server must return to blocking on the IPC endpoint, $E_{1}$. $T$ binds a
+        scheduling context to $S$ and waits for a message. 
+    \item Now the $S$ runs from its checkpoint, repeating the \nbsendrecv, signalling to $T$ that it
+        can now be converted to passive once more and blocking on $E_{1}$. 
+    \item $T$ wakes and converts the server back to passive.
+    \item Finally, $T$ blocks on $E_{2}$, ready for further timeout faults.
 \end{enumerate}
 
 The rollback technique requires the server and timeout handler to both have access to the reply
@@ -601,7 +603,7 @@ and leave the client blocked forever, without access to any of the clients capab
 
 The process for suspending the client is the same as that for \Cref{e:rollback} but for two aspects;
 the server state does not need to be altered by the timeout handler as the server always 
-restores to the same place, and instead of replying to the client it is suspended.
+restores to the same place, instead of replying to the client it is suspended.
 
 \subsubsection{Emergency}
 
@@ -612,16 +614,16 @@ scenarios where isolation is desired but transient overruns are expected.
 An example emergency protocol follows:
 
 \begin{enumerate}\label{e:emergency}
-    \item Fault is received by timeout handler.
-    \item Unbind client scheduling context from server. \TODO{clarify who does what}
-    \item Bind server with emergency budget.
-    \item Reply to the timeout fault, which restarts the server.
-    \item Enqueue the timeout handler itself, with an empty sized request, in the server's
-          endpoint queue, by invoking $E_{1}$
-    \item Server finishes request with extra budget and replies to the client.
-    \item The timeout handler is highest priority, so it overtakes other clients and wakes up after the 
-          server processes its empty request. The handler then converts the server back to passive.
-    \item Handler blocks on $E_{2}$, ready for further timeout faults.
+    \item A timeout fault is received by timeout handler, $T$ over $E_{2}$.
+    \item $T$ unbinds the client scheduling context from $S$.
+    \item $T$ binds a new scheduling context to the $S$, which acts as an emergency budget.
+    \item $T$ then replies to the timeout fault, resuming $S$.
+    \item No $T$ enqueues itself on $E_{1}$, such that when the server finishes the blocked request,
+        $T$, being a higher priority, is served next.
+    \item $S$ completes the request and replies to the client.
+    \item $S$ receives the request from $T$, and replies immediate as it is an empty request.
+    \item $T$ wakes, and converts the server back to passive.
+    \item Finally $T$ blocks on $E_{2}$, ready for further timeout faults.
 \end{enumerate}
 
 This case requires the timeout handler to have access to client scheduling contexts in order to
@@ -634,17 +636,17 @@ timeout fault handler to have access to the clients scheduling contexts.
 This could be deployed in \gls{SRT} systems or for specific threads with unknown budgets up to a limit. 
 
 \begin{enumerate}\label{e:extend}
-    \item Fault is received by timeout handler.
-    \item Extend client budget by configuring scheduling context.
-    \item Reply to fault message, which resumes the server.
+    \item A timeout fault is received by timeout handler, $T$ over $E_{2}$.
+    \item $T$ extends the client's budget by configuring scheduling context.
+    \item $T$ replies to the fault message, which resumes $S$.
 \end{enumerate}
 
 \subsection{Results}
 
-We measure the pure handling overhead in each case, from when the timeout handler wakes up to when it blocks again. 
- Given the small amount of rollback state, this measures the baseline
-    overhead. For schedulability analysis, the actual cost of the rollback would
-have to be added, in addition to the duration of the timeout fault IPC. 
+We measure the pure handling overhead in each case, from when the timeout handler wakes up to when
+it blocks again.  Given the small amount of rollback state, this measures the baseline overhead. For
+schedulability analysis, the actual cost of the rollback would have to be added, in addition to the
+duration of the timeout fault IPC. 
  
 We run each benchmark with hot caches (primed by some warm-up
 iterations)  as well as cold (flushed) caches and measure the 
@@ -652,13 +654,11 @@ latency of timeout handling, from the time the handler wakes up
 until it replies to the server.
 
 \autoref{t:rollback} shows the results. The maximum
-cold-cache cost, which is relevant for schedulability analysis,
-differs by a factor of 3--4 between the different recovery scenarios,
-indicating that all are about equally feasible.
-Approaches that restart the server and send \glspl{IPC} messages on its behalf (rollback, reply) are the most expensive
-as they must restore the server state from a
-checkpoint and follow the passive server initialisation protocol
-(recall \autoref{s:passive}). 
+cold-cache cost, which is relevant for schedulability analysis, differs by a factor of 3--4 between
+the different recovery scenarios, indicating that all are about equally feasible.  Approaches that
+restart the server and send \glspl{IPC} messages on its behalf (rollback, reply) are the most
+expensive as they must restore the server state from a checkpoint and follow the passive server
+initialisation protocol (recall \autoref{s:passive}). 
 
 \begin{table}[t]\centering
 \begin{tabular}{cllrrrr}\toprule
@@ -694,7 +694,7 @@ the budget is sufficient) or is rolled back after processing less than 4\,MiB.
   \centering
   \includegraphics{aes-shared}
   \caption{Throughput for clients A and B of a passive AES server processing 10 requests of 4\,MiB of data with
-      limited budgets on the \textsc{x64} (top row) and \textsc{sabre} (bottom row) platforms. The two clients' budgets
+      limited budgets on the \textsc{x64} (top row) and \textsc{Sabre} (bottom row) platforms. The two clients' budgets
       add up to the period, which is varied between graphs (10, 100, 1000\,ms). Clients sleep when
       they process each 4\,MiB, until the next period, except when their budgets are full. Each data point is the average of 10 runs, error bars show the standard deviation.}
   \label{f:aes}

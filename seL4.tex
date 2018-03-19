@@ -605,7 +605,8 @@ At a scheduling decision, the kernel chooses the head of the highest-priority, n
 
 Implementation wise, the scheduler consists of an array of lists: one list of ready threads for each
 priority level. A two-level bit field is used to track which priority lists contain threads, 
-in order to achieve a scheduling decision complexity of $O(1)$. 
+in order to achieve a scheduling decision complexity of $O(1)$. In fact, the \(O(1)\) scheduler is a
+recent addition to \selfour: scheduling used to be far more expensive.
 
 The bit field data structure works as follows: the
 top-level consists of one word, each bit representing $N$ priorities, where $N$ is 32 or 64
