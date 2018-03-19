@@ -7,7 +7,8 @@ low-criticality system, failure may risk a downgrade in user-experience.  Tradit
 different criticality were isolated by hardware.  This approach is no longer practical as it has
 proven inefficient and restrictive.  The result is \emph{mixed-criticality} systems, where software
 applications with different criticalities execute on the same hardware.
-
+% Does a software application have mixed-criticality components or single criticality.
+% Application, system, functional componet ?
 % introduce challenges, example
 However, mixed-criticality systems have conflicting requirements that challenge \glspl{OS} design:
 they require mutually distrusting components of different criticalities to share resources and must
@@ -25,7 +26,9 @@ number of physical processors. More recently the
 construct fully autonomous systems, critical and less critical systems must be able to share
 resources. However, resource sharing between components of mixed-criticality is heavily restricted by current
 standards.
-
+% Non-fungibility of time,
+% Difficulty in calculating wcet of high critical tasks -> overbooking.
+% Varying processor time requirements of all tasks -> overbooking.
 % what's wrong with static partitioning
 While MCS are becoming the norm in avionics, this is presently in a very restricted form: the system
 is orthogonally partitioned spatially and temporally, and partitions are scheduled with fixed time
@@ -44,6 +47,7 @@ However, mixed-criticality systems are about more than basic consolidation; they
 than traditional physically isolated systems. Allowing untrusted, less critical components to
 share hardware and communicate with more critical components, far more complex software can be
 introduced to the system. Examples include heuristic algorithms that are common in artificial
+% algorithms algorithms
 intelligence algorithms, or internet connected software which by its nature cannot be completely
 trusted. Both of these use-cases are far too complex to certify to the highest criticality standard,
 but are essential for emerging cyber-physical systems like self-driving cars.
@@ -51,7 +55,7 @@ but are essential for emerging cyber-physical systems like self-driving cars.
 % finally, overcommitting
 Our goal is to design and implement an OS that provides the right mechanisms for efficiently
 supporting mixed criticality systems, and to reason about their safety.
-The implementation platform will be the \selfour~\citep{Klein_EHACDEEKNSTW_09}.
+The implementation platform will be the \selfour~\citep{Klein_EHACDEEKNSTW_09}
 microkernel, which is has been designed for the high-assurance, safety-critical domain.
 
 Concisely, the goals of this research are to provide:
@@ -121,7 +125,7 @@ Mixed-criticality systems also bring opportunities for new types of
 systems, and are indeed required for emerging cyber-physical systems like
 advanced driver assistance systems, autonomous vehicles and internet of things devices.
 For example consider the system for a self driving
-car as with components as outlined in \Cref{tab:self-driving-car}.  The safety
+car with components as outlined in \Cref{tab:self-driving-car}.  The safety
 systems are the most critical: if air bag or anti-lock brakes fail this could
 cause great injury or death to the passengers.  The communications system is
 least critical, however useful: it downloads weather and road conditions,
@@ -193,7 +197,6 @@ Given their improvements to \gls{SWaP}, function and efficiency, mixed-criticali
 great advantages over the traditional physical isolation approach. 
 \citet{Ernst_DiNatale_16} identify two sets of mechanisms that need to be provided in order to
 support true mixed-criticality systems:
-
 \begin{enumerate}
     \item kernels and schedulers that guarantee resource
         management to provide independence in the
@@ -205,6 +208,8 @@ support true mixed-criticality systems:
         presence of faults.
 \end{enumerate}
 
+%  I think this sentence should be at the top of this section.  I read the first part of the section
+%  as if it was your contributions and got confused.
 The contributions of our research are to provide the core mechanisms for building whole
 mixed-criticality systems upon. 
 
@@ -216,7 +221,7 @@ support mixed criticality systems. We implement those mechanisms in \selfour and
 microbenchmarks and case studies to evaluate the implementation. 
 
 \Cref{chap:background} establishes the basic terminology required to present
-the remaining ideas. In \Cref{chap:scheduling} we examine in detail methods for achieving temporal
+the remaining ideas. In \Cref{chap:scheduling} we examine, in detail, methods for achieving temporal
 isolation and safe resource sharing in real-time systems; \Cref{chap:operating-systems} investigates
 the same concepts from the systems perspective, and presents a survey of existing commercial, open-source
 and research operating systems. We then present the relevant details of our implementation platform,
