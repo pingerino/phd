@@ -717,67 +717,64 @@ fixed-priority-based model seems to violate this principle,  we
 demonstrate that the model is general enough to support the efficient
 implementation of alternate policies at user level. Specifically, we
 implement two user-level schedulers: first, a static mixed criticality
-scheduler~\citep{Baruah_BD_11}, which we also compare to an in-kernel implementation and secondly
-an \gls{EDF} scheduler, which we compare to \litmus.
+scheduler~\citep{Baruah_BD_11}, which we also compare to an in-kernel
+implementation and secondly an \gls{EDF} scheduler, which we compare to \litmus.
 
+\subsection{Criticality}
 
+Static, mixed-criticality, fixed-priority schedulers are based on \emph{mode
+switches}, which effectively mean altering the priority of threads in bulk:
+critical threads that may be of low rate are bumped higher than their
+low-criticality counter parts, to ensure deadlines are met in exceptional
+circumstances. 
 
-\TODO{update - user level criticality not kernel}
-We evaluate our kernel mechanism for changing criticality
-with two benchmarks: A
-microbenchmark measuring the cost of a mode switch, and another showing deadline misses of threads sets over several mode changes.
+We implement a kernel mechanism for changing priorities in bulk of threads 
+and compare with a user-level approach which simply changes the priority of threads
+one at a time. In our prototype implementation, the kernel tracks all threads of specific criticalities and boosts their priority on a made switch. However, given threads are kept in per-priority queues, each thread must be removed and reinserted into a new queue, so either way the complexity of the mode-switch is $O(n)$. 
 
-\begin{figure}[t]
+\begin{figure}
   \centering
   \includegraphics[width=\linewidth]{mode-switch-all}
-  \caption{Cost of switching the priority of $n$ threads, as well as changing from \crit{low} to
-  \crit{high} criticality level while increasing the number of \crit{high} and \crit{low} threads,
-  on \textsc{sabre} and \textsc{x64}. Each data point is the average of 100 runs, with very small standard
-  deviations.}
+  \caption{Cost of switching the priority of $n$ threads in kernel and user level, with hot
+            and cold caches, on \textsc{x64} (left) and \textsc{Sabre} (right). All data points are the average of 100 runs,
+                  with very small standard deviations.}
   \label{f:mode-switch}
 \end{figure}
 
-To evaluate the cost of changing the system criticality level, we
-configure the kernel with 128 priorities and 2 criticality levels
-(0--1). We then  run 3 experiments as follows:
-\begin{description}
-    \item[\textsc{UL}:] measures the time to change the priority of $n$ threads from user-level;
-    \item[\textsc{HI}:] measures the time for raising the system criticality level from 0 to 1 with one \crit{low} thread and $n$
-    \crit{high} threads, i.e.\ the priority of $n$ threads must be boosted;
-\item[\textsc{LO}:] measures the time for raising the system criticality level from 0 to 1 with one \crit{high} thread and
-    $n$ \crit{low} threads, i.e.\ only one thread must be boosted.
-\end{description}
+\autoref{f:mode-switch} shows the results measured with a primed cache (hot) and flushed cache (cold).
+As the graph shows, switching is linear in the number of threads being boosted.
 
-\Cref{f:mode-switch} shows the results, where each data point is the result of 100 measurements.
-We show results with a primed cache (hot) and flushed cache (cold).
-As the graph shows, switching is linear in the number of \crit{high} threads being boosted. Varying the number
-of \crit{low} threads has no impact on the execution time of a mode switch.
-This is important, as the schedulability analysis for critical threads
-must not depend on less-critical threads, and should not make
-assumptions how many threads less-critical software creates.
+In absolute terms, the results show that a criticality switch is fairly fast, the in-kernel implementation
+remaining under 2\,$\mu$s on x64 and about 12\,\(\mu\)s on ARM for switching 8 threads
+with a cold cache. Changing the priority at user-level is also linear in the number of threads to be boosted, with a higher overhead due to extra
+kernel entries for each thread changed.
+However, most systems will not have more than a few high-criticality threads, and deadlines for critical control loops in
+cyber-physical systems tend to be in the tens of milliseconds, we
+conclude that criticality can be implemented at user-level, in line with standard microkernel philosophy.
 
-In absolute terms, the results show that a mode switch is fairly fast,
-remaining under 2\,$\mu$s on \textsc{x64} and about 12\,\(\mu\)s on \textsc{sabre} for switching 8 threads
-with a cold cache. Most systems will not have more than a few high
-criticality threads, and deadlines for critical control loops in
-cyber-physical systems tend to be in the tens of milliseconds, meaning
-that budgeting a few microseconds for an emergency mode switch is eminently
-feasible.
-
-Additionally, the results show that changing the priority at user-level, rather than using the
-criticality boost, is also linear in the number of threads to be boosted, but  is significantly slower than using the kernel mechanism (i.e.\ mode switch).
-The higher cost from user-level operation results from  multiple switches between kernel and user mode, and the repeated thread-capability look-ups.
+The higher cost from user-level operation results from  multiple
+switches between kernel and user mode, and the repeated
+thread-capability look-ups. It could be significantly reduced if seL4
+had a way to batch system calls, but to date we have seen no compelling use cases for this.
 
 % TODO mode switch benchmark
-For our second mode-switch benchmark, we ported 3 processor intensive benchmarks from the
-MiBench~\citep{Guthaus_REAMB_01} to act as workloads. Each benchmark runs in its own Rump process
+As a second criticality-switch benchmark, we ported three processor intensive 
+benchmarks from the MiBench~\citep{Guthaus_REAMB_01} to act as workloads. 
+We use \textsc{susan}, which performs image recognition, \textsc{jpeg}, which does image
+encoding/decoding, and \textsc{mad}, which plays an MP3 file.
+Each benchmark runs in its own Rump process
 with an in-memory file system, and shares a timer and serial server.
+ We chose these specific
+benchmarks as they were the easiest to adapt as described below,
+rather than for comparing systems, so there is no issue of bias from sub-setting.
 
 We altered the benchmarks to run periodically in multiple stages. To obtain
 execution times long enough, some benchmarks iterate a fixed number of times per
 stage. Each benchmark process executes its workload and then waits for the next period to start.
 Deadlines are implicit: if a periodic job finishes before the start of the next period it is
 considered successful, otherwise the deadline is missed.
+
+We run the benchmarks on both the user-level and in-kernel implementations of static mixed criticality, with 10 runs of each.
 
 \Cref{t:modeswitch} lists the benchmarks with periods and criticalities.
 \textit{susan}, the most critical, has three stages: edge detection, smoothing, and corners. The
@@ -788,14 +785,24 @@ threads have no new phase), and
 increment the system criticality level at stage transition. The parameters are arranged such that
 rate-monotonic priorities are inverse to the criticalities.
 
-Results are shown in \autoref{t:modeswitch}. For stage one, the entire workload is schedulable and
-no deadlines are missed. For stage two, the workload is not
+\textsc{susan}, the most critical, has three stages: edge detection, smoothing, and corners. The
+next critical task, \textsc{jpeg}, has two stages: encode, and decode. The least
+critical task, \textsc{mad} has only one stage. We run the benchmark
+for 20\,s for each of the stages (repeating the last phase where
+threads have no new phase), and
+increment the system criticality level at stage transition. The parameters are arranged such that rate-monotonic priorities are inverse to the criticalities.
+
+Results are shown in \autoref{t:modeswitch}.
+Only the lowest-priority thread is affected by the criticality switch, with an additional missed deadline due to
+perturbations in run time due to the user-level versus kernel scheduler.
+For stage one, the entire workload is schedulable and
+there are no deadline misses. For stage two, the workload is not
 schedulable, and the criticality switch boosts the priorities of
-\textit{susan} and \textit{jpeg}, such that they meet
+\textsc{susan} and \textsc{jpeg}, such that they meet
 their deadlines, but
-\textit{mad} does not. In the final stage, only the most critical task
+\textsc{mad} does not. In the final stage, only the most critical task
 meets all deadlines.
-This shows that our mechanisms operate as intended.
+This shows that it is sufficient to implement criticality at user-level, and our mechanisms operate as intended.
 
 \begin{table}[h]
     \centering
@@ -815,18 +822,15 @@ utilisation for each stage respectively. Standard deviations are shown in parent
     \label{t:modeswitch}
 \end{table}
 
+\subsection{User-level EDF}\label{s:edf-impl}
 
-
-\TODO{intro}
-
-\subsection{User-level scheduling}\label{s:edf-impl}
 We implement the EDF scheduler as an active server with active
-clients which run at an \selfour priority below the scheduler.
+clients which run at an \selfour priority below the user-level scheduler.
 The scheduler waits on an endpoint on which it receives messages from
-its clients or the timer.
+its clients and the timer.
 
-Each client has a period which represents its relative deadline and a full reservation (i.e.\ equal to the period). Clients
-either explicitly notify the scheduler of completion by an IPC
+Each client has a period, representing its relative deadline, and a full reservation (equal to the period). Clients
+either notify the scheduler of completion by an IPC
 message, or else create a timeout exception on preemption, which is also received by the
 scheduler. Either is an indication that the next thread should be scheduled.
 
@@ -846,14 +850,17 @@ to acknowledge the IRQ, in addition to reprogramming the timer.
 
 We compare our latencies to those of
 LITMUS$^{RT}$~\citep{Calandrino_LBDA_06}, a widely-used real-time scheduling
-framework embedded in Linux, where we use Feather-Trace~\citep{Brandenburg_Anderson_07} to gather data.
-We use the C-EDF scheduler, which is a partitioned (per-core), clustered (per-node) EDF scheduler, on a single
+framework for developing real-time schedulers and locking protocols. 
+As it is  embedded in Linux, LITMUS$^{RT}$ is not aimed at high-assurance systems.
+
+We use Feather-Trace~\citep{Brandenburg_Anderson_07} to gather data.
+We use the C-EDF scheduler, which is a partitioned (per-core) EDF scheduler, on a single
 core. We use the same parameters and thread sets, running each set for 10\,s. 
 The measured overhead considers the in-kernel scheduler, context-switch and user-level code to return to
 the user.
 
-\autoref{f:edf} shows that our user-level EDF scheduler implementation is
-competitive with t EDF from LITMUS$^{RT}$, and
+\autoref{f:edf} shows that our preemptive user-level EDF scheduler implementation is
+actually faster than the in-kernel EDF scheduler from LITMUS$^{RT}$, and
 that the cost of implementing scheduling policy at user level is of
 the same order as the in-kernel default scheduler. In other words,
 implementing different policies on top of the base scheduler is quite feasible.
@@ -934,22 +941,23 @@ we run two variants.
     \label{f:evaluation-smp-aes}
 \end{figure}
 
-
 \section{Summary}
 
 All in all, we have demonstrated via micro- and macro- benchmarks that our overheads are
 reasonable given the speed of the baseline kernel and the extent of the provided
 functionality. 
 
-%TODO rewrite to align with goals at start of chapter
-Through two system benchmarks and one shared-server benchmark, we have shown that our approach
-guarantees processor isolation and that threads cannot exceed their budget allocation via their
-scheduling context. Additionally, we have shown that isolation can be achieved in a shared server via
-a timeout fault handler and demonstrated several alternatives for handling such faults,
+Through two system benchmarks and one shared-server benchmark, we have shown
+that our approach guarantees processor isolation and that threads cannot exceed
+their budget allocation via their scheduling context. Additionally, we have
+shown that isolation can be achieved in a shared server via a timeout fault
+handler and implemented several alternatives for handling such faults,
 demonstrating the feasibility of the model. 
 
+Policy freedom is maintained although we provide a fixed-priority scheduling in the kernel, the primitives are provided are sufficient to implement user-level schedulers, 
+as demonstrated through the static, mixed-criticality and EDF scheduler
+implementations. 
 
-
-% TODO summarise eval
-Our evaluation demonstrates our model has minimal overheads, achieves isolation, and allows for efficient user-level scheduling.
-
+Finally we have demonstrated that the model works for multiprocessors,
+incurring no great scalability penality over baseline \selfour, 
+and showing how passive servers which migrate across cores on \gls{IPC}

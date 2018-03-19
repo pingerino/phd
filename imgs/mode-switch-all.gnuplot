@@ -31,12 +31,10 @@ set size SX,SY
 # dummy plot to spread keys across full width
 set origin 0,NY*2
 set key at screen DX+SX, screen SY+DY+DY horizontal left maxcols 1
-plot  x86_hi_cold using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'HI cold', \
-      x86_hi_hot  using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'HI hot', \
-      x86_lo_cold using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'LO cold', \
-      x86_lo_hot  using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'LO hot', \
-      x86_ul_cold using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'UL cold', \
-      x86_ul_hot  using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'UL hot'
+plot  x86_hi_cold using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'Kernel cold', \
+      x86_hi_hot  using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'Kernel hot', \
+      x86_ul_cold using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'User-level cold', \
+      x86_ul_hot  using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'User-level hot'
      
 # dont mirror tics on both axis
 set xtics nomirror
@@ -56,12 +54,10 @@ set format y ''
 set ytics add (' ' 0, '1' 1, '2' 2)
 set origin DX,DY
 
-plot  x86_hi_cold using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'HI cold', \
-      x86_hi_hot  using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'HI hot', \
-      x86_lo_cold using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'LO cold', \
-      x86_lo_hot  using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'LO hot', \
-      x86_ul_cold using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'UL cold', \
-      x86_ul_hot  using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'UL hot'
+plot  x86_hi_cold using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'Kernel cold', \
+      x86_hi_hot  using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'Kernel hot', \
+      x86_ul_cold using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'User-level cold', \
+      x86_ul_hot  using 1:($2/x86_clk):($3/x86_clk) with errorlines title 'User-level hot'
      
 # top
 set title "Sabre"
@@ -77,7 +73,5 @@ unset xlabel
 set format x ''
 plot  arm_hi_cold using 1:($2/arm_clk):($3/arm_clk) with errorlines title 'Hi cold', \
       arm_hi_hot  using 1:($2/arm_clk):($3/arm_clk) with errorlines title 'Hi hot', \
-      arm_lo_cold using 1:($2/arm_clk):($3/arm_clk) with errorlines title 'Lo cold', \
-      arm_lo_hot  using 1:($2/arm_clk):($3/arm_clk) with errorlines title 'Lo hot', \
       arm_ul_cold using 1:($2/arm_clk):($3/arm_clk) with errorlines title 'ul cold', \
       arm_ul_hot  using 1:($2/arm_clk):($3/arm_clk) with errorlines title 'ul hot'
