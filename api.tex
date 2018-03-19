@@ -35,7 +35,7 @@ For convenience, in this section we present all of the system calls in the MCS a
   the scheduling context of the caller may be lent to the receiver. The caller is blocked on a
   resume object, and wakes once that resume object has been invoked, thus sending a reply and
   returning a lent scheduling context.}
-  {seL4_MessageInfo_t seL4_Call(seL4_CPtr cap, seL4_MessageInfo_t info)}
+  {seL4\_MessageInfo\_t seL4\_Call(seL4\_CPtr cap, \code{seL4\_MessageInfo\_t} info)}
 {
     \param{seL4\_CPtr}{dest}{Capability to invoke}
     \param{seL4\_CPtr}{info}{A \code{seL4\_MessageInfo\_t} structure encoding details about the message}
@@ -46,7 +46,7 @@ For convenience, in this section we present all of the system calls in the MCS a
 {Send}
 {Invoke the capability provided. If used on an endpoint capability, block until the message has been
 sent.}
-{void seL4_Send(seL4_CPtr cap, seL4_MessageInfo_t info)}
+{void seL4\_Send(seL4\_CPtr cap, \code{seL4\_MessageInfo\_t} info)}
 {
     \param{seL4\_CPtr}{dest}{Capability to invoke}
     \param{seL4\_CPtr}{info}{A \code{seL4\_MessageInfo\_t} structure encoding details about the message}
@@ -57,7 +57,7 @@ sent.}
 {NBSend}
 {Invoke the capability provided. If used on an endpoint capability and no receiver is present, do
     not send the message and return immediately.}
-{void seL4_NBSend(seL4_CPtr cap, seL4_MessageInfo_t info)}
+{void seL4\_NBSend(seL4\_CPtr cap, \code{seL4\_MessageInfo\_t} info)}
 {
     \param{seL4\_CPtr}{dest}{Capability to invoke}
     \param{seL4\_CPtr}{info}{A \code{seL4\_MessageInfo\_t} structure encoding details about the message}
@@ -69,7 +69,7 @@ sent.}
 {Wait for a message on the provided capability. If the provided capability is not an endpoint or
     notification, raise a capability fault. Passive threads may receive scheduling contexts from 
 this system call.}
-    {seL4_MessageInfo_t seL4_Recv(seL4_CPtr cap, seL4_Word *badge, seL4_CPtr reply)}
+    {seL4\_MessageInfo\_t seL4\_Recv(seL4\_CPtr cap, seL4\_Word *badge, seL4\_CPtr reply)}
 {
     \param{seL4\_CPtr}{src}{Capability to wait for a message on.}
     \param{seL4\_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
@@ -83,7 +83,7 @@ this system call.}
 {Poll for a message on the provided capability. If the provided capability is not an endpoint or
     notification, raise a capability fault. Passive threads may receive scheduling contexts from 
 this system call.}
-    {seL4_MessageInfo_t seL4_NBRecv(seL4_CPtr cap, seL4_Word *badge, seL4_CPtr reply)}
+    {seL4\_MessageInfo\_t seL4\_NBRecv(seL4\_CPtr cap, seL4\_Word *badge, seL4\_CPtr reply)}
 {
     \param{seL4\_CPtr}{src}{Capability to wait for a message on.}
     \param{seL4\_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
@@ -95,7 +95,7 @@ this system call.}
 {Wait}
 {Wait for a message on the provided capability. If the provided capability is not an endpoint or
     notification, raise a capability fault.}
-    {seL4_MessageInfo_t seL4_Wait(seL4_CPtr cap, seL4_Word *badge)}
+    {seL4\_MessageInfo\_t seL4\_Wait(seL4\_CPtr cap, seL4\_Word *badge)}
 {
     \param{seL4\_CPtr}{src}{Capability to wait for a message on.}
     \param{seL4\_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
@@ -106,7 +106,7 @@ this system call.}
 {NBWait}
 {Poll for a message on the provided capability. If the provided capability is not an endpoint or
     notification, raise a capability fault.}
-    {seL4_MessageInfo_t seL4_NBWait(seL4_CPtr cap, seL4_Word *badge)}
+    {seL4\_MessageInfo\_t seL4\_NBWait(seL4\_CPtr cap, seL4\_Word *badge)}
 {
     \param{seL4\_CPtr}{src}{Capability to wait for a message on.}
     \param{seL4\_Word*}{badge}{address for the kernel to write the badge value of the sender to.}
@@ -118,8 +118,8 @@ this system call.}
 {Invoke a resume object, sending a reply message, then block on the provided capability, waiting for
 a message on the provided capability, with the now cleared resume object. Passive threads may receive
 scheduling contexts from  this system call.}
-{seL4_MessageInfo_t seL4_ReplyRecv(seL4_CPtr cap, seL4_MessageInfo_t info, seL4_Word *badge,
-seL4_CPtr reply)}
+{seL4\_MessageInfo\_t seL4\_ReplyRecv(seL4\_CPtr cap, \code{seL4\_MessageInfo\_t} info, seL4\_Word *badge,
+seL4\_CPtr reply)}
 {
     \param{seL4\_CPtr}{src}{Capability to wait for a message on.}
     \param{seL4\_CPtr}{info}{A \code{seL4\_MessageInfo\_t} structure encoding details about the message}
@@ -133,8 +133,8 @@ seL4_CPtr reply)}
 {Perform a non-blocking send on a capability, then block on the provided capability, waiting for
 a message on the provided capability, with the resume object. Passive threads may receive
 scheduling contexts from this system call.}
-{seL4_MessageInfo_t seL4_NBSendRecv(seL4_CPtr dest, seL4_MessageInfo_t info, seL4_CPtr src,
-    seL4_Word *badge, seL4_CPtr reply)}
+{seL4\_MessageInfo\_t seL4\_NBSendRecv(seL4\_CPtr dest, \code{seL4\_MessageInfo\_t} info, seL4\_CPtr src,
+    seL4\_Word *badge, seL4\_CPtr reply)}
 {
     \param{seL4\_CPtr}{dest}{Capability to invoke}
     \param{seL4\_CPtr}{info}{A \code{seL4\_MessageInfo\_t} structure encoding details about the message}
@@ -148,8 +148,8 @@ scheduling contexts from this system call.}
 {NBSendWait}
 {Perform a non-blocking send on a capability, then block on the provided capability, waiting for
 a message on the provided capability.}
-{seL4_MessageInfo_t seL4_NBSendWait(seL4_CPtr dest, seL4_MessageInfo_t info, seL4_CPtr src,
-    seL4_Word *badge)}
+{seL4\_MessageInfo\_t seL4\_NBSendWait(seL4\_CPtr dest, \code{seL4\_MessageInfo\_t} info, seL4\_CPtr src,
+    seL4\_Word *badge)}
 {
     \param{seL4\_CPtr}{dest}{Capability to invoke}
     \param{seL4\_CPtr}{info}{A \code{seL4\_MessageInfo\_t} structure encoding details about the message}
@@ -162,7 +162,7 @@ a message on the provided capability.}
 {Yield}
 {Exhaust the head replenishment of the current thread and place the thread at the end of the
 scheduling queue, or into the release queue if the next replenishment is not yet available.}
-{void seL4_Yield(void)}
+{void seL4\_Yield(void)}
 {\param{void}{}{}}
 {none}
 
@@ -181,7 +181,7 @@ can be found in the seL4 manual~\citep{seL417}.
 or Notification) can be already bound to other objects. If the TCB is in a runnable state and the
 scheduling context has available budget, this operation will place the TCB in the scheduler at the
 TCB's priority.}
-{seL4_Error seL4_SchedContext_Bind(seL4_CPtr sc, seL4_CPtr cap)}
+{seL4\_Error seL4\_SchedContext\_Bind(seL4\_CPtr sc, seL4\_CPtr cap)}
 {
     \param{seL4\_CPtr}{sc}{Capability to the SC to bind an object to.}
     \param{seL4\_CPtr}{cap}{Capability to a TCB or Notification object to bind to this SC.}
@@ -192,7 +192,7 @@ TCB's priority.}
 {schedcontext_unbind}
 {SchedContext - Unbind}
 { Remove any objects bound to a specific scheduling context.}
-{seL4_Error seL4_SchedContext_Unbind(seL4_CPtr sc)}
+{seL4\_Error seL4\_SchedContext\_Unbind(seL4\_CPtr sc)}
 {
     \param{seL4\_CPtr}{sc}{Capability to the SC to unbind an object to.}
 }
@@ -202,7 +202,7 @@ TCB's priority.}
 {schedcontext_unbind_object}
 {SchedContext - UnbindObject}
 { Remove a specific object bound to a specific scheduling context.}
-{seL4_Error seL4_SchedContext_UnbindObject(seL4_CPtr sc, seL4_CPtr cap)}
+{seL4\_Error seL4\_SchedContext\_UnbindObject(seL4\_CPtr sc, seL4\_CPtr cap)}
 {
     \param{seL4\_CPtr}{sc}{Capability to the SC to unbind an object to.}
     \param{seL4\_CPtr}{cap}{Capability to a TCB or Notification object to unbind from this SC.}
@@ -214,7 +214,7 @@ TCB's priority.}
 {SchedContext - Consumed}
 { Return the amount of time used by this scheduling context since this function
     was last called or a timeout fault triggered.}
-    {seL4_Error seL4_SchedContext_Consumed(seL4_CPtr sc)}
+    {seL4\_Error seL4\_SchedContext\_Consumed(seL4\_CPtr sc)}
 {
     \param{seL4\_CPtr}{sc}{Capability to the SC to act on.}
 }
@@ -229,7 +229,7 @@ TCB's priority.}
               If the caller is at a higher priority the thread will not run until the threads priority is the highest priority in the system.
               The caller must have a maximum control priority greater than or equal to the threads priority.
 }
-{seL4_Error seL4_SchedContext_YieldTo(seL4_CPtr sc)}
+{seL4\_Error seL4\_SchedContext\_YieldTo(seL4\_CPtr sc)}
 {
     \param{seL4\_CPtr}{sc}{Capability to the SC to act on.}
 }
@@ -241,8 +241,8 @@ TCB's priority.}
 {SchedControl - Configure}
 { Configure a scheduling context by invoking a \code{sched\_control} capability. The scheduling
 context will inherit the affinity of the provided \code{sched\_control}.}
-{seL4_Error seL4_SchedControl_Configure(seL4_CPtr sched_control, seL4_CPtr sc, uint64_t
-budget, uint64_t period, seL4_Word extra_refills, seL4_Word badge)}
+{seL4\_Error seL4\_SchedControl\_Configure(seL4\_CPtr sched\_control, seL4\_CPtr sc, uint64\_t
+budget, uint64\_t period, seL4\_Word extra\_refills, seL4\_Word badge)}
 {
     \param{seL4\_CPtr}{sched\_control}{\code{sched\_control} capability to invoke to configure
     the SC.}
@@ -264,8 +264,8 @@ of the SC that is being configured.}
 {tcb_configure}
 {TCB - Configure}
 {Set the parameters of a TCB.}
-{seL4_Error seL4_TCB_Configure(seL4_CPtr tcb, seL4_CPtr cnode, seL4_Word guard, seL4_CPtr
-vspace, seL4_Word vspace_data, seL4_Word buffer, seL4_CPtr buffer_cap)}
+{seL4\_Error seL4\_TCB\_Configure(seL4\_CPtr tcb, seL4\_CPtr cnode, seL4\_Word guard, seL4\_CPtr
+vspace, seL4\_Word vspace\_data, seL4\_Word buffer, seL4\_CPtr buffer\_cap)}
 {
     \param{seL4\_CPtr}{tcb}{Capability to the TCB to configure.}
     \param{seL4\_CPtr}{cnode}{Root cnode for this TCB.}
@@ -281,7 +281,7 @@ vspace, seL4_Word vspace_data, seL4_Word buffer, seL4_CPtr buffer_cap)}
 {tcb_setmcpriority}
 {TCB - SetMCPriority}
 {Set the maximum control priority of a TCB.}
-{seL4_Error seL4_TCB_SetMCPriority(seL4_CPtr tcb, seL4_CPtr auth, seL4_Word mcp)}
+{seL4\_Error seL4\_TCB\_SetMCPriority(seL4\_CPtr tcb, seL4\_CPtr auth, seL4\_Word mcp)}
 {
     \param{seL4\_CPtr}{tcb}{Capability to the TCB to configure.}
     \param{seL4\_CPtr}{auth}{Capability to the TCB to use the MCP from when setting the new MCP.}
@@ -293,7 +293,7 @@ vspace, seL4_Word vspace_data, seL4_Word buffer, seL4_CPtr buffer_cap)}
 {tcb_setpriority}
 {TCB - SetPriority}
 {Set the priority of a TCB.}
-{seL4_Error seL4_TCB_SetPriority(seL4_CPtr tcb, seL4_CPtr auth, seL4_Word prio)}
+{seL4\_Error seL4\_TCB\_SetPriority(seL4\_CPtr tcb, seL4\_CPtr auth, seL4\_Word prio)}
 {
     \param{seL4\_CPtr}{tcb}{Capability to the TCB to configure.}
     \param{seL4\_CPtr}{auth}{Capability to the TCB to use the MCP from when setting the new MCP.}
@@ -305,8 +305,8 @@ vspace, seL4_Word vspace_data, seL4_Word buffer, seL4_CPtr buffer_cap)}
 {tcb_setschedparams}
 {TCB - SetSchedParams}
 {Set the scheduling parameters of a TCB.}
-{seL4\_Error seL4_TCB_SetSchedParams(seL4_CPtr tcb, seL4_CPtr auth, seL4_Word mcp,
-                                       seL4_Word prio, seL4_CPtr sc, seL4_CPtr fault_ep)}
+{seL4\_Error seL4\_TCB\_SetSchedParams(seL4\_CPtr tcb, seL4\_CPtr auth, seL4\_Word mcp,
+                                       seL4\_Word prio, seL4\_CPtr sc, seL4\_CPtr fault\_ep)}
 {
     \param{seL4\_CPtr}{tcb}{Capability to the TCB to configure.}
     \param{seL4\_CPtr}{auth}{Capability to the TCB to use the MCP from when setting the new MCP.}
@@ -321,7 +321,7 @@ vspace, seL4_Word vspace_data, seL4_Word buffer, seL4_CPtr buffer_cap)}
 {tcb_settimeoutep}
 {TCB - SetTimeoutEndpoint}
 {Set the timeout endpoint of a TCB.}
-{seL4_Error seL4_TCB_SetTimeoutEndpoint(seL4_CPtr tcb, seL4_CPtr ep)}
+{seL4\_Error seL4\_TCB\_SetTimeoutEndpoint(seL4\_CPtr tcb, seL4\_CPtr ep)}
 {
     \param{seL4\_CPtr}{tcb}{Capability to the TCB to configure.}
     \param{seL4\_CPtr}{ep}{Capability to the endpoint to set as the timeout endpoint for this TCB.}
