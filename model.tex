@@ -86,16 +86,19 @@ There are two design choices relevant to scheduling:
 
 \subsubsection{Kernel scheduling}
 
-We retain the scheduler in the kernel, unlike \composite, for two reasons: to maintain a small
-trusted computing base, and for performance. Any system with multiple threads of execution, which is
-required in a mixed-criticality system, must have a scheduler, which for the purposes of temporal isolation 
-is part of the trusted computing base. If a system must have a scheduler, and in a mixed-criticality
-system, with untrusted components, that scheduler must be in a separate protection domain to those
-untrusted components, then a scheduling decision will require at least two context switches: from
-the preempted thread to the scheduler, and from the scheduler to the chosen thread. Placing a basic
+We retain the scheduler in the kernel, unlike \composite, for two reasons: to
+maintain a small trusted computing base, and for performance. Any system with
+multiple threads of execution, which is required in a mixed-criticality system,
+must have a scheduler, which for the purposes of temporal isolation is part of
+the trusted computing base. If a system must have a scheduler, and in a
+mixed-criticality system, with untrusted components, that scheduler must be in
+a separate protection domain to those untrusted components, then a scheduling
+decision will require at least two context switches: from the preempted thread
+to the scheduler, and from the scheduler to the chosen thread. Placing a basic
 scheduler in the kernel reduces this overhead. 
 
-Additionally, as the scheduler is a core component of the system it must be verified: by keeping the
+Additionally, as the scheduler is a core component of the system it must be
+verified: by keeping the
 scheduler in the kernel we maintain the current verification. Verification of a user-level scheduler
 and its interaction with the kernel is a far more complex task, especially as verification of
 concurrent systems is very much an open research challenge. 
@@ -230,7 +233,7 @@ choice is the design naturally supports over-commitment, as this is part of the 
 
 The mechanisms for admission control is two part: scheduling contexts are created without
 any budget at all, and a new control capability must be invoked to populate scheduling context
-4parameters.
+parameters.
 \code{sched\_control} is the new control capability, one of which is provided per processing core,
 and grants authority to 100\% of time on that core, thus providing the admission-control privilege.
 This is analogous to how \selfour controls the right
