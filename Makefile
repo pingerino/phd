@@ -21,7 +21,7 @@ GEN_DIR = ${PWD}/data/generated
 BIBDIR     ?= /home/disy/lib/BibTeX:../../../bibtex:../bibtex
 LaTeXEnv   = TEXINPUTS=".:/home/disy/lib/TeX:/home/disy/lib/ps:${TEXINPUTS}:"
 BibTexEnv  = BIBINPUTS=".:${BIBDIR}:${BIBINPUTS}:"
-BibFiles   = defs,combined,systems,fm,other
+BibFiles   = defs,combined,systems,fm,other,theses
 
 LaTeX      = ${LaTeXEnv} pdflatex -interaction=nonstopmode -shell-escape
 # Uncomment the following for the "report" and "simple" templates
