@@ -152,9 +152,6 @@ their deadlines, while any thread with priority \(<P\) may miss. This
 allows easy analysis of schedulability, including when the system
 criticality changes.
 
-\subsubsection{Maximum control priorities}
-\label{sec:model-maximum-control-priorities}
-
 \subsection{Scheduling contexts}
 \label{sec:model-scheduling-contexts}
 
@@ -180,7 +177,7 @@ schedulers~\citep{Brandenburg:phd}.
 
 The unfungible nature of time in real-time systems requires that the
 bandwidth limit must be enforced within a certain time window. We
-achieve this by representing an SC by a \emph{period}, \(T\), and a
+achieve this by representing an SC by sporadic task parameters, \emph{period}, \(T\), and a
 \emph{budget}, \(C\), where \(C\leq T\) is the maximum amount of time
 the SC allows to be consumed in the period. \(U=\frac{C}{T}\) represents the
 maximum \emph{CPU utilisation} the SC allows. The SC can be viewed as
