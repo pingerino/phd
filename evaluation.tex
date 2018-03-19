@@ -39,26 +39,26 @@ Additionally, we use several load generators running Linux on an isolated networ
 benchmarks that require a network.
 
 \begin{table}[ht]
-\rowcolors{3}{gray!25}{white}
-\begin{tabularx}{\textwidth}{lXlccccc}\toprule
-    \emph{Platform}          & \emph{Architecture} & \emph{CPU} & \emph{Clock } & L1 & L2 & L3 & TLB  \\
-                             &              &                   &            &        GHz    & KiB,$\times$ & KiB, $\times$ & KiB, $\times$ & entries, $\times$ \\\midrule
-    \textsc{KZM} (32-bit)    & ARMv6 (ARM1136JF-S)       & i.MX31     & 1.0           & 16,4 &
-    128,8 & N/A & 32,2\\
-
-    \textsc{Sabre} (32-bit)  & ARMv7 (Cortex-A9)         & i.MX6      & 1.0           &
-    32+32,4 & 1024, 16 & N/A, 64,2           \\
-    \textsc{Hikey} (64-bit)  & ARMv8 (Cortex-A53)        & Kirin 620  & 1.2           &
-    32+32,4+2 & 512,16 & N/A, 128,4          \\
-    \textsc{TX1}   (64-bit)  & ARMv8 (Cortex-A57)        & Jetson TX1 & 1.9           &
-    32+48,2+3 & 2,048,16 & N/A & 256,4          \\
-    \textsc{x64}    (64-bit) & x86 (Haswell)  & i7-4770          & 3.1           &
-    32+32,8 & 256,8 & 8,192,16, 128,8 \\          
-\\\bottomrule\hline
+\begin{tabularx}{\textwidth}{Xlrrrrr}\toprule
+    \emph{Platform}       & \emph{Microarch.} & \emph{Clock } & L1 & L2 & L3  & TLB  \\
+    \emph{Arch}           & \emph{CPU}        & GHz           & (KiB) & (KiB) & (MiB) & (entries) \\\midrule
+    \textsc{KZM} (32-bit) & ARM1136JF-S       & 1.0           & 16       & 128      & \no      & 32\\
+    \small{ARMv6}                 & i.MX31            &               & 4$\times$        & 8$\times$         & \no      & 2$\times$  \\
+    \rowcolor{gray!25}
+    \textsc{Sabre} (32-bit) & Cortex-A9       & 1.0           & 32+32    & 1024     & \no      & 64\\
+    \rowcolor{gray!25}
+    \small{ARMv7}                    & i.MX6             &               & 4$\times$  & 16 $\times$  & \no & 2$\times$  \\
+    \textsc{Hikey} (64-bit)  & Cortex-A53        & 1.2           & 32+32     & 512 & \no & 128         \\
+    \small{ARMv8}                    & Kirin 620         &               & 4+2$\times$       & 16$\times$    & \no   & 4$\times$  \\
+    \rowcolor{gray!25}
+    \textsc{TX1}   (64-bit)  & Cortex-A57        & 1.9           &  32+48 & 2,048 & \no & 256          \\
+    \rowcolor{gray!25}
+    \small{ARMv8}                   & Jetson TX1  &                   & 2+3$\times$       & 16$\times$ & \no & 4$\times$ \\
+    \textsc{x64}    (64-bit) & i7-4770           & 3.1           & 32+32 & 256 & 8 & 128,8 \\          
+    \small{x86}                     & Haswell            &                 & 8$\times$ & 8$\times$ & 16$\times$ & 8$\times$ \\
+    \bottomrule
 \end{tabularx}
-\caption{Hardware platforms and specifications used in benchmarks. \textsc{Hikey32/Hikey64}
-    and \textsc{ia32/x64} are the
-same platform in 32 and 64 bit mode respectively.}
+    \caption{Hardware platform details, ``$\times$`` is associativity, and + indicates i-cache+d-cache.}
 \label{t:evaluation-hardware}
 \end{table}
 
@@ -144,7 +144,7 @@ the difference. This is done 16 times for each result value to prime the cache, 
 value. Results presented are for performing this a total of 16 times. Additionally, we measure the
 overhead of system calls stubs in the same way and subtract this from the measurement, to obtain
 only the kernel cost of the operation\footnote{The \gls{IPC} benchmarks already existed for
- \selfour, but were modified to support the \gls{MCS} kernel during the work for this thesis}.
+ \selfour, but we modified them to support the \gls{MCS} kernel as part of this thesis}.
     The message sent is zero length, so neither the caller or callee's \gls{IPC} buffer accessed.
     This is done for both directions of IPC, as described in \Cref{sec:seL4-api}. 
 
