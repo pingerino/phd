@@ -179,8 +179,10 @@ def build_microbenchmark_dat(rt, baseline, arch):
             microbenchmark_row(out, 'schedule', rt_val, b_val)
 
             # yield
-            rt_yield = getbenchmark(rt_content, 'Thread yield')[0]
-            b_yield = getbenchmark(b_content, 'Thread yield')[0]
+            rt_yield = getbenchmark(rt_content, 'Average seL4_Yield (no thread switch)')
+            b_yield = getbenchmark(b_content, 'Average seL4_Yield (no thread switch)')
+            rt_yield = next(x for x in rt_yield if x['Event'] == 'Cycle counter')
+            b_yield = next(x for x in b_yield if x['Event'] == 'Cycle counter')
             microbenchmark_row(out, '\\texttt{yield}', rt_yield, b_yield)
 
 
