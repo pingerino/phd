@@ -650,16 +650,12 @@ void passive_server(seL4_CPtr init_endpoint, seL4_CPtr endpoint, seL4_CPtr reply
     seL4_MessageInfo_t info = init_server_state();
     seL4_Word badge;
 
-    /* signal to the initialiser that this server is ready 
-       to be converted to passive, and block on the endpoint 
-       with resume object reply */
-    info = nbsendrecv(init_endpoint, info, endpoint, &badge, reply);
+    /* signal to the initialiser that this server is ready to be converted to passive, and block on the endpoint with resume object reply */
+    info = seL4_NBSendRecv(init_endpoint, info, endpoint, &badge, reply);
     while (true) {
-        /* when the server wakes, it is running on a
-           client scheduling context */
+        /* when the server wakes, it is running on a client scheduling context */
         info = process_request(sender);
-        /* reply to the client and block on endpoint, with resume 
-           object reply */
+        /* reply to the client and block on endpoint, with resume object reply */
         seL4_ReplyRecv(endpoint, info, &badge, reply);
     }
 }
