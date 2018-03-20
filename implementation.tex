@@ -724,6 +724,7 @@ more condition, which allows us to avoid accessing the timer device on the fastp
           for \replyrecv, the TCB blocked on the resume object must be passive.
 \end{itemize}
 
+\label{p:impl-fastpath}
 On kernel entries other than the IPC fastpath, the kernel updates the current
 timestamp and stores the time since the last entry. This is required as when preemption occurs, the
 preempting thread is charged for the time since the kernel entry. Without knowing if the kernel entry will

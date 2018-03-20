@@ -29,7 +29,7 @@ def microbenchmark_row(out, rt, b):
     out.write('\t&{0} ({1})\t&{2} ({3})&{4} & '.format(b_val, b_std, rt_val, rt_std, diff, pc))
     if b_val > 0:
         pc = round(((rt_val - b_val) / b_val * 100), 1)
-        out.write('{5} \\%\t')
+        out.write('{0} \\%\t'.format(pc))
     elif b_val == 0 and rt_val > 0:
         out.write('$\infty$\t')
     else:
