@@ -23,7 +23,7 @@ made the assumption that tasks would not exceed a declared \gls{WCET} or critica
 Many existing real-time systems run either one application, or multiple applications of the same
 criticality, meaning each application that is running is certified to the same level.  This means
 that all applications are trusted: trusted to not crash, and trusted to not overrun their deadlines.
-If one application does overrun its deadline or use more processing time that specified by its
+If one application does overrun its deadline or use more processing time than specified by its
 \gls{WCET}, guarantees are no longer met. 
 
 Tasks can be untrusted for many reasons including:
@@ -43,7 +43,7 @@ their estimated minimum inter-arrival time. Further applicable research examines
 these types of systems. 
 
 Neither \gls{FP} nor \gls{EDF} scheduling
-approaches discussed so far provides temporal isolation, although both can be adapted to do so.  In
+approaches discussed so far provide temporal isolation, although both can be adapted to do so.  In
 this chapter we examine the techniques used by the real-time community to achieve temporal
 isolation.
 
@@ -80,10 +80,11 @@ Unlike other approaches to real-time scheduling, proportional share schedulers h
 strong fairness property for proportionate share scheduling algorithms.  For a schedule to be Pfair,
 then at every time $t$ a task $T$ with weight $T_{w}$ must have been scheduled either $\lceil T_{w}
 . t \rceil$ or $\lfloor T_{w}.t \rfloor $ times.  \emph{Early-Release fair} or
-ERfair~\citep{Anderson_Srinivasan_04} is an extension of the Pfair property that allows tasks to
+\emph{ERfair}~\citep{Anderson_Srinivasan_04} is an extension of the Pfair property that allows tasks to
 execute before their Pfair window, which can allow for better response times.
 
-Pfair scheduling algorithms break jobs into sub-jobs that match the length of a quantum.
+% I don't think you have defined what a quantum is yet.  (I guess this is the definition.)
+Pfair scheduling algorithms break jobs into sub-jobs that match the length of a \emph{quantum}.
 Real-time and non-real time tasks are treated similarly.
 When overload conditions exist, the rate is slowed for all tasks.
 
@@ -117,7 +118,7 @@ We outline the most dominant approaches in this section.
 
 One early approach to temporal isolation with \gls{EDF} scheduling attempts to extend the 
 algorithm to allow overload conditions to be handled with respect to a value. Robust earliest deadline
-scheduling~\citep{Buttazzo_Stankovic_93} assigns a value to each task set, and drop jobs from
+scheduling~\citep{Buttazzo_Stankovic_93} assigns a value to each task set, and will drop jobs from
 low-value tasks under overload. If the system returns to non-overload conditions, those tasks are
 scheduled again. This is a very early version of asymmetric protection.
 The algorithm is optimal, however this is only the case if
@@ -132,8 +133,8 @@ In the real-time community, the term \emph{server} is used to describe virtual t
 an intermediate algorithm monitors task execution and, using that information, prevents task(s)
 guarded by the server from exceeding specified temporal behaviour. These algorithms are integrated
 into the scheduler.
-
-\Gls{CBS}~\citep{Abeni_Buttazzo_04} introduce a technique for scheduling \gls{HRT} and
+% Is CBS singular or plural?  
+\Glspl{CBS}~\citep{Abeni_Buttazzo_04} introduce a technique for scheduling \gls{HRT} and
 \gls{SRT} tasks and providing temporal isolation.  \gls{HRT} tasks are scheduled using an \gls{EDF}
 scheduler, but \gls{SRT} tasks are treated differently as \gls{EDF} does not handle overload
 reasonably.
@@ -142,12 +143,12 @@ it, and breaks down \gls{SRT} jobs into sub-jobs such that the utilisation rate 
 exceed the assigned bandwidth.  Any sub-job that will cause the bandwidth to be exceeded is
 postponed, but still executed.
 
-\gls{CBS} stands out from previous server-based approaches~\citep{Spuri_Buttazzo_96,
-Ghazalie_Baker_95, Spuri_Buttazzo_94, Deng_Liu_97} as it does not require a \gls{WCET} or a minimum
+\gls{CBS} stand out from previous server-based approaches~\citep{Spuri_Buttazzo_96,
+Ghazalie_Baker_95, Spuri_Buttazzo_94, Deng_Liu_97} as they does not require a \gls{WCET} or a minimum
 bound on job inter-arrival time, making it much more suitable for \gls{SRT} tasks.  Implementation
-wise, \gls{CBS} has less hardware overheads than Pfair schedulers.
+wise, \gls{CBS} have less hardware overheads than Pfair schedulers.
 
-Many extensions exist to \gls{CBS} to improve functionality.  \citet{Kato_IR_11} extend \gls{CBS} to
+Many extensions exist for \gls{CBS} to improve functionality.  \citet{Kato_IR_11} extend \gls{CBS} to
 implement \emph{slack donation}, where any unused bandwidth is given to other jobs.  In
 ~\citep{Craciunas_KPRS_12}, \gls{CBS} is extended such that bandwidths are variable at run-time.
 \citet{Lamastra_LA_01} introduce bandwidth inheritance across CBS servers applied to different
@@ -171,7 +172,7 @@ processing time.  Rates are enforced using a one-shot timer to stop tasks that e
 {\gls{WCET}}.  As tasks enter and leave the system, the rates of \gls{SRT} tasks will change.  Slack
 time that occurs as a result of tasks completing before their deadlines is only donated to 
 best-effort tasks, although the authors note that extensions should be able to donate slack to \gls{SRT}
-tasks as well.  \Gls{RBED} is similar to the concept of CBS, however it deals with separate types of
+tasks as well.  \Gls{RBED} is similar to the concept of \gls{CBS}, however it deals with separate types of
 real-time tasks more explicitly.
 
 \subsection{Isolation with FP schedulers}
@@ -229,7 +230,7 @@ of budget at a time increase the interrupt load.  The bigger the bound on replen
 accurate the sporadic server, but the more memory used resulting in degraded performance.
 
 \subsubsection{Priority exchange servers}
-
+% Why is this one interesting?  What does swapping the priority allow you to do?
 Priority exchange servers~\citep{Sprunt_SL_89a} swap the priority of an inactive
 aperiodic task with a periodic task, such that server capacity is not lost but used at a lower
 priority.  Implementations of priority exchange require control and access to priorities across an
@@ -299,6 +300,7 @@ scheduling can, whilst maintaining the asymmetric protection property.  \gls{ZS}
 combined with temporal isolation via bandwidth servers.
 
 % TODO possible rewrite
+% Is the concept of task utilities outside of any of the models (HRT, SRT, best-effort) you are focusing on?
 \gls{ZS} scheduling has been adapted to use a \gls{QoS} based resource allocation
 model~\citep{deNiz_WSRR_12}, in the context of \glspl{AAV}. Many models of real-time systems assume
 that \glspl{WCET} for real-time tasks are stable and can be calculated.  However, \glspl{AAV} have
@@ -353,7 +355,7 @@ priori} knowledge of a task's resource usage.  However, in systems where tasks m
 knowledge is unavailable. 
 
 \citet{Brandenburg_14} outlines a multiprocessor \gls{IPC} based protocol where shared resources are placed in
-resource servers accessed. In this scheme, the resources themselves must be at the ceiling
+resource servers. In this scheme, the resources themselves must be at the ceiling
 criticality of any task accessing those resources, but all tasks do not have to be at that
 criticality level. The protocol works by channelling all IPC requests through a three-level,
 multi-ended queue where high criticality tasks are prioritised over best-effort tasks. 
@@ -366,7 +368,7 @@ Traditional scheduling algorithms, like \gls{EDF} and \gls{FP}-\gls{RM} schedule
 Due to pessimism in \gls{WCET} estimates, this results in low utilisation in such systems and also
 prevents systems of mixed-criticality being constructed safely and securely.
 
-Mixed-criticality systems require at minimum temporal isolation, however the asymmetric protection property allows for higher utilisation in systems.
+Mixed-criticality systems require at minimum temporal isolation, however the asymmetric protection property allows for higher utilisation in systems. % I don't think you pointed out the higher utilisation benefit of asymmetric protection until here in the summary.
 \gls{EDF} and \gls{FP} scheduling can be adapted to have temporal isolation, or another approach, like PFair scheduling can be used to provide temporal isolation.
 Much research has been done into scheduling algorithms that provide asymmetric protection, but the consequences of practical implementations in \glspl{OS} have yet to be explored.
 
