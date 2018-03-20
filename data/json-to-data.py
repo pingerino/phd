@@ -161,9 +161,23 @@ def build_microbenchmark_dat(rt, baseline, arch):
 
         with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-schedule-micro.inc'), 'w') as out:
             # schedule
-            rt_schedule = getbenchmark(rt_content, 'Signal to high prio thread')[0]
-            b_schedule = getbenchmark(b_content, 'Signal to high prio thread')[0]
+            rt_schedule = getbenchmark(rt_content, 'signal high prio thread avg')[0]
+            b_schedule = getbenchmark(b_content, 'signal high prio thread avg')[0]
+
+           # import pdb
+           # pdb.set_trace()
+            
+            raw_rt = [x / 10000 for x in rt_schedule['Raw results']]
+            raw_b =  [x / 10000 for x in b_schedule['Raw results']]
             microbenchmark_row(out, '\\texttt{schedule}', rt_schedule, b_schedule)
+
+            rt_val = {}
+            b_val = {}
+            rt_val['Mean'] = statistics.mean(raw_rt)
+            b_val['Mean'] = statistics.mean(raw_b)
+            rt_val['Stddev'] = statistics.stdev(raw_rt)
+            b_val['Stddev'] = statistics.stdev(raw_rt)
+            microbenchmark_row(out, 'schedule', rt_val, b_val)
 
             # yield
             rt_yield = getbenchmark(rt_content, 'Thread yield')[0]
