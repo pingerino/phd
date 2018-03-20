@@ -787,22 +787,25 @@ specified, but cannot be guaranteed to get the entire rate allocation if there
 are higher priority threads in the system, or if the priority of the
 rate-limited thread is overloaded .
 
-\subsubsection{Real-time threads}
+\subsubsection{Periodic, polling threads}
+
+Threads that need to wake, poll for an event, and sleep again can be
+implemented using the sporadic server mechanism, by providing the 
+and setting their scheduling parameters appropriately. As long as the budget is
+not full ($C\neq T$), the \yield system call can be used to block until the next replenishment
+is available. 
 
 \begin{listing}
   \begin{minted}{c}
       for (;;) {
-          // job is released
           doJob();
-          // job completes before deadline or is postponed by CBS
           // sleep until next job is ready
-          seL4_Word badge;
-          seL4_Wait(bound_async_endpoint, &badge);
+          seL4_Yield();
       }
   \end{minted}
   \caption{Example of a basic sporadic real-time task on sel4}
   \label{list:sporadic-sel4}
-  \end{listing}
+\end{listing}
 
 
 
