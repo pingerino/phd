@@ -590,6 +590,10 @@ and add three new methods, shown in \cref{tab:tcb_api}.
     \label{tab:tcb_api}
 \end{table}
 
+Finally, we remove the \cnodesavecaller invocation, which was previously used to move a reply
+capability from the \gls{TCB} \cnode to a slot in the \gls{TCB} \cspace, and is no longer required
+as the resume object capability is now provided to the receiving system call. 
+
 \subsection{Scheduling context donation}
 
 Conceptually there are three types of scheduling context donation: lending, returning, and
