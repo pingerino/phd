@@ -61,14 +61,14 @@ which means the resume object currently has a thread blocked waiting for a reply
 \end{figure}
 
 Valid state transitions are shown in \cref{f:resume-state-diagram}. Resume objects are provided to
-\code{recv} system calls along with endpoint capabilities, which transitions them from idle to
+\recv system calls along with endpoint capabilities, which transitions them from idle to
 waiting.
-If the endpoint is invoked with a \code{call}, the caller is blocked on the resume capability, and
+If the endpoint is invoked with a \call, the caller is blocked on the resume capability, and
 it transitions to active.  
 If a resume object is directly invoked, using a sending system call (recall from
-\cref{sec:sel4-system-call-and-invocations} that sending system calls are \code{send},
-\code{nbsend}, \code{call}, \code{reply}) then a reply message is delivered to the thread blocked on
-the object. Finally, if a resume object is in an active state, and provided to \code{recv}, the object
+\cref{sec:sel4-system-call-and-invocations} that sending system calls are \send,
+\nbsend, \call, \reply) then a reply message is delivered to the thread blocked on
+the object. Finally, if a resume object is in an active state, and provided to \recv, the object
 is first invoked, and removed from the call stack, which we now examine in detail. 
 
 \subsubsection{The call stack}
@@ -201,12 +201,12 @@ to specify exact the number of replenishment to use, up to the object size.
 
 Like any \selfour object, scheduling contexts are created from zeroed, untyped memory. Consequently,
 new scheduling objects do not grant authority to any processing time at all, as the parameters are
-all set to zero. To configure a scheduling context, the new \code{sched\_control} capability must be
+all set to zero. To configure a scheduling context, the new \schedcontrol capability must be
 invoked, which allows the period, initial sporadic replenishment, maximum number of refills, and
-badge fields to be set. The processing core is derived from the \code{sched\_control} capability
+badge fields to be set. The processing core is derived from the \schedcontrol capability
 that is invoked: only one exists per core. 
 
-The \code{configure} operation behaves differently depending on the state of the target scheduling
+The \schedcontrolconfigure operation behaves differently depending on the state of the target scheduling
 context and can be used not only to configure \glspl{SCO} but to migrate threads across cores, and
 change the available bandwidth of a currently runnable thread. Semantics are as follows:
 
@@ -217,10 +217,10 @@ a basic configure: the fields are
 simply set and the first replenishment is configured with budget provided and timestamp of the
 kernel entry. The function \code{refill\_new} is used to \cref{list:refill-init}
 \item If the scheduling context is bound to a currently runnable thread, but that scheduling
-context is for a different processing core than the \code{sched\_control} capability, the fields are
+context is for a different processing core than the \schedcontrol capability, the fields are
 set and the thread is migrated to the new core.  
 \item Finally, if the scheduling context is bound to a currently running thread and the
-    \code{sched\_control} capability is for the same core, we update the replenishment list without
+    \schedcontrol capability is for the same core, we update the replenishment list without
     allowing the sliding window constraint to be violated. The function \code{refill\_update} shows the
     algorithm used.
 \end{itemize}
@@ -405,7 +405,7 @@ there was enough space available. The altered fields are shown in \cref{t:tcb-fi
 \subsubsection{Fault endpoints}
 
 We also change the contents of the TCB CNode, removing two slots previously required by the reply
-capability implementation, as resume objects are now provided to \code{recv()} system calls, and
+capability implementation, as resume objects are now provided to receiving system calls, and
 no slot in the TCB CNode is required. Additionally, we change the behaviour of fault handlers: in
 baseline seL4, the fault handling cap is looked up on every single fault, increasing the overhead of
 fault handling. To minimise this overhead, we look up the fault endpoint when it is configured, and
@@ -445,26 +445,26 @@ present the semantics of scheduling context donation, which are directly linked 
 \subsection{Waiting system calls}
 
 In \cref{sec:sel4-system-call-and-invocations} we divided the \selfour system call API into two
-classes: sending system calls (\code{send}, \code{nbsend}, \code{call}, \code{reply}),
-receiving system calls (\code{recv}, \code{nbrecv}), plus atomic combinations of both for fast 
-RPC (\code{call}, \code{replyrecv}).  
+classes: sending system calls (\send, \nbsend, \call, \reply),
+receiving system calls (\recv, \nbrecv), plus combinations of both for fast 
+RPC (\call, \replyrecv).  
 
 Our implementation alters the meaning of a receiving system call, and adds a new class of system
 call: \emph{waiting} system calls. The difference is simple: receiving system calls are expected to
-provide a capability to a resume object to block threads on if a \code{call} is received over
-the endpoint being blocked on. Waiting system calls do not, and cannot be paired with a \code{call}
+provide a capability to a resume object to block threads on if a \call is received over
+the endpoint being blocked on. Waiting system calls do not, and cannot be paired with a \call
 successfully. Only receiving system calls can be used with scheduling context donation, as the reply
 object is used to track the call stack.
 
-Additionally, because the TCB reply capability slot is dropped, we remove the \code{reply} system
+Additionally, because the TCB reply capability slot is dropped, we remove the \reply system
 call as its only purpose was to invoke the capability in the reply slot, which no longer exists.
-\code{replyrecv} remains, and invokes the resume capability, sending the reply, before using the
-reply in the \code{recv} phase. 
+\replyrecv remains, and invokes the resume capability, sending the reply, before using the
+reply in the \recv phase. 
 
 By making the reply channel explicit, we significantly increase the practicality of the IPC
 fastpath. In baseline \selfour, any server that served multiple clients and did not reply
 immediately---because it needed to block on I/O, for example---would save the reply
-capability, moving it from the special TCB slot to a standard slot in the \code{cspace}. Later, when
+capability, moving it from the special TCB slot to a standard slot in the \cspace. Later, when
 the server replied to the client, it would invoke the saved reply capability with \send, then block
 for new messages with \recv, avoiding the IPC fastpath for \replyrecv. Resume objects avoid the save
 fastpath, should the conditions detailed in \cref{sec:sel4-fastpath} be satisfied.
@@ -510,19 +510,20 @@ the thread is blocked until it is replenished.
 \begin{table}[t]
     \centering
     \rowcolors{2}{gray!25}{}
-    \begin{tabularx}{\textwidth}{lXll}\toprule
-        \emph{System Call} & Class              & Donation? & Definition\\\midrule
-        \call                  & sending, receiving & \yes & \cref{api:call}\\
-        \send                 & sending            & \no      & \cref{api:send} \\
-        \nbsend                & sending            & \no       & \cref{api:nbsend} \\
-        \recv                  & waiting            & \yes & \cref{api:recv} \\
-        \nbrecv                & waiting            & \yes & \cref{api:nbrecv} \\
-        \wait                 & waiting            & \no & \cref{api:wait}\\
-        \nbwait                & waiting            & \no & \cref{api:nbwait} \\
-        \replyrecv             & sending, receiving & \yes & \cref{api:replyrecv} \\
-        \nbsendrecv            & sending, receiving & \yes & \cref{api:nbsendrecv} \\
-        \nbsendwait            & sending, waiting   & \no & \cref{api:nbsendwait} \\
-        \yield                 & scheduling                & \no & \cref{api:yield} \\
+    \begin{tabularx}{\textwidth}{lXlll}\toprule
+        \emph{System Call} & \emph{Class}              & \emph{Donation?} & \emph{New?} & \emph{Definition} \\\midrule
+        \call                  & sending, receiving & \yes & \no & \cref{api:call}\\
+        \send                 & sending            & \no      & \no & \cref{api:send} \\
+        \nbsend                & sending            & \no       & \no & \cref{api:nbsend} \\
+        \recv                  & waiting            & \yes & \no & \cref{api:recv} \\
+        \nbrecv                & waiting            & \yes & \no & \cref{api:nbrecv} \\
+        \wait                 & waiting            & \no & \yes & \cref{api:wait}\\
+        \nbwait                & waiting            & \no & \yes & \cref{api:nbwait} \\
+        \replyrecv             & sending, receiving & \yes & \no &  \cref{api:replyrecv} \\
+        \nbsendrecv            & sending, receiving & \yes & \yes & \cref{api:nbsendrecv} \\
+        \nbsendwait            & sending, waiting   & \no & \yes & \cref{api:nbsendwait} \\
+        \yield                 & scheduling                & \no & \no &  \cref{api:yield} \\
+        \sout{\reply}          & \sout{sending} & -  & - & Removed \\ 
     \end{tabularx}
     \caption{New \selfour system call summary, indicating which system calls can trigger donation.
     and/or receiving messages. }
@@ -535,29 +536,28 @@ descriptions of each system call can be found in \cref{appendix:api}.
 \subsection{Invocations}
 
 Scheduling contexts have five invocations, listed in \cref{tab:sched_context_api}. Three of those
-methods are for binding \glspl{SCO} to \gls{TCB} and notification objects, while \code{yieldTo} and 
-\code{consumed} others facilitate user-level scheduling, allowing the user to manipulate
+methods are for binding \glspl{SCO} to \gls{TCB} and notification objects, while \scyieldto and 
+\scconsumed others facilitate user-level scheduling, allowing the user to manipulate
 the kernel scheduling queues and to query the amount of time consumed by a specific \gls{SCO}.
 Both functions return the amount of CPU time the scheduling context has executed for since it was last
 clearer: reading the consumed value by either system call clears it, as does a timeout
 exception.
 
 The new control
-capability, \code{sched\_control}, has only one invocation \code{configure} for setting the parameters of a
+capability, \schedcontrol, has only one invocation \schedcontrolconfigure for setting the parameters of a
 scheduling context (the function definition can be found in \cref{api:schedcontrol_configure}). 
     
-\begin{table}[b]
+\begin{table}
     \centering
     \rowcolors{2}{gray!25}{}
-    \begin{tabularx}{\textwidth}{>{\texttt\bgroup}l<{\egroup}Xl} \toprule
-        \textnormal{\emph{Invocation}} & \emph{Description} & Definition\\\midrule
-        bind    & Bind an object (TCB or Notification) to an SC. & \cref{api:schedcontext_bind} \\
-        unbind  & Unbind all objects from an SC. & \cref{api:schedcontext_unbind} \\
-        unbindObject & Unbind a specific object from an SC. & \cref{api:schedcontext_unbind_object}\\
-        consumed & Return the amount of time since the last timeout fault, \code{consumed} or
-        \code{yieldTo} was
-        called. & \cref{api:schedcontext_consumed}\\ 
-        yieldTo  & Place the thread bound to this \gls{SCO} at the front of its priority queue and return
+    \begin{tabularx}{\textwidth}{lXl} \toprule
+        \emph{Invocation} & \emph{Description} & \emph{Definition} \\\midrule
+        \scbind    & Bind an object (TCB or Notification) to an SC. & \cref{api:schedcontext_bind} \\
+        \scunbind  & Unbind all objects from an SC. & \cref{api:schedcontext_unbind} \\
+        \scunbindobject & Unbind a specific object from an SC. & \cref{api:schedcontext_unbind_object}\\
+        \scconsumed & Return the amount of time since the last timeout fault, \scconsumed or
+        \scyieldto was called. & \cref{api:schedcontext_consumed}\\ 
+        \scyieldto  & Place the thread bound to this \gls{SCO} at the front of its priority queue and return
         any time consumed. & \cref{api:schedcontext_yieldto}\\
         \bottomrule
     \end{tabularx}
@@ -567,7 +567,7 @@ scheduling context (the function definition can be found in \cref{api:schedcontr
 
 Because \selfour only supports sending three capabilities in a single message (including to the
 kernel), we add a second method for configuring multiple fields on a TCB in one system call
-(\code{setschedparams}) in addition to the existing method (\code{configure}), as full configuration
+(\tcbsetschedparams) in addition to the existing method (\tcbconfigure), as full configuration
 of a TCB requires up to six capabilities to be set. Timeout handlers are left as a setter only, as 
 this is a less common operation. In total, we alter two methods on TCB objects
 and add three new methods, shown in \cref{tab:tcb_api}. 
@@ -575,14 +575,15 @@ and add three new methods, shown in \cref{tab:tcb_api}.
 \begin{table}
     \centering
     \rowcolors{2}{gray!25}{}
-    \begin{tabularx}{\textwidth}{>{\texttt\bgroup}l<{\egroup}Xll} \toprule
-        \textnormal{\emph{Invocation}} & \emph{Description} & New? & Definition \\\midrule
-        configure & Set the cnode, vspace, and \gls{IPC} buffer. & \no & \cref{api:tcb_configure}\\
-        setmcpriority & Set the \gls{MCP}. & \yes & \cref{api:tcb_setmcpriority} \\
-        setpriority & Set the priority. & \no & \cref{api:tcb_setpriority} \\
-        setschedparams & Set \gls{SCO}, \gls{MCP}, priority and fault endpoint. & \yes &
+    \begin{tabularx}{\textwidth}{lXll} \toprule
+        \emph{Invocation} & \emph{Description} & \emph{New?} & \emph{Definition} \\\midrule
+        \tcbconfigure & Set the cnode, vspace, and \gls{IPC} buffer. & \no & \cref{api:tcb_configure}\\
+        \tcbsetmcpriority & Set the \gls{MCP}. & \yes & \cref{api:tcb_setmcpriority} \\
+        \tcbsetpriority & Set the priority. & \no & \cref{api:tcb_setpriority} \\
+        \tcbsetschedparams & Set \gls{SCO}, \gls{MCP}, priority and fault endpoint. & \yes &
         \cref{api:tcb_setschedparams} \\
-        settimeoutep & Set the timeout endpoint. & \yes & \cref{api:tcb_settimeoutep} \\
+        \tcbsettimeoutep & Set the timeout endpoint. & \yes & \cref{api:tcb_settimeoutep} \\
+        \sout{\tcbsetaffinity}                 & Removed, now derived from SCO.  & \no & N/A \\
         \bottomrule
     \end{tabularx}
     \caption{New and altered \gls{TCB} capability invocations.}
@@ -803,7 +804,7 @@ implementation requirements of \selfour.
 \subsubsection{Timeout Exception Handlers}
 
 Timeout exceptions are only triggered for threads with non-empty timeout handling slots in the
-\gls{TCB} \code{cnode}, configured with \code{settimeoutep}. The implementation is the same as for
+\gls{TCB} \cnode, configured with \tcbsettimeoutep. The implementation is the same as for
 fault handlers with one exception: while fault \gls{IPC} messages can trigger scheduling context
 donation, allowing fault handling threads to be passive, timeout messages cannot. The timeout
 message contains the badge of the scheduling context which triggered the fault, and the amount of

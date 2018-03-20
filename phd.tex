@@ -149,22 +149,52 @@
 \newcommand{\no}{\hspace{1pt}\ding{55}}
 
 % sel4 system call shortcuts
-\newcommand{\code}[1]{\texttt{#1}\xspace}
-\newcommand{\call}{\code{call}}
-\newcommand{\send}{\code{send}}
-\newcommand{\nbsend}{\code{nbsend}}
-\newcommand{\wait}{\code{wait}}
-\newcommand{\nbwait}{\code{nbwait}}
-\newcommand{\recv}{\code{recv}}
-\newcommand{\nbrecv}{\code{nbrecv}}
-\newcommand{\reply}{\code{reply}}
-\newcommand{\replyrecv}{\code{replyrecv}}
-\newcommand{\yield}{\code{yield}}
-\newcommand{\nbsendwait} {\code{nbsendwait}}
-\newcommand{\nbsendrecv} {\code{nbsendrecv}}
-\newcommand{\sendrecv} {\code{sendrecv}}
+\newcommand{\code}[1]{{\footnotesize \texttt{#1}}\xspace}
+\newcommand{\call}{\code{seL4\_Call}}
+\newcommand{\send}{\code{seL4\_Send}}
+\newcommand{\nbsend}{\code{seL4\_NBSend}}
+\newcommand{\wait}{\code{seL4\_Wait}}
+\newcommand{\nbwait}{\code{seL4\_NBWait}}
+\newcommand{\recv}{\code{seL4\_Recv}}
+\newcommand{\nbrecv}{\code{seL4\_NBRecv}}
+\newcommand{\reply}{\code{seL4\_Reply}}
+\newcommand{\replyrecv}{\code{seL4\_ReplyRecv}}
+\newcommand{\yield}{\code{seL4\_Yield}}
+\newcommand{\nbsendwait} {\code{seL4\_NBSendWait}}
+\newcommand{\nbsendrecv} {\code{seL4\_NBSendRecv}}
+\newcommand{\sendrecv} {\code{seL4\_SendRecv}}
+% tcb invocations
+\newcommand{\tcbconfigure}{\code{seL4\_TCB\_Configure}}
+\newcommand{\tcbsetmcpriority}{\code{seL4\_TCB\_SetMCPriority}}
+\newcommand{\tcbsetpriority}{\code{seL4\_TCB\_SetPriority}}
+\newcommand{\tcbsetschedparams}{\code{seL4\_TCB\_SetSchedParams}}
+\newcommand{\tcbsettimeoutep}{\code{seL4\_TCB\_SetTimeoutEP}}
+\newcommand{\tcbbindnotification}{\code{seL4\_TCB\_BindNotification}}
+\newcommand{\tcbsetaffinity}{\code{seL4\_TCB\_SetAffinity}}
+% sched context invocations
+\newcommand{\scbind}{\code{seL4\_SchedContext\_Bind}}
+\newcommand{\scunbind}{\code{seL4\_SchedContext\_Unbind}}
+\newcommand{\scunbindobject}{\code{seL4\_SchedContext\_UnbindObject}}
+\newcommand{\scconsumed}{\code{seL4\_SchedContext\_Consumed}}
+\newcommand{\scyieldto}{\code{seL4\_SchedContext\_YieldTo}}
+% sched control
+\newcommand{\schedcontrol}{\code{seL4\_SchedControl}}
+\newcommand{\schedcontrolconfigure}{\code{seL4\_SchedControl\_Configure}}
+% cnode
+\newcommand{\cnode}{\code{cnode}}
+\newcommand{\cspace}{\code{cspace}}
+\newcommand{\cnodecopy}{\code{seL4\_CNode\_Copy}}
+\newcommand{\cnodemint}{\code{seL4\_CNode\_Mint}}
+\newcommand{\cnodemove}{\code{seL4\_CNode\_Move}}
+\newcommand{\cnodemutate}{\code{seL4\_CNode\_Mutate}}
+\newcommand{\cnoderotate}{\code{seL4\_CNode\_Rotate}}
+\newcommand{\cnodedelete}{\code{seL4\_CNode\_Delete}}
+\newcommand{\cnoderevoke}{\code{seL4\_CNode\_Revoke}}
+\newcommand{\cnodesavecaller}{\code{seL4\_CNode\_SaveCaller}}
+% irq control
+\newcommand{\irqcontrol}{\code{seL4\_IRQControl}}
 
-
+% shorthand for os names
 \newcommand{\selfour}{seL4\xspace} % use as normal text, examples below.
 \newcommand{\hires}{\textsc{HiRes}\xspace}
 \newcommand{\litmus}{\textsc{litmus\textsuperscript{RT}}\xspace}
@@ -174,12 +204,12 @@
 \newcommand{\minix}{\textsc{Minix 3}\xspace}
 \newcommand{\linuxrk}{Linux/RK\xspace}
 
-\newcommand{\schedfifo}{\texttt{SCHED\_FIFO}\xspace}
-\newcommand{\schedrr}{\texttt{SCHED\_RR}\xspace}
-\newcommand{\schedsporadic}{\texttt{SCHED\_SPORADIC}\xspace}
-\newcommand{\noprioinherit}{\texttt{NO\_PRIO\_INHERIT}\xspace}
-\newcommand{\prioinherit}{\texttt{PRIO\_INHERIT}\xspace}
-\newcommand{\prioprotect}{\texttt{PRIO\_PROTECT}\xspace}
+\newcommand{\schedfifo}{\code{SCHED\_FIFO}\xspace}
+\newcommand{\schedrr}{\code{SCHED\_RR}\xspace}
+\newcommand{\schedsporadic}{\code{SCHED\_SPORADIC}\xspace}
+\newcommand{\noprioinherit}{\code{NO\_PRIO\_INHERIT}\xspace}
+\newcommand{\prioinherit}{\code{PRIO\_INHERIT}\xspace}
+\newcommand{\prioprotect}{\code{PRIO\_PROTECT}\xspace}
 
 \newcommand{\crit}[1]{\textsc{#1}\xspace}
 % Leave this in here, it is often useful to deal with latexdiff breakage.
