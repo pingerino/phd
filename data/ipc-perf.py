@@ -19,16 +19,21 @@ def ipc_result(json, name, length, client, server, passive=True):
         ('passive?' not in x.keys() or x['passive?'] == passive))
 
 
-def microbenchmark_cells(out, field, rt, b):
-    rt_val = int(rt[field])
-    b_val = int(b[field])
-    out.write('\t& {0} \t& {1}'.format(b_val, rt_val))
-
 def microbenchmark_row(out, rt, b):
-    microbenchmark_cells(out, 'Min', rt, b)
-    microbenchmark_cells(out, 'Max', rt, b)
-    microbenchmark_cells(out, 'Mean', rt, b)
-    microbenchmark_cells(out, 'Stddev', rt, b)
+    rt_val = round(rt['Mean'], 0)
+    rt_std = round(rt['Stddev'], 1)
+    b_val = round(b['Mean'], 0)
+    b_std = round(b['Stddev'], 1)
+    diff = rt_val - b_val
+    pc = 0
+    out.write('\t&{0} ({1})\t&{2} ({3})&{4} & '.format(b_val, b_std, rt_val, rt_std, diff, pc))
+    if b_val > 0:
+        pc = round(((rt_val - b_val) / b_val * 100), 1)
+        out.write('{5} \\%\t')
+    elif b_val == 0 and rt_val > 0:
+        out.write('$\infty$\t')
+    else:
+        out.write('0 \\%\t')
 
 def build_microbenchmark_table(rt, baseline, out, slowpath=False, passive=True, replyRecv=False):
     with open(rt, 'r') as rt_json, open(baseline, 'r') as b_json:
@@ -66,8 +71,9 @@ counters = [
 def gen_plat_table(plat, output, slowpath, passive, replyRecv, name):
     
     output.write('\\begin{table}[ht]\centering\n')
-    output.write('\\begin{tabular}{|l|c|c|c|c|c|c|c|c|}\\hline\n')
-    output.write('counter & min(b) & min(rt) & max(b) & max(rt) & avg(b) & avg(rt) & std(b) & std(rt) \\\\\\hline\n')
+    output.write('\\rowcolors{2}{gray!25}{}\n')
+    output.write('\\begin{tabularx}{\\textwidth}{Xrrrr}\\toprule\n')
+    output.write('Counter & Baseline & MCS & Diff & Overhead \\\\\\midrule\n')
     # cycles first
     output.write("cycles")
     #print("Name {0} r cycles".format(name))
@@ -75,7 +81,7 @@ def gen_plat_table(plat, output, slowpath, passive, replyRecv, name):
     baseline_file = os.path.join(os.getcwd(), 'data', 'baseline-{0}.json'.format(plat))
     build_microbenchmark_table(rt_file, baseline_file, output, slowpath=slowpath, passive=passive,
             replyRecv=replyRecv)
-    output.write(' \\\\\\hline\n')
+    output.write(' \\\\\n')
 
     for i in range(0, 7):
         output.write(counters[i])
@@ -84,10 +90,22 @@ def gen_plat_table(plat, output, slowpath, passive, replyRecv, name):
         baseline_file = os.path.join(os.getcwd(), 'data', 'ipc-perf-{0}-baseline-{1}.json'.format(i, plat))
         build_microbenchmark_table(rt_file, baseline_file, output, slowpath=slowpath,
                 passive=passive, replyRecv=replyRecv)
-        output.write(' \\\\\\hline\n')
+        output.write(' \\\\\n')
 
-    output.write('\\end{tabular}\n')
-    output.write('\\caption{' + name + '}\n')
+    if plat == 'sabre':
+        plat = 'Sabre'
+    elif plat == 'kzm':
+        plat = 'KZM'
+    elif plat == 'tx1':
+        plat = 'TX1'
+    elif plat == 'hikey32':
+        plat = 'Hikey32'
+    elif plat == 'hikey64':
+        plat = 'Hikey64'
+    elif plat == 'haswell':
+        plat = 'x64'
+    output.write('\\bottomrule\\end{tabularx}\n')
+    output.write('\\caption{\\textsc{' + plat + '}'  + name + '}\n')
     output.write('\\end{table}\n')
 
 
@@ -103,10 +121,10 @@ def main():
     plat = args.platform
     
     with open(args.outfile, 'w') as output:
-        gen_plat_table(plat, output, False, True, False, plat + " Call fastpath")
+        gen_plat_table(plat, output, False, True, False, " \\call fastpath")
         #    gen_plat_table(plat, output, True, True, False, plat + " Call passive slowpath")
         #    gen_plat_table(plat, output, True, False, False, plat + " Call active slowpath")
-        gen_plat_table(plat, output, False, True, True, plat + " Reply recv fastpath")
+        gen_plat_table(plat, output, False, True, True, " \\replyrecv fastpath")
        #     gen_plat_table(plat, output, True, True, True, plat + " Reply passive slowpath")
        #     gen_plat_table(plat, output, True, False, True, plat + " Reply active slowpath")
 
