@@ -169,7 +169,6 @@ def build_microbenchmark_dat(rt, baseline, arch):
             
             raw_rt = [x / 10000 for x in rt_schedule['Raw results']]
             raw_b =  [x / 10000 for x in b_schedule['Raw results']]
-            microbenchmark_row(out, '\\texttt{schedule}', rt_schedule, b_schedule)
 
             rt_val = {}
             b_val = {}

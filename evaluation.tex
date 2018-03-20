@@ -182,7 +182,8 @@ on IPC delivery (baseline does \gls{FIFO}).
 
 We look at each platform in detail to determine the source of the overhead by using the performance
 monitor unit. 
-
+ 
+\iffalse
 \subsubsection{Slowpath}
 \label{eval:slowpath}
 
@@ -252,9 +253,10 @@ with a hot cache as 36 cycles.
 \caption{Time in cycles for \selfour slowpath \gls{IPC} between active threads.}
 \label{t:slowpath-ipc-active-micro}
 \end{table}
+\fi
 
 \subsection{Faults}
-
+\TODO{Convert to average benchmark}
 Recall that fault handling in \selfour occurs via an \gls{IPC} simulated by the kernel to a fault
 endpoint, which a fault handling thread blocks on, waiting for any fault messages
 (\cref{api:faults}). 
