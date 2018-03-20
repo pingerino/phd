@@ -110,7 +110,7 @@ for (;;) {
 The sporadic task model considers a real-time system as a set of tasks, $A_{1},A_{2},\ldots,A_{n}$.
 Each $A_{i}$ refers to a specific task in the task set, usually each for a different functionality.
 The infinite series of jobs is per task, and represented by $A_{i1},A_{i2},\ldots,A{in}$. Each task has
-an \gls{WCET}, $C_{i}$, and period, $T_{i}$, which represents the minimum inter-arrival time
+a \gls{WCET}, $C_{i}$, and period, $T_{i}$, which represents the minimum inter-arrival time
 between jobs. When a $T_{i}$ has passed and a job can run again, it is said to be \emph{released}.
 When a job is ready to run, it is said to have \emph{arrived} and when a job finishes and blocks until
 the next arrival, it is said to be \emph{completed}. 
@@ -617,7 +617,7 @@ systems and other services in the kernel, resulting in a large \emph{trusted com
 Interpretations of the minimality principle varies, 
 consequently which services and utilities are included in the privileged kernel varies. In
 larger kernels thread scheduling, memory allocation and some device drivers are included in the kernel.
-For example, \selfour~\citep{Klein_EHACDEEKNSTW_09} contains a scheduling and \gls{IPC}; 
+For example, \selfour~\citep{Klein_EHACDEEKNSTW_09} contains scheduling and \gls{IPC};
 \composite~\citep{Parmer:phd} does not provide a scheduler, or any blocking semantics, but does
 provide \gls{IPC}. 
 
