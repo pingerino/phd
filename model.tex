@@ -231,7 +231,7 @@ choice is the design naturally supports over-commitment, as this is part of the 
 The mechanisms for admission control is two part: scheduling contexts are created without
 any budget at all, and a new control capability must be invoked to populate scheduling context
 parameters.
-\code{sched\_control} is the new control capability, one of which is provided per processing core,
+\schedcontrol is the new control capability, one of which is provided per processing core,
 and grants authority to 100\% of time on that core, thus providing the admission-control privilege.
 This is analogous to how \selfour controls the right
 to receive interrupts, which is controlled by the IRQ\_control
@@ -382,7 +382,7 @@ The handler has a choice of a range of overrun policies, including:
        \item changing the system criticality level.
        \end{itemize}
 Obviously, these are all subject to the handler having sufficient
-authority (\eg \code{sched\_control}.
+authority (\eg \schedcontrol).
 
 If a replenishment is ready at the time the budget expires, the thread
 is immediately runnable. It is inserted at the end of the ready queue
@@ -690,7 +690,7 @@ four new mechanisms introduced for high-performance implementation of those poli
 
 The first is simple: in order to implement user-level schedulers, the kernels scheduling queues
 must be able to be manipulated. For this, we add an operation on scheduling contexts: a
-directed yield to a specific scheduling context. By invoking the \code{yield\_to} invocation on 
+directed yield to a specific scheduling context. By invoking the \scyieldto invocation on 
 a specific scheduling context, the thread running on that scheduling context is placed at the head
 of the scheduler queue for its priority. 
 This may change the currently running thread if it is at the same priority, and only effects the
@@ -702,7 +702,7 @@ running.
 
 We introduce another concept called \emph{forwarding}, which allows callers to
 invoke one capability and block on another capability in the same system call, via
-a new system call \code{nbsendrecv}. This is required to
+a new system call \nbsendrecv. This is required to
 facilitate a forwarding IPC, and allows passive proxies to seamlessly forward messages,
 capabilities and scheduling contexts, as shown in \cref{f:model-forward}. 
 
@@ -711,13 +711,13 @@ capabilities and scheduling contexts, as shown in \cref{f:model-forward}.
     \begin{subfigure}[h]{0.8\textwidth}
         \centering
         \includegraphics[width=\textwidth]{forward1}
-        \caption{$A$ \code{calls} $S_{1}$ over $E_{1}$.}
+        \caption{$A$ \call() $S_{1}$ over $E_{1}$.}
         \label{f:forward1}
     \end{subfigure}
     \begin{subfigure}[h]{0.8\textwidth}
         \centering
         \includegraphics[width=\textwidth]{forward2}
-        \caption{$S_{1}$ uses \code{nbsendrecv()} to forward the request, and $A$'s resume 
+        \caption{$S_{1}$ uses \nbsendrecv() to forward the request, and $A$'s resume 
             capability, to $E_{2}$, and
         wait for further messages on $E_{1}$.}
         \label{f:forward2}
@@ -731,7 +731,7 @@ capabilities and scheduling contexts, as shown in \cref{f:model-forward}.
     \begin{subfigure}[h]{0.8\textwidth}
         \centering
         \includegraphics[width=\textwidth]{forward4}
-        \caption{$S_{2}$ uses the \code{replyrecv()} system call to reply to $A$ and block on
+        \caption{$S_{2}$ uses the \replyrecv() system call to reply to $A$ and block on
         $E_{2}$ again. }
         \label{f:forward4}
 \end{subfigure}
