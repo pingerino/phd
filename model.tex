@@ -793,26 +793,55 @@ Threads that need to wake, poll for an event, and sleep again can be
 implemented using the sporadic server mechanism, by providing the 
 and setting their scheduling parameters appropriately. As long as the budget is
 not full ($C\neq T$), the \yield system call can be used to block until the next replenishment
-is available. 
+is available, as shown in \cref{list:polling}. However, this approach will only work if the amount of thread preemptions 
+is known and the amount of extra sporadic replenishments is set correctly, as \yield sleeps until
+the next available replenishment. If fragmentation occurs due to preemption and incorrect sporadic
+replenishments, the polling thread will not wake at the start of every period. This could be
+ameliorated by checking the time on wakeup, or using a different task model.  
+
+\begin{listing}
+  \begin{minted}{c}
+      for (;;) {
+          seL4_Word badge;
+          seL4_Poll(notification_object, &badge);
+          doJob();
+          // sleep until next job is ready
+          seL4_Yield();
+      }
+  \end{minted}
+  \caption{Example of a basic sporadic real-time task on \selfour.}
+  \label{list:polling}
+\end{listing}
+
+\subsubsection{Sporadic threads}
+
+For sporadic threads, which wake due to an event, process and sleep again and may be subject to a
+maximum CPU bandwidth, notifications combined
+with scheduling contexts can be used, as displayed in \cref{list:sporadic}. In this case, if the
+number of sporadic replenishments is not sufficient, the processing bandwidth may be artificially
+limited by excessive preemptions, otherwise it will be $\frac{C}{T}$. 
 
 \begin{listing}
   \begin{minted}{c}
       for (;;) {
           doJob();
           // sleep until next job is ready
-          seL4_Yield();
+          seL4_Word badge;
+          seL4_Wait(notification_object, &badge);
       }
   \end{minted}
-  \caption{Example of a basic sporadic real-time task on sel4}
-  \label{list:sporadic-sel4}
+  \caption{Example of a basic sporadic real-time task on \selfour.}
+  \label{list:sporadic}
 \end{listing}
 
+\subsubsection{Time triggered threads}
 
-
-\TODO{real time threads}
-\TODO{Periodic polling threads}
-\TODO{Sporadic threads}
-\TODO{time triggered threads}
+Time-triggered threads, which wake up, do some processing, and go to sleep again until the next
+period can be set up with a user-level timer driver in order to wake at exactly the right time.
+Scheduling contexts can be combined with this approach to rate-limit time-triggered threads, but 
+the exact amount of preemptions does not need to be known.
+\cref{list:sporadic} also applies to this policy, where the notification object is configured to
+receive periodic notifications from a timer service.
 
 \subsubsection{EDF scheduling}
 
