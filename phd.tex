@@ -71,7 +71,6 @@
 \graphicspath{{imgs/}}
 
 \usepackage{mwe}
-\usepackage{setspace}
 \let\ordinal\relax
 \usepackage{datetime}
 \newdateformat{monthyear}{\monthname[\THEMONTH] \THEYEAR}
@@ -341,6 +340,7 @@
 \sloppy
 \pagebreak
 
+\OnehalfSpacing % UNSW requires this
 \input{introduction}
 \input{background}
 \input{scheduling}
@@ -353,6 +353,7 @@
 \input{conclusion}
 %{
 %\backmatter - back matter screws up numbering for appendixes so don't use it
+\SingleSpacing % use normal spacing for appendices
 \cleardoublepage
 \bibliographystyle{plainnat}
 \bibliography{references}
