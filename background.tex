@@ -175,7 +175,10 @@ Simply put, scheduling is deciding which task to run at a specific time. More fo
 is the act of assigning resources to activities or tasks~\citep{Baruah_CPV_96}, generally discussed
 in the context of processing time, but is required for other resources such as communication
 channels.  A correct scheduling algorithm  can guarantee that all deadlines are met within their
-requirements, whilst also maintaining maximum utilisation of the scheduled resource(s).
+requirements, whilst also maintaining maximum utilisation of the scheduled resource(s). Real-time
+scheduling algorithms differ from their non-real-time equivalents in that they must guarantee that
+all tasks not only receive sufficient access to the processor, but that all tasks meet their timing
+requirements, \ie deadlines. 
 
 Scheduling can be either \emph{static} or \emph{dynamic}. In a static or \emph{off-line} schedule, 
 the set of tasks is fixed and the schedule pre-calculated when the system is built, and does not
@@ -185,8 +188,11 @@ calculated whenever a scheduling decision is required. In dynamic systems, the t
 allowing task parameters to be adjusted, and allowing tasks to be added and removed while the system
 is running.
 
+All possible permutations of task parameters are not schedulable, and optimal scheduling is
+equivalent to a bin-packing problem. Thus, we refer to feasible and non-feasible task sets. 
 A task set is \emph{feasible} if it can be scheduled by at least one scheduling algorithm such that
-all temporal requirements are satisfied.
+all temporal requirements are satisfied, and \emph{non-feasible} if no scheduling algorithm can be found
+that satisfies the requirements.
 An \emph{optimal} scheduling algorithm can schedule every feasible task set.
 To test if a task set is schedulable by a scheduling algorithm, a \emph{schedulability test} is applied.
 The complexity of schedulability tests is important for both dynamic and static schedulers. For
@@ -274,11 +280,9 @@ for cyclic executives on modern hardware.
 \label{s:fp}
 
 As the name implies, \gls{FP} scheduling involves assigning fixed priorities to each task.
-The scheduler is invoked when a job is released or a job ends.
-The job with the highest priority is always scheduled.
-
-Priority assignment such that all tasks meet their deadlines is the core challenge of \gls{FP} scheduling.
-Two well-established techniques are \gls{RM} and \gls{DM}, both of which are optimal with respect to \gls{FP} scheduling.
+The scheduler is invoked when a job is released or a job ends, and the job with the highest priority is
+always scheduled. Under real-time fixed-priority scheduling, priorities must be assigned such that
+all deadlines are met. Two well-established priority-assignment techniques are \gls{RM} and \gls{DM}, both of which are optimal with respect to \gls{FP} scheduling.
 \Gls{RM} priority assignment~\citep{Liu_Layland_73} allocates higher priorities to tasks with higher
 rates---where \emph{rate} is determined by the period, as shown in \cref{eq:2}.
 \begin{equation}
@@ -434,7 +438,7 @@ works for both fixed and dynamic priority scheduling.
 However, \gls{PIP} results in a large preemption overhead and as a result has poor WCET analysis.
 
 To understand this, consider a task set with $n$ tasks, $A_{1}, \ldots, A_{n}$, where each task's priority
-corresponds to its index, such the priority of $A_{i} = i$. The highest priority is $n$ and the
+corresponds to its index, such that the priority of $A_{i} = i$. The highest priority is $n$ and the
 lowest is 1 and all tasks access the same resource. If $A_{1}$ holds the lock to that resource, then
 the worst preemption overhead occurs if $A_{2}$ wakes up, elevating the priority of $A_{1}$ to 2. Subsequently,
 each task wakes up in increasing priority order, each preempting $A_{1}$ until its priority reaches
@@ -570,7 +574,7 @@ estimates for a system. Theoretically, if the system designer could show that th
 of the \gls{CA} can be met by such a mode change, they could schedule less criticality tasks when in
 a low criticality mode. 
 
-However, while this model, and many variations upon it have been subject to much research in the
+However, while this model, and many variations upon it have been subject too much research in the
 real-time community, questions have been raised as to its practicality in industry.
 \citet{Ernst_DiNatale_16} claim that a \gls{CA} would be unlikely to accept multiple \gls{WCET}
 definitions and state that the focus of mixed-criticality research should be on providing systems
@@ -609,7 +613,8 @@ functionality, it should not be in the kernel.
 
 Monolithic operating systems provide scheduling, \gls{IPC}, device drivers, memory allocation, file
 systems and other services in the kernel, resulting in a large \emph{trusted computing base}.
-Interpretations of the minimality principle varies, 
+
+With respect to microkernels, interpretations of the minimality principle varies, 
 consequently which services and utilities are included in the privileged kernel varies. In
 larger kernels thread scheduling, memory allocation and some device drivers are included in the kernel.
 For example, \selfour~\citep{Klein_EHACDEEKNSTW_09} contains scheduling and \gls{IPC}; 
@@ -652,7 +657,7 @@ to~\citep{Hardy_88}.
 
 \gls{IPC} is the microkernel mechanism for synchronous transmission of data and capabilities between
 processes. Because the microkernel model provides services encapsulated into user-level servers,
-\gls{IPC} is key to microkernel performance, as it is used for more predominantly than in monolithic
+\gls{IPC} is key to microkernel performance, as it is used more predominantly than in monolithic
 \glspl{OS}. Originally, microkernels were criticised as impractical due to inefficient IPC
 implementations of first-generation microkernels. However, this was demonstrated to be
 false~\citep{Hartig_HLSW_97} due to the high cache footprint and poor design of the original
