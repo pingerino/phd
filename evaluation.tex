@@ -32,7 +32,7 @@ and \textsc{x64}.
 
 Two of our platforms, \textsc{x64} and \textsc{Hikey} support both 32- and 64-bit execution modes.
 We use both, referring to them as \textsc{ia32} and \textsc{Hikey32} when in 32-bit mode and
-\textsc{x64} and \textsc{Hikey64} otherwise. All platforms have out of order execution, except
+\textsc{x64} and \textsc{Hikey64} otherwise. All platforms have out-of-order execution, except
 \textsc{Hikey}, which is in-order.
 
 Additionally, we use several load generators running Linux on an isolated network for 
@@ -147,7 +147,7 @@ value. Results presented are for performing this a total of 16 times. Additional
 overhead of system calls stubs in the same way and subtract this from the measurement, to obtain
 only the kernel cost of the operation\footnote{The \gls{IPC} benchmarks already existed for
  \selfour, but we modified them to support the \gls{MCS} kernel as part of this thesis}.
-   The message sent is zero length, so neither the caller or callee's \gls{IPC} buffer accessed.
+   The message sent is zero length, so neither the caller nor callee's \gls{IPC} buffer accessed.
 
 \begin{table}[t]\centering
 \begin{tabular}{ll r@{~}l r@{~}l r@{~}r}\toprule
@@ -168,7 +168,7 @@ only the kernel cost of the operation\footnote{The \gls{IPC} benchmarks already 
 \label{t:fastpath-ipc-micro}
 \end{table}
 
-As discussed in \cref{p:impl-fastpath}, timer operations are avoided on the fastpath. However we do
+As discussed in \cref{p:impl-fastpath}, timer operations are avoided on the fastpath. However, we do
 add significantly to the \call fastpath, by accessing two further objects (the scheduling context
 and resume object) and two validation checks. In detail, the \call fastpath is altered as follows:
 
@@ -190,23 +190,23 @@ Overheads on the \call fastpath are low, with the worst effected platform being
 \textsc{KZM} shows L1 data cache miss and 1 memory access, which shows that the new fastpath does not
 fit into the small, 16KiB L1 cache. \textsc{Sabre} suffers a 7\% overhead, due to a TLB miss likely
 due to the relatively low associativity on Cortex-A9 TLBs.  In general, as hardware becomes newer the overhead is reduces,
-with the exception of the \textsc{Hikey} which has in order execution compared to all other
+except for the \textsc{Hikey} which has in order execution compared to all other
 platforms, we posit that further hand optimisation of the fastpath would result in better
 performance. The newest ARM hardware is the TX1, which only shows a 5\% overhead. x86 with its large
 caches and highly optimised pipeline only incurs a 1\% overhead. For further detail on the
 numbers read from the performance counters cited here, please see
 \cref{appendix:fastpath-performance}.
 
-The fastpath for \replyrecv has a higher impact, for two reasons: first, we add an new capability
+The fastpath for \replyrecv has a higher impact, for two reasons: first, we add a new capability
 lookup, being the resume object provided to receive, which must be looked up by the \replyrecv
-fastpath. Although we remove the delete of the previous reply capability from the \gls{TCB}
+fastpath. Although we remove of the reply capability from the \gls{TCB}
 \code{cnode}, that \code{cnode} is still accessed to validate the caller's root cspace capability
 and top-level page directory capability, so that cache line is still read. Additionally, because
 \gls{IPC} is now ordered, the fastpath must check if the callee's \gls{TCB} will be appended to the
-endpoint queue. Otherwise the fastpath is aborted for an ordered insert. 
+endpoint queue. Otherwise, the fastpath is aborted for an ordered insert. 
 
 As a result, the overheads shown in \cref{t:fastpath-ipc-micro} for \replyrecv are generally higher
-than \call, with the exception of \textsc{Sabre}, which already suffered some \gls{TLB} misses on
+than \call, except for \textsc{Sabre}, which already suffered some \gls{TLB} misses on
 the baseline kernel, again due to low TLB associativity.
 
 \subsubsection{Slowpath}
@@ -232,7 +232,7 @@ favour of establishing shared memory protocols to transfer large amounts of data
 fastpath checks make sure the thread being switched to is valid and runnable. Only two cases hit the
 fastpath frequently: if a medium priority thread has woken, and is higher priority than the
 \gls{IPC} target, and if the target is active, not passive. 
-Additionally many can be improvements to the \gls{IPC} slowpath to improve
+Additionally, many can be improvements to the \gls{IPC} slowpath to improve
 performance, but it has not been examined extensively.
 
 \begin{table}[hb]\centering
@@ -307,12 +307,12 @@ waiting for an interrupt. On delivery, the handler thread determines the
 interrupt latency by subtracting the
 looped timestamp from the current time. The overhead is higher here as we must switch scheduling
 contexts, which requires reprogramming the timer, however the scheduler is by-passed as the switch
-is to a higher priority thread. The highest overhead is on the \textsc{KZM}, where once again we
+is to a higher priority thread. \textsc{KZM} shows the  highest overhead, where once again we
 exceed the small cache. The \textsc{Hikey} pays for its in order execution pipeline, which could be
 improved with further profiling of the fastpath. The \textsc{TX1} shows the least impact, with only
 a 5\% increase on the interrupt fastpath, as shown in \cref{t:micro-irq}. 
 
-The \code{signal()} operation on the other hand shows little overhead as it does not alter the
+\code{signal()}, on the other hand shows little overhead as it does not alter the
 scheduling context or access to the timer device.  In this benchmark, a high priority thread signals
 a low priority thread, a common operation for interrupt service routines. As \cref{t:micro-irq}
 shows, in 
@@ -369,7 +369,7 @@ a reschedule operation and does not avoid picking a new thread from the schedule
 all other slowpath overheads. Like the other slowpath benchmarks, we take the average of 10,000
 runs. 
 The scheduler is by definition a slowpath activity, as it is completely avoided on the fastpath, and
-much of the slowpath, by the lazy scheduling mechanism (\cref{sec:sel4-scheduler-opt}.
+much of the slowpath, by the lazy scheduling mechanism (\cref{sec:sel4-scheduler-opt}).
 \cref{t:micro-schedule} shows that scheduling cost increases noticeably, however note that \selfour IPC,
 particularly scheduler-context donation (and its predecessor, the
 undisciplined timeslice donation), is designed to minimise the need for
@@ -397,7 +397,7 @@ NetBSD~\citep{NetBSD:url} network drivers at user level, by leveraging an existi
 to \selfour~\citep{McCleod:be}.
 The system consists of Redis/Rump running on three active \selfour threads: 
 two for servicing interrupts (network, timer) and one for Rump, as shown in
-\cref{f:redis-arch. Interrupt threads run at the highest priority,
+\cref{f:redis-arch}. Interrupt threads run at the highest priority,
 followed by Redis and a low-priority idle thread (not shown) for measuring CPU utilisation;
 this setup forces frequent invocations of the scheduler and interrupt path.
 
@@ -410,15 +410,15 @@ this setup forces frequent invocations of the scheduler and interrupt path.
 \end{figure}
 
 \cref{t:redis} shows the achieved throughput of Redis+Rump
-running  bare-metal (BMK), and Redis on the seL4 baseline and as well as the MCS
+running \gls{BMK}, and Redis on the seL4 baseline and as well as the MCS
 branch, plus Linux and NetBSD (7.0.2) for comparison. \cref{f:redis-arch} shows the \selfour set up,
-compared with the architecture of Redis on Linux, NetBSD and BMK. 
+compared with the architecture of Redis on Linux, NetBSD and \gls{BMK}. 
 
 \cref{t:redis} indicates the interrupt handling method used, as there is no single method supported
-across all four scenarios. BMK only supports the legacy
-programmable interrupt controller (PIC),
-while NetBSD only supports message-signalled interrupts (MSI). Linux and seL4 both support the
-advanced PIC (APIC).
+across all four scenarios. \gls{BMK} only supports the legacy
+\gls{PIC},
+while NetBSD only supports \glspl{MSI}. Linux and seL4 both support the
+advanced \gls{APIC}.
 
 The utilisation figures show that the system is fully loaded, except
 in the Linux case, where there is a small amount of idle time. The
@@ -780,7 +780,6 @@ switches between kernel and user mode, and the repeated
 thread-capability look-ups. It could be significantly reduced if seL4
 had a way to batch system calls, but to date we have seen no compelling use cases for this.
 
-% TODO mode switch benchmark
 As a second criticality-switch benchmark, we ported three processor intensive 
 benchmarks from the MiBench~\citep{Guthaus_REAMB_01} to act as workloads. 
 We use \textsc{susan}, which performs image recognition, \textsc{jpeg}, which does image
@@ -841,7 +840,7 @@ This shows that it is sufficient to implement criticality at user-level, and our
       \textit{U} = allowed utilisation (budget/period),
       \textit{m} = deadline misses, \textit{j} = jobs completed. We recorded 52 (0.1), 86 (15.2)
       and 100 (0.0)\% CPU
-utilisation for each stage respectively. Standard deviations are shown in parenthesis.}
+utilisation for each stage respectively. Standard deviations are shown in parentheses.}
     \label{t:modeswitch}
 \end{table}
 
@@ -981,6 +980,6 @@ Policy freedom is maintained although we provide a fixed-priority scheduling in 
 as demonstrated through the static, mixed-criticality and EDF scheduler
 implementations. 
 
-Finally we have demonstrated that the model works for multiprocessors,
-incurring no great scalability penality over baseline \selfour, 
+Finally, we have demonstrated that the model works for multiprocessors,
+incurring no great scalability penalty over baseline \selfour, 
 and showing how passive servers which migrate across cores on \gls{IPC}
