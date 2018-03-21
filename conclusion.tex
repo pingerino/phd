@@ -85,15 +85,15 @@ This research will attempt to break new ground by developing a real-time operati
 The goals of this project are to provide (reproduced from the introduction):
 
 \begin{enumerate}[label=\textbf{G\arabic*}]
-  \item \label{G1} A principled approach to processor management, treating time as a fundamental kernel resource, while allowing it to be overbooked, a key requirement of mixed-criticality systems;
-  \item \label{G2} safe resource sharing between applications of different criticalities and different temporal requirements.
+  \item \label{G1-c} A principled approach to processor management, treating time as a fundamental kernel resource, while allowing it to be overbooked, a key requirement of mixed-criticality systems;
+  \item \label{G2-c} safe resource sharing between applications of different criticalities and different temporal requirements.
 \end{enumerate}
 
 This research is motivated by the rise in demand for mixed-criticality systems.
 It is clear from \Cref{chap:background} that although much work has been conducted on scheduling algorithms for mixed-criticality systems, little work has considered the implications for operating systems.
 In addition, mixed-criticality systems require more strict access control to time than has typically been required from standard real-time systems.
-This motivates \ref{G1}, which investigates how trusted applications can control the use of time as a resource, such that all timing requirements are met and low criticality tasks cannot compromise the timing requirements of higher criticality tasks.
-\ref{G2} covers how time flows through shared resources, which may be shared between tasks of
+This motivates \ref{G1-c}, which investigates how trusted applications can control the use of time as a resource, such that all timing requirements are met and low criticality tasks cannot compromise the timing requirements of higher criticality tasks.
+\ref{G2-c} covers how time flows through shared resources, which may be shared between tasks of
 different criticalities and different temporal strictness (\gls{HRT}, \gls{SRT}, best-effort) without violating the real-time requirements.
 
 This research is split into several clear phases: background research (year 1), design and implementation (year 2) and evaluation (year 3).

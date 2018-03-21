@@ -18,7 +18,7 @@ addition to IPC messages.
 \label{s:resume}
 
 Resume objects, modelled after KeyKOS~\citep{Bomberger_FFHLS_92}, are a new object type that
-generalise ``reply capabilities'' of baseline \selfour introduced in \cref{s:ipc}.  Recall that in
+generalise ``reply capabilities'' of baseline \selfour introduced in \cref{p:sel4_ipc}.  Recall that in
 baseline \selfour, the receiver of the message (i.e.\ the server) receives the reply capability in a
 magic ``reply slot'' in its capability space. The server replies by invoking that capability. Resume
 objects remove the magic by explicitly representing the reply channel, and servers with multiple
@@ -527,10 +527,10 @@ the thread is blocked until it is replenished.
     \end{tabularx}
     \caption{New \selfour system call summary, indicating which system calls can trigger donation.
     and/or receiving messages. }
-    \label{t:system-calls}
+    \label{t:new-system-calls}
 \end{table}
 
-\cref{t:system-calls} summarises the new MCS system call API, while more detailed 
+\cref{t:new-system-calls} summarises the new MCS system call API, while more detailed 
 descriptions of each system call can be found in \cref{appendix:api}.
 
 \subsection{Invocations}
@@ -624,7 +624,7 @@ as follows: if a \nbsendrecv is used, and the receiver does not have a schedulin
 the scheduling context is forwarded. 
 
 Scheduling contexts can only be donated and received on specific system calls, indicated in
-\cref{t:system-calls}. 
+\cref{t:new-system-calls}. 
 
 \subsubsection{Passive servers}
 \label{sec:impl-passive-servers}

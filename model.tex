@@ -552,8 +552,8 @@ required, by proxying requests to shared resources via an endpoint and thread wh
 appropriately, before forwarding on the request. For \gls{PIP}, only one extra thread per resource would 
 be required and could exist in the same address space as the resource.
 Since \gls{OPCP} requires global state, an implementation would require a shared service for all threads 
-sharing a set of resources. We describe such an implementation after introducing further mechanisms
-in \cref{sec:model-policy-and-mechanism}.
+sharing a set of resources. We describe such an implementation in \cref{sec:model-mechanisms} after introducing further mechanisms
+in \cref{sec:model-policies}.
 
 \subsection{Charging}
 
@@ -726,7 +726,7 @@ capabilities and scheduling contexts, as shown in \cref{f:model-forward}.
         \centering
         \includegraphics[width=\textwidth]{forward3}
         \caption{$S_{2}$ processes the request.}
-        \label{f:forward4}
+        \label{f:forward3}
     \end{subfigure}
     \begin{subfigure}[h]{0.8\textwidth}
         \centering
@@ -817,7 +817,7 @@ ameliorated by checking the time on wakeup, or using a different task model.
 
 For sporadic threads, which wake due to an event, process and sleep again and may be subject to a
 maximum CPU bandwidth, notifications combined
-with scheduling contexts can be used, as displayed in \cref{list:sporadic}. In this case, if the
+with scheduling contexts can be used, as displayed in \cref{list:model-sporadic}. In this case, if the
 number of sporadic replenishments is not sufficient, the processing bandwidth may be artificially
 limited by excessive preemptions, otherwise it will be $\frac{C}{T}$. 
 
@@ -831,7 +831,7 @@ limited by excessive preemptions, otherwise it will be $\frac{C}{T}$.
       }
   \end{minted}
   \caption{Example of a basic sporadic real-time task on \selfour.}
-  \label{list:sporadic}
+  \label{list:model-sporadic}
 \end{listing}
 
 \subsubsection{Time triggered threads}
@@ -840,7 +840,7 @@ Time-triggered threads, which wake up, do some processing, and go to sleep again
 period can be set up with a user-level timer driver in order to wake at exactly the right time.
 Scheduling contexts can be combined with this approach to rate-limit time-triggered threads, but 
 the exact amount of preemptions does not need to be known.
-\cref{list:sporadic} also applies to this policy, where the notification object is configured to
+\cref{list:model-sporadic} also applies to this policy, where the notification object is configured to
 receive periodic notifications from a timer service.
 
 \subsubsection{EDF scheduling}

@@ -682,7 +682,7 @@ cold-cache cost, which is relevant for schedulability analysis, differs by a fac
 the different recovery scenarios, indicating that all are about equally feasible.  Approaches that
 restart the server and send \glspl{IPC} messages on its behalf (rollback, reply) are the most
 expensive as they must restore the server state from a checkpoint and follow the passive server
-initialisation protocol (recall \autoref{s:passive}). 
+initialisation protocol (recall \cref{sec:impl-passive-servers}). 
 
 \begin{table}[t]\centering
 \begin{tabular}{cllrrrr}\toprule
