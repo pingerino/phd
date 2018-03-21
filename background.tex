@@ -119,10 +119,10 @@ For periodic tasks, which are commonly found in control systems, jobs release an
 time; they are always ready to run once their period has passed. For aperiodic, \ie interrupt driven
 tasks, the arrival time can be at or beyond the release time. 
 
-\begin{table}
+\begin{table}[b]
 \rowcolors{2}{gray!25}{white}
 \centering
-    \begin{tabular}{cp{.7\textwidth}}\toprule
+\begin{tabularx}{\textwidth}{cX}\toprule
     \emph{Notation} & \emph{Meaning} \\\midrule
     $A$               & A task set. \\
     $A_{i}$           & A specific task in a task set \\
@@ -136,7 +136,7 @@ tasks, the arrival time can be at or beyond the release time.
     $a_{ij}$          & The arrival time of the $j$th job of task $i$, $a_{ij} \geq t_{ij}$ \\
     $n$               & The number of tasks in a task set\\
     \bottomrule
-    \end {tabular}
+    \end{tabularx}
     \caption{Parameters and notation for the sporadic task model as used in this document.}
     \label{t:notation}
 \end{table}
@@ -156,7 +156,7 @@ sporadic task model, they must be split
 into multiple, different tasks with larger periods and
 constrained deadlines.
 
-\begin{figure}[h!tb]
+\begin{figure}[t]
 	\begin{center}
 		\leavevmode
 		\includegraphics[width=\textwidth]{sporadic}
@@ -304,15 +304,6 @@ towards infinity.
     \lim_{n \to \infty}n(\sqrt[n]{2}-1) = \ln_{} 2 \approx 0.693147\ldots
 \end{equation}
 
-\begin{figure}
-	\begin{center}
-		\leavevmode
-		\includegraphics[width=\textwidth]{fpschedule}
-		\caption{An example FPRM schedule using the task set from Table \ref{tab:example_task_set}.}
-		\label{f:fp-schedule}
-	\end{center}
-\end{figure}
-
 \subsection{Earliest Deadline First Scheduling}
 \label{sec:background-edf}
 
@@ -323,13 +314,17 @@ Priorities are assigned by examining the deadlines of each ready job; jobs with 
 \Cref{f:edf-schedule} illustrates how the task set in \cref{tab:example_task_set} is scheduled by
 \gls{EDF}, highlighting the places where tasks are scheduled differently from FPRM.
 
-\begin{figure}
-	\begin{center}
-		\leavevmode
-		\includegraphics[width=\textwidth]{edfschedule}
-		\caption{An example EDF schedule using the task set from Table \ref{tab:example_task_set}.}
-		\label{f:edf-schedule}
-	\end{center}
+\begin{figure}[t]
+	\centering
+    \includegraphics[width=\textwidth]{fpschedule}
+	\caption{An example FPRM schedule using the task set from Table \ref{tab:example_task_set}.}
+    \label{f:fp-schedule}
+\end{figure}
+\begin{figure}[t]
+	\centering	
+	\includegraphics[width=\textwidth]{edfschedule}
+	\caption{An example EDF schedule using the task set from Table \ref{tab:example_task_set}.}
+	\label{f:edf-schedule}
 \end{figure}
 
 \gls{EDF} is compatible with fixed-priority scheduling, as \gls{EDF} can be mapped to priority bands
