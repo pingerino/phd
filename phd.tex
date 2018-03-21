@@ -18,6 +18,13 @@
 \patchcmd{\ttlh@hang}{\noindent}{}{}{}
 \makeatother
 
+% create a command to insert blank pages
+\usepackage{afterpage}
+\newcommand\blankpage{%
+    \null
+    \thispagestyle{empty}%
+    \addtocounter{page}{-1}%
+\newpage}
 
 \usepackage{microtype}
 \usepackage{algorithm}
@@ -320,8 +327,8 @@
 
 \cleardoublepage
 \tableofcontents
+\blankpage
 \cleardoublepage
-\newpage
 
 % tell latex to start the real page numbers
 \mainmatter
