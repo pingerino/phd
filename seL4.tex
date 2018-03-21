@@ -647,6 +647,7 @@ word_t getHighestPrio(void) {
 \end{listing}
 
 \subsection{Scheduler optimisations}
+\label{sec:sel4-scheduler-opt}
 
 A scheduling decision needs to be made whenever a thread transitions from or to a runnable state.
 The majority of thread state transitions occur on IPC, which is critical for performance, 

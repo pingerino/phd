@@ -131,13 +131,13 @@ def build_microbenchmark_dat(rt, baseline, arch):
             rt = getbenchmark(rt_content, 'avg slowpath round trip passive')[0]
             b  = getbenchmark(b_content, 'avg slowpath round trip passive')[0]
             (rt_val, b_val) = process_avg_results(rt, b)         
-            microbenchmark_row(out, 'passive IPC slowpath', rt_val, b_val)
+            microbenchmark_row(out, 'passive', rt_val, b_val)
             
             # active
             rt = getbenchmark(rt_content, 'avg slowpath round trip')[0]
             b  = getbenchmark(b_content, 'avg slowpath round trip')[0]
             (rt_val, b_val) = process_avg_results(rt, b)         
-            microbenchmark_row(out, 'active IPC slowpath', rt_val, b_val)
+            microbenchmark_row(out, 'active', rt_val, b_val)
 
 
         with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-fault-micro.inc'), 'w') as out:
@@ -145,15 +145,15 @@ def build_microbenchmark_dat(rt, baseline, arch):
             print('\'{0}\''.format(arch))
             if arch != 'kzm':
                 rt = getbenchmark(rt_content, 'avg fault round trip passive')[0]
-                b  = getbenchmark(b_content, 'avg slowpath round trip passive')[0]
+                b  = getbenchmark(b_content, 'avg fault round trip passive')[0]
                 (rt_val, b_val) = process_avg_results(rt, b)         
-                microbenchmark_row(out, 'passive fault slowpath', rt_val, b_val)
+                microbenchmark_row(out, 'passive', rt_val, b_val)
             
                 # active
                 rt = getbenchmark(rt_content, 'avg fault round trip')[0]
                 b  = getbenchmark(b_content, 'avg fault round trip')[0]
                 (rt_val, b_val) = process_avg_results(rt, b)         
-                microbenchmark_row(out, 'active fault slowpath', rt_val, b_val)
+                microbenchmark_row(out, 'active', rt_val, b_val)
                
 
         with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-irq-micro.inc'), 'w') as out:

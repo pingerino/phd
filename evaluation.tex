@@ -38,11 +38,11 @@ We use both, referring to them as \textsc{ia32} and \textsc{Hikey32} when in 32-
 Additionally, we use several load generators running Linux on an isolated network for 
 benchmarks that require a network.
 
-\begin{table}[ht]
+\begin{table}[t]
 \begin{tabularx}{\textwidth}{Xlrrrrr}\toprule
     \emph{Platform}       & \emph{Microarch.} & \emph{Clock } & L1 & L2 & L3  & TLB  \\
     \emph{Arch}           & \emph{CPU}        & GHz           & (KiB) & (KiB) & (MiB) & (entries) \\\midrule
-    \textsc{KZM} (32-bit) & ARM1136JF-S       & 1.0           & 16       & 128      & \no      & 32\\
+    \textsc{KZM} (32-bit) & ARM1136JF-S       & 1.0           & 16+16       & 128      & \no      & 32\\
     \small{ARMv6}                 & i.MX31            &               & 4$\times$        & 8$\times$         & \no      & 2$\times$  \\
     \rowcolor{gray!25}
     \textsc{Sabre} (32-bit) & Cortex-A9       & 1.0           & 32+32    & 1024     & \no      & 64\\
@@ -83,7 +83,7 @@ reprogram the timer on non-fastpath kernel entries, and when performing a schedu
 We show the results of microbenchmarks of both of these operations in \Cref{t:evaluation-timer}, and
 note the timer hardware used on the specific platform. 
 
-\begin{table}[ht]\centering
+\begin{table}[b]\centering
 \rowcolors{2}{gray!25}{white}
 \begin{tabularx}{\textwidth}{lXccc}\toprule
     \emph{Platform} & \emph{Timer} & \emph{Read time} & \emph{Set timeout} & \emph{Sum}
@@ -138,7 +138,9 @@ reduced by an order of magnitude from ARMv6 through to ARMv8.
 microkernel~\citep{Liedtke_95}. We benchmark our \gls{IPC} operations against base system, \selfour,
 which has an established efficient \gls{IPC} fastpath~\citep{Elphinstone_Heiser_13}. 
 
-To evaluate IPC performance we set up a client (the caller) and server (the callee) in different
+\subsubsection{Fastpath}
+
+To evaluate IPC fastpath performance we set up a client (the caller) and server (the callee) in different
 address spaces. We take timestamps on either side of the IPC operation being benchmarked and record
 the difference. This is done 16 times for each result value to prime the cache, then record the next
 value. Results presented are for performing this a total of 16 times. Additionally, we measure the
@@ -147,10 +149,7 @@ only the kernel cost of the operation\footnote{The \gls{IPC} benchmarks already 
  \selfour, but we modified them to support the \gls{MCS} kernel as part of this thesis}.
    The message sent is zero length, so neither the caller or callee's \gls{IPC} buffer accessed.
 
-
-%\subsubsection{Fastpath}
-
-\begin{table}[h]\centering
+\begin{table}[t]\centering
 \begin{tabular}{ll r@{~}l r@{~}l r@{~}r}\toprule
 \emph{Platform}           & \multicolumn{1}{c}{\emph{Operation}}
                                 & \multicolumn{2}{c}{\emph{Baseline}}
@@ -210,28 +209,33 @@ As a result, the overheads shown in \cref{t:fastpath-ipc-micro} for \replyrecv a
 than \call, with the exception of \textsc{Sabre}, which already suffered some \gls{TLB} misses on
 the baseline kernel, again due to low TLB associativity.
 
-\iffalse
 \subsubsection{Slowpath}
 \label{eval:slowpath}
 
 % TODO rewrite with all platforms
-Slowpath results show the greater cost of the model, as shown in \cref{t:slowpath-ipc-micro}, 
-which shows the cost of a slowpath \gls{IPC} between two passive threads. 
+Now we evaluate the \gls{IPC} slowpath, for both active and passive threads. Unlike the fastpath, the slowpath
+generally doesn't fit into the cache and shows erratic results with high standard deviations on our
+hardware, slowpath benchmarks are conducted differently. For the slowpath benchmarks, we set up a
+pair of threads to do \call and \replyrecv 10,000 times and divide the result by 10,000. We do this
+for 110 runs, abandoning the first 10, to calculate the standard deviation and average. In order to guarantee that we hit the
+slowpath on a non-error condition, we set the message length to ten words. 
 
-The benchmark hits the slowpath as the priorities are arranged such that the task starting the
-operation is a lower priority, which means not only do we invoke the slowpath but also the
-scheduler. However, since the server is passive, we do not change scheduling context, meaning the
-only overhead on \call is unnecessarily reading the time on kernel entry, as well as the mechanisms
-for scheduling context donation. This is quite small, very small on \textsc{x64} (1\%) as the kernel simply
-does a non-serialised read of the \gls{TSC}. On ARM the overhead is greater (8\%), as we use the
-ARM Cortex-A9 MPCore global timer (the only 64-bit timer available on the platform), which is memory
-mapped and shared between all of the cores. We evaluate the cost of reading the timer with a hot cache 
-for ARM as 23 cycles. 
+\cref{t:slowpath-ipc-micro} shows the results for round-trip, slowpath \gls{IPC}. For passive slowpath IPC,
+we see the cost of the
+timer read, extra objects and extra code, which decreases as hardware caches increase in size and
+timer access faster (for ARM the worst result is on the \textsc{KZM} and best on \textsc{TX1}).
+For active slowpath \gls{IPC}, the scheduling context is changed on the IPC, invoking the sporadic
+check routines and requiring a time reprogram. 
 
-\replyrecv shows a higher overhead on both platforms, due to the extra slowpath capability lookup of
-the resume capability, the ordered IPC checks, and accessing the \gls{SCO} and resume object.
+It should be noted that the slowpath is avoided in most cases, as long IPC is discouraged in
+favour of establishing shared memory protocols to transfer large amounts of data. The majority of
+fastpath checks make sure the thread being switched to is valid and runnable. Only two cases hit the
+fastpath frequently: if a medium priority thread has woken, and is higher priority than the
+\gls{IPC} target, and if the target is active, not passive. 
+Additionally many can be improvements to the \gls{IPC} slowpath to improve
+performance, but it has not been examined extensively.
 
-\begin{table}[ht]\centering
+\begin{table}[hb]\centering
 \begin{tabular}{ll r@{~}l r@{~}l r@{~}r}\toprule
 \emph{Platform}           & \multicolumn{1}{c}{\emph{Operation}}
                                 & \multicolumn{2}{c}{\emph{Base}}
@@ -250,56 +254,29 @@ the resume capability, the ordered IPC checks, and accessing the \gls{SCO} and r
 \label{t:slowpath-ipc-micro}
 \end{table}
 
-\subsubsection{Active slowpath}
-
-Finally, we show the cost of slowpath IPC between two active threads, where both caller and
-callee have a scheduling context. In addition to the
-overheads of \cref{eval:slowpath}, we must bill and change the scheduling context and reprogram the
-timer. On \textsc{x64}, reprogramming the timer uses \gls{TSC}-deadline mode, which is programmed via the
-model specific registers and is also very fast. On ARM, we evaluate the cost of reprogramming the timer
-with a hot cache as 36 cycles. 
-%TODO what the hell is the rest of the overhead
-% get instruction counts
-% get branch mispredict etc
-
-\begin{table}[hb]\centering
-\begin{tabular}{cl r@{~}l r@{~}l r@{~}r}\toprule
-\emph{Platform}           & \multicolumn{1}{c}{\emph{Operation}}
-                                & \multicolumn{2}{c}{\emph{Base}}
-                                & \multicolumn{2}{c}{\emph{MCS}}
-                                & \multicolumn{2}{c}{\emph{Overhead}} \\
-    \ipcmicro{KZM}{kzm}{slowpath-active}
-    \ipcmicro{Sabre}{sabre}{slowpath-active}
-    \ipcmicro{Hikey32}{hikey32}{slowpath-active}
-    \ipcmicro{Hikey64}{hikey64}{slowpath-active}
-    \ipcmicro{TX1}{tx1}{slowpath-active}
-    \ipcmicro{x64}{haswell}{slowpath-active}
-    \ipcmicro{ia32}{ia32}{slowpath-active}
-    \bottomrule
-\end{tabular}
-\caption{Time in cycles for \selfour slowpath \gls{IPC} between active threads.}
-\label{t:slowpath-ipc-active-micro}
-\end{table}
-\fi
-
 \subsection{Faults}
-\TODO{Convert to average benchmark}
+
 Recall that fault handling in \selfour occurs via an \gls{IPC} simulated by the kernel to a fault
-endpoint, which a fault handling thread blocks on, waiting for any fault messages
-(\cref{api:faults}). 
+endpoint, which a fault handling thread blocks on, waiting for any fault messages (\cref{api:faults}). 
 
 To measure the fault handling cost, we run two threads in the same address space: a fault handler
-and a faulting thread, with the same priority.
-We trigger a fault by executing an undefined instruction in a loop on the faulting thread's
+and a faulting thread, with the same priority. We trigger a fault by executing an undefined instruction in a loop on the faulting thread's
 side. The fault handler then increments the instruction pointer past the undefined
-instruction, and the benchmark continues. The fault handler is passive, so no scheduling context
-switch occurs. 
+instruction, and the benchmark continues.  As this is also a slowpath we use the same method as
+above, and measure the amount of time it takes for 10,000 faults then divide the result. We do this
+for 110 runs, abandoning the first 10, to calculate the standard deviation and average. 
 
-We measure both directions of the fault, both the round trip cost of from the fault  handlers
-side. Similar to standard slowpath-IPC, the largest impact is on the reply path, where ordered IPC
-and the extra lookup of the resume object add overhead.
+We measure both active and passive fault handling, and the results, shown in
+\cref{t:slowpath-fault-micro}, are similar to slowpath
+\gls{IPC}, being slower for active, and improving as cache-size and timer operation cost reduces. 
+Note that although there is currently no fastpath for fault handling, it is merely a matter of
+engineering effort to add one should this become a performance issue. 
 
-\begin{table}[ht]\centering
+We do not show results for the \textsc{KZM} platform, as it is ARMv6 and the performance monitor
+unit, including the cycle counter, cannot be read from user mode. Further, the use the undefined instruction 
+to read the cycle counter efficiently on this platform, so the fault benchmark does not work.
+
+\begin{table}[t]\centering
 \begin{tabular}{cl r@{~}l  r@{~}l r@{~}r}\toprule
 \emph{Platform}           & \multicolumn{1}{c}{\emph{Operation}}
                                 & \multicolumn{2}{c}{\emph{Baseline}}
@@ -320,16 +297,29 @@ and the extra lookup of the resume object add overhead.
 
 \subsection{Signalling and interrupts}
 
+As noted in the previous section, mainly engineering effort is required to add new fastpaths. For
+this reason, we add two new (non-verified) experimental fastpaths to the kernel: one for interrupt
+delivery, and the other for signalling a low-priority thread, which we now examine.
+
 We measure interrupt latency using two threads, one spinning in a loop
 updating a volatile cycle counter, the other, higher priority thread
 waiting for an interrupt. On delivery, the handler thread determines the
 interrupt latency by subtracting the
 looped timestamp from the current time. The overhead is higher here as we must switch scheduling
 contexts, which requires reprogramming the timer, however the scheduler is by-passed as the switch
-is to a higher priority thread.
+is to a higher priority thread. The highest overhead is on the \textsc{KZM}, where once again we
+exceed the small cache. The \textsc{Hikey} pays for its in order execution pipeline, which could be
+improved with further profiling of the fastpath. The \textsc{TX1} shows the least impact, with only
+a 5\% increase on the interrupt fastpath, as shown in \cref{t:micro-irq}. 
 
+The \code{signal()} operation on the other hand shows little overhead as it does not alter the
+scheduling context or access to the timer device.  In this benchmark, a high priority thread signals
+a low priority thread, a common operation for interrupt service routines. As \cref{t:micro-irq}
+shows, in 
+cases where slowpath performance is a issue, further fastpaths can be added to avoid accessing the
+timer, in the case where older hardware with smaller caches and slower timer devices is required.
 
-\begin{table}[h]\centering
+\begin{table}[t]\centering
 \begin{tabular}{cl r@{~}l r@{~}l r@{~}r}\toprule
 \emph{Platform}           & \multicolumn{1}{c}{\emph{Operation}}
                                 & \multicolumn{2}{c}{\emph{Base}}
@@ -349,14 +339,9 @@ shown in brackets.}
 \label{t:micro-irq}
 \end{table}
 
-The \code{signal()} operation signals a Notification object (semaphore). This microbenchmark
-evaluates the cost of signalling a lower priority thread, a common operation for interrupt service
-routines. We have added an experimental fastpath to both the base and \gls{MCS} kernels, which shows
-that when the scheduler is not used and a thread switch does not occur, there is no overhead at all.
-
 \subsection{Scheduling}
 
-\begin{table}[ht]\centering
+\begin{table}[t]\centering
 \begin{tabular}{cl r@{~}l  r@{~}l r@{~}r}\toprule
 \emph{Platform}           & \multicolumn{1}{c}{\emph{Operation}}
                                 & \multicolumn{2}{c}{\emph{Base}}
@@ -377,17 +362,26 @@ that when the scheduler is not used and a thread switch does not occur, there is
 \label{t:micro-schedule}
 \end{table}
 
+In our final microbenchmark we look at the cost of the scheduler, and the \yield system call. 
+
 The \code{schedule} benchmark measures the cost of a signal to a higher priority thread, which forces 
-a reschedule operation.
-Scheduling cost increases noticeably due to the need for first reading
-and then reprogramming the timer for budget enforcement. Furthermore,
-the sporadic replenishment logic is far more complicated than the
-previous tick-based logic, and there is some extra code for
-dealing with scheduling contexts. Note that \selfour IPC,
+a reschedule operation and does not avoid picking a new thread from the scheduler, in addition to
+all other slowpath overheads. Like the other slowpath benchmarks, we take the average of 10,000
+runs. 
+The scheduler is by definition a slowpath activity, as it is completely avoided on the fastpath, and
+much of the slowpath, by the lazy scheduling mechanism (\cref{sec:sel4-scheduler-opt}.
+\cref{t:micro-schedule} shows that scheduling cost increases noticeably, however note that \selfour IPC,
 particularly scheduler-context donation (and its predecessor, the
 undisciplined timeslice donation), is designed to minimise the need for
 invoking the scheduler, therefore this increase is unlikely to have
 a noticeable effect in practice. 
+
+We also measure the average cost for the current thread to \yield to itself. This is not so much an
+overhead as a completely different system call: previously \yield was incomplete, and would simply
+dequeue and enqueue the current thread from the scheduling queues, before returning to user level.
+\yield in the new model charges the remaining budget in the head replenishment to the thread, and
+triggers a timer reprogram. Although semantically similar for round robin threads, \yield does a lot
+more, hence the drastic overheads shown in \cref{t:micro-schedule}.
 
 \subsection{Full system benchmark}
 \label{s:evaluation-redis-overhead}
@@ -403,7 +397,7 @@ NetBSD~\citep{NetBSD:url} network drivers at user level, by leveraging an existi
 to \selfour~\citep{McCleod:be}.
 The system consists of Redis/Rump running on three active \selfour threads: 
 two for servicing interrupts (network, timer) and one for Rump, as shown in
-\cref{f:redis-arch}. Interrupt threads run at the highest priority,
+\cref{f:redis-arch. Interrupt threads run at the highest priority,
 followed by Redis and a low-priority idle thread (not shown) for measuring CPU utilisation;
 this setup forces frequent invocations of the scheduler and interrupt path.
 
@@ -415,16 +409,16 @@ this setup forces frequent invocations of the scheduler and interrupt path.
     \label{f:redis-arch}
 \end{figure}
 
-\autoref{t:redis} shows the achieved throughput of Redis+Rump
+\cref{t:redis} shows the achieved throughput of Redis+Rump
 running  bare-metal (BMK), and Redis on the seL4 baseline and as well as the MCS
-branch, plus Linux and NetBSD (7.0.2) for comparison.
+branch, plus Linux and NetBSD (7.0.2) for comparison. \cref{f:redis-arch} shows the \selfour set up,
+compared with the architecture of Redis on Linux, NetBSD and BMK. 
 
-The table indicates the interrupt handling method used, as there is no single method supported
+\cref{t:redis} indicates the interrupt handling method used, as there is no single method supported
 across all four scenarios. BMK only supports the legacy
 programmable interrupt controller (PIC),
 while NetBSD only supports message-signalled interrupts (MSI). Linux and seL4 both support the
 advanced PIC (APIC).
-
 
 The utilisation figures show that the system is fully loaded, except
 in the Linux case, where there is a small amount of idle time. The
