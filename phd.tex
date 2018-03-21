@@ -303,6 +303,8 @@
 
 % tell latex this is the preamble
 \frontmatter
+\hypersetup{pageanchor=false}
+
 % Title page 
 \input{title}
 
@@ -332,6 +334,7 @@
 \cleardoublepage
 
 % tell latex to start the real page numbers
+\hypersetup{pageanchor=true}
 \mainmatter
 
 \sloppy
