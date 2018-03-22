@@ -309,6 +309,10 @@ def main():
         clk = 800
     elif args.arch == 'rpi3':
         clk = 1200
+    elif args.arch == 'tx1':
+        clk = 1900
+    elif args.arch == 'hikey32' or args.arch == 'hikey64':
+        clk = 1200
 
     pwd = os.getcwd()
  
