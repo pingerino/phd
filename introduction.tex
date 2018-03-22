@@ -180,7 +180,7 @@ High-utilisation of hardware to address SWaP challenges is therefore only possib
 of mixed-criticality systems, which can leverage the excess capacity for less-critical, less-time
 sensitive software.
 
-\paragraph{Resource Sharing}
+\subsection{Resource Sharing}
 
 Mixed-criticality systems also bring opportunities for new types of
 systems, and are indeed required for emerging cyber-physical systems like
@@ -268,7 +268,7 @@ great advantages over the traditional physical isolation approach.
 support true mixed-criticality systems:
 
 \begin{enumerate}
-    \item kernels and schedulers that guarantee resource
+    \item operating system kernels and schedulers that guarantee resource
         management to provide independence in the
         functional and time domain; separation kernels
         are the most notable example;
@@ -278,8 +278,6 @@ support true mixed-criticality systems:
         presence of faults.
 \end{enumerate}
 
-The contributions of our research are to provide the core mechanisms for building whole
-mixed-criticality systems upon. 
 
 \section{Approach}
 
@@ -289,20 +287,54 @@ support mixed criticality systems. We implement those mechanisms in \selfour and
 microbenchmarks and case studies to evaluate the implementation. 
 
 \Cref{chap:background} establishes the basic terminology required to present
-the remaining ideas. In \Cref{chap:scheduling} we examine in detail methods for achieving temporal
-isolation and safe resource sharing in real-time systems; \Cref{chap:operating-systems} investigates
-the same concepts from a systems perspective, and presents a survey of existing commercial, open-source
-and research operating systems. We then present the relevant details of our implementation platform,
-\selfour, in \Cref{chap:sel4}.
+the remaining ideas, including an introduction to real-time scheduling and resource sharing theory.
+We also introduce the concept of a resource kernel, an existing approach to providing principled
+access to time as a first class resource.
 
-We then draw on all the previous chapters to design mechanisms for efficiently supporting mixed
-criticality systems, and present our findings, along with the trade-offs and consequences of our
-design in \cref{chap:model}.  \Cref{chap:implementation} delves deeply into the implementation details.
-Finally, \Cref{chap:evaluation} presents our benchmarks, case studies and findings. 
+In \Cref{chap:scheduling} we examine in detail the theoretical models and methods for achieving temporal
+isolation and safe resource sharing in traditional, real-time systems and show that sufficient
+theory exists for resource-overbooking and asymmetric protection. \Cref{chap:operating-systems}
+investigates systems support for the same concepts; by surveying existing commercial, open-source
+and research operating systems we show that in the current state of the art, support for resource
+overbooking and asymmetric protection is insufficient for modern, cyber-physical systems
+
+\Cref{chap:sel4} presents the final piece of background, presenting the existing concepts which make
+our implementation platform, \selfour, an excellent target for high-assurance systems with its
+existing spatial-resource isolation mechanisms. However, we also show that like the other operating
+systems considered in the chapter before it, current mechanisms are insufficient for temporal
+isolation, asymmetric protection, and resource overbooking. 
+
+We then present in \cref{chap:model} a model for mechanisms required to build mixed-criticality operating systems,
+including capability-based access control to processing time which allows for overbooking and does
+not limit user-level policy. Additionally, we provide new mechanisms for resources that can be
+shared safely between systems of different criticalities. Our model is designed to integrate with
+\selfour, however has wider applications to \gls{OS} design for mixed-criticality systems.
+
+\cref{chap:implementation} delves deeply into the implementation details, presenting a full, mature
+implementation of our model along with discussions of design trade-offs and limitations. Finally,
+\cref{chap:evaluation} presents a detailed set of benchmarks and case studies on a variety of x86
+and ARM platforms, showing the overheads
+of our implementation, demonstrating temporal isolation in systems with and without shared
+resources, and showing how resource overbooking and asymmetric protection can be achieved.
+
+\section{Contributions}
+
+\begin{itemize}
+\item A capability system for processing time that imposes low overhead and allows for overbooking and isolation within shared resources;
+\item a notion of CPU-time budgets that is compatible with
+  fast IPC implementations traditionally used in high-performance
+  microkernels, and is compatible with established real-time resource-sharing policies;
+\item an exploration of the implementation in the non-preemptible, high-performance seL4
+  microkernel and its interaction with the kernel's model of
+  user-level management of kernel memory, which is a critical enabler
+  of strong spatial isolation;
+\item an implementation of a dynamic-priority system in a user-level
+  scheduler on top of the kernel's static priorities, demonstrating
+  that arbitrary scheduling policies can be implemented at low overhead;
+\item a demonstration that, without further kernel mechanisms, a
+  notion of criticality and asymmetric protection can be efficiently implemented at user level.
+\end{itemize}
 
 \section{Scope}
 
-This thesis focuses on mechanisms for building mixed-criticality systems. 
-We focus on uniprocessor and \gls{SMP} systems with \glspl{MMU} for ARM and x86.
-We do not consider side- or timing-channels as part of this research.
-% TODO is there anything else that needs to be mentioned here
+We focus on uniprocessor and \gls{SMP} systems with \glspl{MMU} for ARM and x86, where our focus is on safety, through integrity and availability. We leave security concerns such as covert channels to future work. Additionally, we assume a constant processor speed, and leave variable-speed processors and power-saving mechanisms to future work.
