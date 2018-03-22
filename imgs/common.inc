@@ -22,3 +22,5 @@ set style increment user
 # Data parameters
 arm_clk = 996
 x86_clk = 3400
+hikey_clk = 1200
+tx1_clk = 1900

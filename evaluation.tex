@@ -758,20 +758,21 @@ one at a time. In our prototype implementation, the kernel tracks all threads of
 
 \begin{figure}
   \centering
-  \includegraphics[width=\linewidth]{mode-switch-all}
+  \includegraphics[width=\textwidth]{mode-switch-all}
   \caption[Kernel vs. user-level criticality switch.]{Cost of switching the priority of $n$ threads in kernel and user level, with hot
-            and cold caches, on \textsc{x64} (left) and \textsc{Sabre} (right). All data points are the average of 100 runs,
+      and cold caches, on \textsc{x64} (top-left), \textsc{TX1} (top-right), \textsc{Hikey64}
+      (bottom-left) and \textsc{Sabre} (bottom-right). All data points are the average of 100 runs,
                   with very small standard deviations.}
   \label{f:mode-switch}
 \end{figure}
 
 \autoref{f:mode-switch} shows the results measured with a primed cache (hot) and flushed cache (cold).
-As the graph shows, switching is linear in the number of threads being boosted.
-
-In absolute terms, the results show that a criticality switch is fairly fast, the in-kernel implementation
-remaining under 2\,$\mu$s on x64 and about 12\,\(\mu\)s on ARM for switching 8 threads
-with a cold cache. Changing the priority at user-level is also linear in the number of threads to be boosted, with a higher overhead due to extra
-kernel entries for each thread changed.
+As the graph shows, switching is linear in the number of threads being boosted, in both kernel and
+user-level implementations.
+\Cref{t:cold-prio-switch} compares the results of cold, in-kernel switching to user-level in roughly
+absolute terms. \textsc{Hikey64} is the slowest at 30\,\(\mu\)s with eight threads to switch,
+due to the smaller L2 cache and
+in-order execution, however all platforms show roughly the same factor of two increase when
 However, most systems will not have more than a few high-criticality threads, and deadlines for critical control loops in
 cyber-physical systems tend to be in the tens of milliseconds, we
 conclude that criticality can be implemented at user-level, in line with standard microkernel philosophy.
@@ -780,6 +781,22 @@ The higher cost from user-level operation results from  multiple
 switches between kernel and user mode, and the repeated
 thread-capability look-ups. It could be significantly reduced if seL4
 had a way to batch system calls, but to date we have seen no compelling use cases for this.
+
+\begin{table}[t]\centering
+    \rowcolors{2}{gray!25}{}
+    \begin{tabular}{lrrr}\toprule
+        \emph{Platform}     & \emph{Kernel cold ($\mu$s)} & \emph{User-level cold ($\mu$s)} & \emph{Diff $\mu$s} \\\midrule
+        \textsc{x64}    & $\leq2$ & $\leq4$ & $\tilde2$ \\
+        \textsc{TX1}    & $\leq4$ & $\leq8$ & $\tilde4$ \\
+        \textsc{Hikey64}    & $\leq18$ & $\leq30$ & $\tilde12$ \\
+        \textsc{Sabre}    & $\leq12$ & $\leq22$ & $\tilde10$ \\
+        \bottomrule
+\end{tabular}
+\caption[Comparison of kernel and user-level priority switches]{Comparison of cold, in-kernel
+priority switch to cold, user-level priority switch.}
+\label{t:cold-prio-switch}
+\end{table}
+
 
 As a second criticality-switch benchmark, we ported three processor intensive 
 benchmarks from the MiBench~\citep{Guthaus_REAMB_01} to act as workloads. 
