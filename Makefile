@@ -366,8 +366,8 @@ $1_micro_raw_data:
 	wget -O ${PWD}/data/rt-$1.json ${BAMBOO}${RT}${DIR}$2/results.json
 #	$(foreach var, $(PERF_NUMBERS), \
 #		wget -O ${PWD}/data/ipc-perf-$(var)-rt-$1.json ${BAMBOO}${PERF_RT}$(var)${DIR}$2/results.json;)
-#	$(foreach var, $(PERF_NUMBERS), \
-#		wget -O ${PWD}/data/ipc-perf-$(var)-baseline-$1.json ${BAMBOO}${PERF_BASE}$(var)${DIR}$2/results.json;)
+	$(foreach var, $(PERF_NUMBERS), \
+		wget -O ${PWD}/data/ipc-perf-$(var)-baseline-$1.json ${BAMBOO}${PERF_BASE}$(var)${DIR}$2/results.json;)
 endef
 
 $(eval $(call micro_raw_data,haswell,x64-haswell3-results.json))
