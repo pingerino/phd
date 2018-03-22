@@ -384,6 +384,7 @@ $(eval $(call micro_raw_data,kzm,kzm-kzm-results.json))
 $(eval $(call micro_raw_data,ia32,ia32-haswell3-results.json))
 micro_raw_data: $(PLATS:%=%_micro_raw_data)
 
+# pull aes raw results from bamboo
 define aes_raw_data
 .PHONY: $1_aes_raw_data
 $1_aes_raw_data:
@@ -397,11 +398,24 @@ $(eval $(call aes_raw_data,hikey64,HIKEY64-hikey-results.json))
 $(eval $(call aes_raw_data,tx1,TX1-jetson-tx1-family-results.json))
 aes_raw_data: $(AES_PLATS:%=%_aes_raw_data)
 
+# pull criticality raw results from bamboo
+define crit_raw_data
+.PHONY: $1_crit_raw_data
+$1_crit_raw_data:
+	wget -O ${PWD}/data/criticality-$1.json ${BAMBOO}${CRIT}${DIR}$2/results.json
+endef
+$(eval $(call crit_raw_data,haswell,x64-haswell3-results.json))
+$(eval $(call crit_raw_data,sabre,Sabre-sabre-family-results.json))
+$(eval $(call crit_raw_data,hikey32,hikey32-hikey-results.json))
+$(eval $(call crit_raw_data,hikey64,hikey64-hikey-results.json))
+$(eval $(call crit_raw_data,tx1,tx1-jetson-tx1-family-results.json))
+crit_raw_data: $(AES_PLATS:%=%_crit_raw_data)
+
+
 # get the bigger benchmark data, we only run this on some platforms
 define rest_raw_data
 .PHONY: $1_rest_raw_data
 $1_rest_raw_data:
-	wget -O ${PWD}/data/criticality-$1.json ${BAMBOO}${CRIT}${DIR}$2/results.json
 	wget -O ${PWD}/data/ul-$1.json ${BAMBOO}${UL}${DIR}$2/results.json
 	wget -O ${PWD}/data/rt-smp-$1.json ${BAMBOO}${RTSMP}${DIR}$2/results.json
 	wget -O ${PWD}/data/baseline-smp-$1.json ${BAMBOO}${BSMP}${DIR}$2/results.json
@@ -479,8 +493,7 @@ $1_process_crit_data: data/json-to-data.py data/criticality-$1.json
 		(cat gen-crit-$1-rest.log; false)
 endef
 
-$(eval $(call process_crit_data,haswell))
-$(eval $(call process_crit_data,sabre))
+$(foreach var,${AES_PLATS},$(eval $(call process_crit_data,$(var))))
 
 data/generated/mode_switch.inc: data/process_mode_switch.py ${GEN_DIR} $(wildcard data/mode-switch-*.json)
 	python3 $< -o ${GEN_DIR}
@@ -529,16 +542,14 @@ ${GEN_DIR}/$1-up-hi-cold.dat: $1_process_crit_data
 ${GEN_DIR}/$1-up-hi-hot.dat: $1_process_crit_data
 ${GEN_DIR}/$1-up-lo-cold.dat: $1_process_crit_data
 ${GEN_DIR}/$1-up-lo-hot.dat: $1_process_crit_data
-$1_crit_includes: ${GEN_DIR}/$1-down-hi-cold.dat ${GEN_DIR}/$1-down-hi-hot.dat \
+.$1_crit_includes: ${GEN_DIR}/$1-down-hi-cold.dat ${GEN_DIR}/$1-down-hi-hot.dat \
 	              ${GEN_DIR}/$1-down-lo-cold.dat ${GEN_DIR}/$1-down-lo-hot.dat \
                   ${GEN_DIR}/$1-up-hi-cold.dat ${GEN_DIR}/$1-up-hi-hot.dat \
 				  ${GEN_DIR}/$1-up-lo-cold.dat ${GEN_DIR}/$1-up-lo-hot.dat
 endef
 
-$(eval $(call crit_includes,haswell))
-$(eval $(call crit_includes,sabre))
-
-crit_includes: haswell_crit_includes sabre_crit_includes
+$(foreach var,${AES_PLATS},$(eval $(call crit_includes,$(var))))
+crit_includes: ${GEN_DIR} $(AES_PLATS:%=.%_crit_includes)
 
 #
 # gnuplot dat files
