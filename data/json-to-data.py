@@ -248,7 +248,10 @@ def aes_shared_row(budget_a, period_a, a_tput_json, b_tput_json, baseline_json, 
     res += aes_shared_cols( budget_a, baseline_json, clk) + '\t'
     idle_val = next(x for x in idle if x['budget'] == budget_a)['Mean']
     total_val = next(x for x in total if x['budget'] == budget_a)['Mean']
-    res += str(round((idle_val/total_val),2)) + '\n'
+    if total_val:
+        res += str(round((idle_val/total_val),2)) + '\n'
+    else: 
+        res += ' \n'
     return res
 
 def aes_shared_graph(period, rt_content, arch, clk):

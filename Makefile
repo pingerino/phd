@@ -357,6 +357,7 @@ PERF_BASE=EDF-BPP
 PERF_RT=EDF-PPP
 PERF_NUMBERS= 0 1 2 3 4 5 6
 PLATS = tx1 sabre haswell rpi3 hikey32 hikey64 kzm ia32
+AES_PLATS = tx1 sabre haswell hikey32 hikey64
 
 # get the microbenchmark data, we run this for all platforms
 define micro_raw_data
@@ -383,11 +384,23 @@ $(eval $(call micro_raw_data,kzm,kzm-kzm-results.json))
 $(eval $(call micro_raw_data,ia32,ia32-haswell3-results.json))
 micro_raw_data: $(PLATS:%=%_micro_raw_data)
 
+define aes_raw_data
+.PHONY: $1_aes_raw_data
+$1_aes_raw_data:
+	wget -O ${PWD}/data/aes-$1.json ${BAMBOO}${AES}${DIR}$2/results.json
+endef
+
+$(eval $(call aes_raw_data,haswell,x64-haswell3-results.json))
+$(eval $(call aes_raw_data,sabre,Sabre-sabre-family-results.json))
+$(eval $(call aes_raw_data,hikey32,HIKEY32-hikey-results.json))
+$(eval $(call aes_raw_data,hikey64,HIKEY64-hikey-results.json))
+$(eval $(call aes_raw_data,tx1,TX1-jetson-tx1-family-results.json))
+aes_raw_data: $(AES_PLATS:%=%_aes_raw_data)
+
 # get the bigger benchmark data, we only run this on some platforms
 define rest_raw_data
 .PHONY: $1_rest_raw_data
 $1_rest_raw_data:
-	wget -O ${PWD}/data/aes-$1.json ${BAMBOO}${AES}${DIR}$2/results.json
 	wget -O ${PWD}/data/criticality-$1.json ${BAMBOO}${CRIT}${DIR}$2/results.json
 	wget -O ${PWD}/data/ul-$1.json ${BAMBOO}${UL}${DIR}$2/results.json
 	wget -O ${PWD}/data/rt-smp-$1.json ${BAMBOO}${RTSMP}${DIR}$2/results.json
@@ -450,13 +463,12 @@ define process_aes_data
 .$1_process_aes_data: data/json-to-data.py data/aes-$1.json
 	@mkdir -p ${PWD}/data/generated
 	@echo '==== generating $1 aes data'
-	@python3 ${PWD}/data/json-to-data.py -aes ${PWD}/data/aes-$1.json -a $1 > gen-aes-$1.log || \
+	python3 ${PWD}/data/json-to-data.py -aes ${PWD}/data/aes-$1.json -a $1 > gen-aes-$1.log || \
 		(cat gen-aes-$1.log; false)
 	@touch $$@
 endef
 
-$(eval $(call process_aes_data,haswell))
-$(eval $(call process_aes_data,sabre))
+$(foreach var,${AES_PLATS},$(eval $(call process_aes_data,$(var))))
 
 # crit data
 define process_crit_data
@@ -501,13 +513,11 @@ micro_includes: ${GEN_DIR} $(PLATS:%=.%_micro_includes)
 # aes
 define aes_includes
 $1-aes.inc: .$1_process_aes_data
-$1_aes_includes: $1-aes.inc
+.$1_aes_includes: $1-aes.inc
 endef
 
-$(eval $(call aes_includes,haswell))
-$(eval $(call aes_includes,sabre))
-
-aes_includes: ${GEN_DIR} sabre_aes_includes haswell_aes_includes
+$(foreach var,${AES_PLATS},$(eval $(call aes_includes,$(var))))
+aes_includes: ${GEN_DIR} $(AES_PLATS:%=.%_aes_includes)
 
 # criticality
 define crit_includes
@@ -540,13 +550,12 @@ ${GEN_DIR}/$1-shared-aes-100.dat: ${GEN_DIR} .$1_process_aes_data
 ${GEN_DIR}/$1-shared-aes-10.dat: ${GEN_DIR} .$1_process_aes_data
 endef
 
-$(eval $(call .aes_dat,haswell))
-$(eval $(call .aes_dat,sabre))
+$(foreach var,${AES_PLATS},$(eval $(call .aes_dat,$(var))))
 
 # images
 
 
-imgs/aes-shared.eps: $(foreach plat,sabre haswell,$(foreach var,10 100 1000,${GEN_DIR}/$(plat)-shared-aes-$(var).dat))
+imgs/aes-shared.eps: $(foreach plat,${AES_PLATS},$(foreach var,10 100 1000,${GEN_DIR}/$(plat)-shared-aes-$(var).dat))
 
 ModeSwEps= $(patsubst %.pdf,%.eps,$(ModeSwFigs))
 $(ModeSwEps): crit_includes
