@@ -25,6 +25,7 @@
 *.lot
 *.lof
 *.alg
+*.lol
 tmp.bib
 .DS_Store
 data/generated/*
