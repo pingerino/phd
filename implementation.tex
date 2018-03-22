@@ -74,7 +74,8 @@ is first invoked, and removed from the call stack, which we now examine in detai
 \subsubsection{The call stack}
 
 Active resume objects track the \emph{call stack} that is built as nested \call operations take
-place. A \call triggers to a push operation, adding to the top of the stack, and a reply message a
+place. A \call triggers a push operation, adding to the top of the stack, while a reply message
+triggers a
 pop, removing the top of the stack.  The call stack allows us to track the path of a donated
 scheduling context, from caller to callee, so that it can be returned to the previous caller
 regardless of which thread sends the reply message. This is a direct consequence of flexible resume
@@ -176,7 +177,7 @@ be supported by larger sizes, allowing system designers to trade-off latency for
 overhead in the sporadic server implementation. Scheduling contexts can be created as larger
 objects, as any power of two, then the rest of the object can be filled with replenishments, as
 shown in \cref{t:impl-sc-layout}. System designers can then use the \code{max} replenishment field
-to specify exact the number of replenishment to use, up to the object size. 
+to specify the exact number of replenishment to use, up to the object size. 
 
 \begin{table}[t] 
     \centering
@@ -215,7 +216,7 @@ change the available bandwidth of a currently runnable thread. Semantics are as 
 to a currently runnable thread, or does not represent any time currently, the operation is 
 a basic configure: the fields are
 simply set and the first replenishment is configured with budget provided and timestamp of the
-kernel entry. The function \code{refill\_new} is used to \cref{list:refill-init}
+kernel entry (see \code{refill\_new} in \cref{list:refill-init}).
 \item If the scheduling context is bound to a currently runnable thread, but that scheduling
 context is for a different processing core than the \schedcontrol capability, the fields are
 set and the thread is migrated to the new core.  
@@ -227,7 +228,7 @@ set and the thread is migrated to the new core.
 
 \begin{listing}[h!]
 \begin{minted}{c}
-/* Short hand for accessing refill queue items */
+/* Shorthand for accessing refill queue items */
 #define REFILL_INDEX(sc, index) (((refill_t *) ((word_t) (sc) + sizeof(sched_context_t)))[index])
 #define REFILL_HEAD(sc) REFILL_INDEX((sc), (sc)->head)
 #define REFILL_TAIL(sc) REFILL_INDEX((sc), (sc)->tail)
@@ -283,14 +284,13 @@ tune the behaviour of threads depending on their preemption levels and execution
 
 The algorithms to manage replenishments are taken from \citet{Danish_LW_11}, with adjustments to
 support periods of 0 (for round robin threads) and to implement a minimum budget.  Whenever the
-current scheduling context is changed, \texttt{check\_budget} as shown in Listing
-\ref{list:check-budget} is called to bill the amount of time consumed since the last scheduling
-context change.  `check\_budget` If the budget is not completely consumed by \texttt{check\_budget},
-\texttt{split\_budget} as shown in Listing \ref{list:split-check} is called to schedule the
+current scheduling context is changed, \code{check\_budget} (\cref{list:check-budget}) is called to bill the amount of time consumed since the last scheduling
+context change. If the budget is not completely consumed by \code{check\_budget},
+\texttt{split\_budget} (\cref{list:split-check}) is called to schedule the
 subsequent refill for the chunk of time just consumed.  If the replenishment buffer is full, or the
 amount consumed is less than the minimum budget, the amount used is merged into the next
-replenishment.  When a new scheduling context is switch to, \texttt{unblock\_check} 
-(\ref{list:unblock-check}) is used, which merges any replenishments that are already available,
+replenishment.  When a new scheduling context is switch to, \code{unblock\_check} 
+(\cref{list:unblock-check}) is used, which merges any replenishments that are already available,
 avoiding unnecessary preemptions.
 
 \begin{listing}[h]
@@ -378,7 +378,7 @@ void unblock_check(sched_context_t *sc) {
 \subsection{Thread control blocks}
 
 Recall from \cref{sec:sel4-tcb} that \glspl{TCB} are the abstraction of an execution context in
-\selfour, which are formed from a TCB data structure and a CNode containing capabilities specific to
+\selfour, which are formed from a TCB data structure and a \cnode containing capabilities specific to
 that thread. We make several alterations to this structure, but do not impact the \gls{TCB} size, as
 there was enough space available. The altered fields are shown in \cref{t:tcb-fields}.
 
@@ -394,7 +394,7 @@ there was enough space available. The altered fields are shown in \cref{t:tcb-fi
         \code{BlockedOnReply} or \code{BlockedOnRecv}. \\
         \code{yieldTo} & Pointer to the \gls{SCO} this \gls{TCB} has performed a directed yield to,
         if any.\\
-        \sout{\code{faultEndpoint}} &  Moved to the TCB CNode. \\
+        \sout{\code{faultEndpoint}} &  Moved to the TCB \cnode. \\
         \bottomrule
     \end{tabularx}
     \caption{Added and removed fields in a \gls{TCB} object.}
@@ -404,12 +404,12 @@ there was enough space available. The altered fields are shown in \cref{t:tcb-fi
 
 \subsubsection{Fault endpoints}
 
-We also change the contents of the TCB CNode, removing two slots previously required by the reply
+We also change the contents of the TCB \cnode, removing two slots previously required by the reply
 capability implementation, as resume objects are now provided to receiving system calls, and
-no slot in the TCB CNode is required. Additionally, we change the behaviour of fault handlers: in
+no slot in the TCB \cnode is required. Additionally, we change the behaviour of fault handlers: in
 baseline seL4, the fault handling cap is looked up on every single fault, increasing the overhead of
 fault handling. To minimise this overhead, we look up the fault endpoint when it is configured, and
-install it in the TCB CNode. We do the same for timeout fault endpoints. 
+install it in the TCB \cnode. We do the same for timeout fault endpoints. 
 
 \subsubsection{Maximum controlled priorities}
 
@@ -537,10 +537,10 @@ descriptions of each system call can be found in \cref{appendix:api}.
 
 Scheduling contexts have five invocations, listed in \cref{tab:sched_context_api}. Three of those
 methods are for binding \glspl{SCO} to \gls{TCB} and notification objects, while \scyieldto and 
-\scconsumed others facilitate user-level scheduling, allowing the user to manipulate
+\scconsumed facilitate user-level scheduling, allowing the user to manipulate
 the kernel scheduling queues and to query the amount of time consumed by a specific \gls{SCO}.
 Both functions return the amount of CPU time the scheduling context has executed for since it was last
-clearer: reading the consumed value by either system call clears it, as does a timeout
+cleared: reading the consumed value by either system call clears it, as does a timeout
 exception.
 
 The new control
@@ -712,7 +712,7 @@ the \gls{WCET} each real-time task is inflated by the \gls{WCET} of the kernel f
 Tickless kernels remove this trade-off by setting timer interrupts for the exact time of the next
 event. As we show in \cref{s:eval-timer}, the cost of reprogramming the timer device on modern
 hardware is minimal, making the tickless design feasible. Consequently, we convert \selfour
-to a tickless, a non-trivial change due to the fact that the kernel is non-preemptible (save for
+to a tickless kernel, a non-trivial change due to the fact that the kernel is non-preemptible (save for
 explicit preemption points in a few long-running operations). 
 
 \cref{figure:tickless} illustrates the new control flow of the tickless kernel, and shows
@@ -731,7 +731,7 @@ timestamp and stores the time since the last entry. This is required as when pre
 preempting thread is charged for the time since the kernel entry. Without knowing if the kernel entry will
 trigger a thread switch in advance, the kernel must record the time for each entry. However, if the
 recorded timestamp is not acted upon, the time is rolled back to the previously recorded value,
-this avoiding reprogramming the timer unnecessarily.
+thus avoiding reprogramming the timer unnecessarily.
 
 We add a new invariant over the kernel scheduler: any thread in the 
 scheduling queues must have enough budget to exit the kernel. The budget required is twice the
@@ -790,8 +790,8 @@ is the number of threads in the queue.
 We chose the list data structure over a heap for increased performance and reduced verification
 burden.
 
-A list-based priority queue out performs a heap-based priority queue for small $n$ in our
-implementation up to around $n = 100$.  This $n$ is larger than one would expect in a traditional
+A list-based priority queue out performs a heap-based priority queue for small $n$ (in our
+implementation up to around $n = 100$).  This $n$ is larger than one would expect in a traditional
 \gls{OS}, where heap implementations are array-based in contiguous memory with layouts optimised for
 cache usage.  However, because \selfour kernel memory is
 managed at user-level (as discussed in \cref{sec:sel4-memory}), data structures must be dynamic, 
