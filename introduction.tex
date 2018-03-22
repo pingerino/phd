@@ -9,11 +9,11 @@ extensive, expensive, independent certification.
 
 For modern cyber-physical systems, including autonomous aircraft and other vehicles, the traditional
 approach of isolating systems of different criticality by using completely separate physical
-hardware, is no
+hardware is no
 longer practical, being both restrictive and inefficient.
 The result is \emph{mixed-criticality} systems, where software applications with different criticalities
 execute on the same hardware. Sufficient mechanisms are required to ascertain that software in
-mixed-criticality systems  is sufficiently isolated, otherwise, all software on that hardware is
+mixed-criticality systems is isolated. Otherwise, all software on shared hardware is
 promoted
 to the highest criticality level, driving up costs to impractical levels. For mixed-criticality
 systems to be
@@ -26,11 +26,11 @@ degrade gracefully in the face of failure.  For example, an \gls{AAV} has multip
 flight-control algorithm: object detection, to avoid flying into obstacles, and navigation, to get
 to the desired destination.  Clearly the object detection is more critical than navigation, as
 failure of the former can be catastrophic, while the latter would only result in a non-ideal route.
-Yet the two subsystems must cooperate, accessing and modifying shared data, thus cannot be fully
+Yet the two subsystems must cooperate, accessing and modifying shared data thus cannot be fully
 isolated.
 
 The \gls{AAV} is an example of a mixed-criticality system, a notion that originates in avionics and its
-need to reduce \gls{SWaP}, by consolidating growing functionality onto a smaller
+need to reduce \gls{SWaP} by consolidating growing functionality onto a smaller
 number of physical processors. More recently the
 \gls{MCAR}\citep{Barhorst_BBHPSSSSU_09} program was launched, which recognises that in order to
 construct fully autonomous systems, critical and less critical systems must be able to share
@@ -57,8 +57,9 @@ systems of the same criticality level, however, this is does not lead to efficie
 High-criticality systems that are subject to high levels of assurance have very high \gls{WCET} estimates,
 which are often orders of magnitude beyond the average execution time due to the limitations in analysis,
 and the complexity of modern hardware~\citep{Wilhelm_EEHTWBFHMMPPSS_08}. However, in current systems the full \gls{WCET} must be
-statically reserved for the high criticality tasks. By building mixed-criticality systems, low
-criticality tasks where errors only lead to degradation in service, or not at all, this excess
+statically reserved for the high criticality tasks. By building mixed-criticality systems, where
+low-criticality tasks, where temporal interference can lead only to degradation in service,  can
+leverage the unused capacity from high-criticality tasks, this excess
 processing power can be leveraged. 
 
 Fundamental to building mixed-criticality systems is the concept of \emph{asymmetric protection},
@@ -77,11 +78,11 @@ service providing alternate route information. All of these systems \emph{must} 
 shared driving software, which actually makes decisions about what commands to issue to the car.
 Clearly, the object detection is more critical than the \gls{GPS}, which in turn is more critical than the
 route information service. In fact, the route information service, being connected to the internet,
-is not even a trusted service: it is subject to attacks, like denial-of-service attacks. 
+is not even a trusted service: it is subject to attacks, such as denial-of-service. 
 
 Allowing untrusted, less critical components to
 share hardware and communicate with more critical components, far more complex software can be
-introduced to the system. Examples include heuristic algorithms that are common in artificial
+introduced to the system. Examples include heuristics that are common in artificial
 intelligence algorithms, or internet-connected software which by its nature cannot be completely
 trusted. Both of these use-cases are far too complex to certify to the highest criticality standard,
 but are essential for emerging cyber-physical systems like self-driving cars. 
@@ -232,10 +233,10 @@ require that time. Similarly, when stuck in traffic, the GPS service isn't much 
 service is of far more utility to find alternate routes. Conversely, when on a highway at high speed, the GPS
 service requires more processing time, and the traffic service can run less frequently. 
 
-Consequently, through shared resources, mixed-criticality are integral to future cyber-physical
-systems which require resource sharing, something that is not possible with traditional separating
+Consequently, mixed-criticality shared resources are integral to future cyber-physical
+systems, something that is not possible with traditional separation
 of physical hardware. At the same time, for high system utilisation, 
-asymmetric protection, and over-booking are required to address SWaP challenges. Finally without
+asymmetric protection, and over-booking are required to address SWaP challenges. Finally, without
 sufficient mechanisms, none of this system is possible, as developing such a system to high
 assurance levels is not practical.
 

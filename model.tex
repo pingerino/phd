@@ -809,7 +809,7 @@ ameliorated by checking the time on wakeup, or using a different task model.
           seL4_Yield();
       }
   \end{minted}
-  \caption{Example of a basic sporadic real-time task on \selfour.}
+  \caption{Example of a polling task on \selfour.}
   \label{list:polling}
 \end{listing}
 
@@ -830,7 +830,7 @@ limited by excessive preemptions, otherwise it will be $\frac{C}{T}$.
           seL4_Wait(notification_object, &badge);
       }
   \end{minted}
-  \caption{Example of a basic sporadic real-time task on \selfour.}
+  \caption{Example of a basic sporadic task on \selfour.}
   \label{list:model-sporadic}
 \end{listing}
 
