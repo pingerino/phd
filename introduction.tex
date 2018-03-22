@@ -5,9 +5,9 @@ In a high-criticality system, failure risks significant loss of life or damage t
 In a low-criticality system, failure may risk a downgrade in user-experience.
 As criticality of a software system increases, so too does the cost and time to develop that
 software: raising the criticality also raises the assurance level, with the highest levels requiring
-extensive, independent certification.
+extensive, expensive, independent certification.
 
-For modern cyber-physical systems, including autonomous aircraft and vehicles, the traditional
+For modern cyber-physical systems, including autonomous aircraft and other vehicles, the traditional
 approach of isolating systems of different criticality by using completely separate physical
 hardware, is no
 longer practical, being both restrictive and inefficient.
@@ -56,24 +56,38 @@ One could reduce the number of separate processors without mixed-criticality by 
 systems of the same criticality level, however, this is does not lead to efficient use of resources. 
 High-criticality systems that are subject to high levels of assurance have very high \gls{WCET} estimates,
 which are often orders of magnitude beyond the average execution time due to the limitations in analysis,
-and the complexity of modern hardware. However in current systems the full \gls{WCET} must be
+and the complexity of modern hardware~\citep{Wilhelm_EEHTWBFHMMPPSS_08}. However, in current systems the full \gls{WCET} must be
 statically reserved for the high criticality tasks. By building mixed-criticality systems, low
-criticality tasks where errors only lead to degredation in performance, or not at all, this excess
+criticality tasks where errors only lead to degradation in service, or not at all, this excess
 processing power can be leveraged. 
+
+Fundamental to building mixed-criticality systems is the concept of \emph{asymmetric protection},
+which differs from strict temporal isolation in that only the highest criticality systems are
+guaranteed top levels of service. Less-critical software is not completely isolated, and can be
+affected by high-criticality software, but not vice versa. 
 
 % more than consolidation
 Finally, mixed-criticality systems are about more than basic consolidation and leveraging excess
 resources; they can achieve more
-than traditional physically isolated systems. Allowing untrusted, less critical components to
+than traditional physically isolated systems by allowing actual resource sharing. 
+Consider the driving software of a self-driving car: it may take inputs from various sensors
+which detect objects, and also input from a \gls{GPS} navigation unit, and traffic data from an
+internet-connected
+service providing alternate route information. All of these systems \emph{must} provide input to the
+shared driving software, which actually makes decisions about what commands to issue to the car.
+Clearly, the object detection is more critical than the \gls{GPS}, which in turn is more critical than the
+route information service. In fact, the route information service, being connected to the internet,
+is not even a trusted service: it is subject to attacks, like denial-of-service attacks. 
+
+Allowing untrusted, less critical components to
 share hardware and communicate with more critical components, far more complex software can be
 introduced to the system. Examples include heuristic algorithms that are common in artificial
-intelligence algorithms, or internet connected software which by its nature cannot be completely
+intelligence algorithms, or internet-connected software which by its nature cannot be completely
 trusted. Both of these use-cases are far too complex to certify to the highest criticality standard,
 but are essential for emerging cyber-physical systems like self-driving cars. 
 
-Our goal is to design and implement an OS that provides the trustworthy, high-assurance mechanisms
-for efficiently
-supporting mixed criticality systems, without requiring all systems to be promoted to the highest
+Our goal is to develop trustworthy, high-assurance \gls{OS} mechanisms that provide for the unique
+requirements of mixed-criticality systems, without requiring all systems to be promoted to the highest
 criticality in the system. 
 The implementation platform will be the \selfour~\citep{Klein_EHACDEEKNSTW_09}
 microkernel, which is has been designed for the high-assurance, safety-critical domain.
@@ -82,11 +96,10 @@ Concisely, the goals of this research are to provide:
 \begin{enumerate}[label=\textbf{G\arabic*}] 
     \item\label{G1} A principled approach to
     processor management, treating time as a fundamental kernel resource, while
-    allowing it to be overbooked, a key requirement of mixed-criticality systems;
-    \item safe resource sharing between applications of different criticalities and
-    different temporal requirements.  
+    providing mechanisms for asymmetric protection, a key requirement of mixed-criticality systems;
+    \item Safe resource sharing between applications of different criticalities, assurance levels and
+    temporal requirements.  
 \end{enumerate}
-
 
 \section{Motivation}
 
@@ -118,22 +131,16 @@ software for commercial aircraft in the United States.
      \label{tab:criticality_table}
  \end{table}
 
+As the criticality level rises, so to do the assurance levels: higher engineering and safety standards are required for higher criticality levels, up to
+certification by independent \glspl{CA} at the highest levels, which is a timely,
+expensive and restrictive process. Additionally, requirements specified by \glspl{CA} are highly
+cautious, and pessimistic, which when combined with safety strategies like redundant resources,
+leads to large amounts of excess capacity in processing power. 
 
- % TODO: note the model of mixed criticality
-In the real-time community, much work has been
-conducted around a theoretical model introduced by \citet{Vestal_07} which we discuss in
-\cref{sched:mixed-criticality-schedulers}.
-The focus on this thesis is for the broader definition of mixed-criticality, such that software of
-different levels of criticality can safely share hardware, and not specifically the model
-presented by \citet{Vestal_07} and beyond~\citep{Burns_Davis_17}.
-
-
-% TODO are there any citations on cost per line of code?
-Higher engineering and safety standards are required for higher criticality levels, up to
-certification by independent certificate authorities at the highest levels. As a result, highly
+Consequently, highly
 critical software is incredibly expensive to develop and tends to have low complexity in order to
 minimise costs. Any software that is not fully isolated from a critical component is promoted to
-that level of criticality, increasing the production cost.
+that level of criticality, increasing the production cost, and imposing strict requirements.
 
 Traditionally, systems of different criticality levels were fully isolated with
 air gaps between physical components. However, given the increased amount of
@@ -141,97 +148,119 @@ computing in every part of our daily lives, the practice of physical isolation
 has resulted in unscalable growth in the amount of computing hardware in
 embedded systems, with some modern cars containing over 100
 processors~\citep{Hergenhan_Heiser_08}. The practise of physical separation is no 
-longer viable for three reasons: \gls{SWaP}, efficiency, and function.
+longer viable for three reasons: \gls{SWaP}, efficiency, and resource sharing.
 
-\paragraph{SWaP} First, systems with air-gaps require increased physical
-resources: increasing production costs and environmental impact.
+\subsection{SWaP}
+
+First, systems with air-gaps require increased physical
+resources each extra processor comes with extra cabling and power requirements:
+increasing production costs and environmental impact.
 For vehicles, especially aircraft, this goes further to reduce their function; the
-heavier the system,  the more fuel it requires to travel. This in turn reduces
-utility in the form of reducing vehicle range. Therefore the consolidation that comes
-with combining systems of different criticalities is worthwhile.  
+heavier the system, the more fuel it requires, especially when considering 
+the redundancy built into these systems for safety purposes: often each component is double- or
+triple-redundant. 
 
-\paragraph{Function} 
+\subsection{Efficiency} 
+
+However, \gls{SWaP} alone could be reduced by consolidating systems of the same
+criticality. Ignoring the fact that this also consolidates points of failure (redundant systems by
+definition, cannot be consolidated), this alone is insufficient to completely address \gls{SWaP}
+challenges. The higher assurance required of a system, the more over-provisions the hardware is: not only in
+redundancy but in excess capacity. For example, \gls{WCET}
+estimates may be orders of magnitude larger than the typical execution time, and
+computation of safe \gls{WCET} bounds for non-trivial software tends to be highly pessimistic
+\citep{Wilhelm_EEHTWBFHMMPPSS_08}. At the same time, the core \emph{integrity property} of a
+high-criticality, real-time system is that deadlines must always be
+met, meaning that there must always be time to let such threads execute their full \emph{\gls{WCET}}.
+Consequently, consolidating high-criticality
+systems only ameliorates the problem slightly: the pessimism inherent in high-assurance systems is
+also consolidated, leaving unused, excess hardware resources.
+
+High-utilisation of hardware to address SWaP challenges is therefore only possible with the advent
+of mixed-criticality systems, which can leverage the excess capacity for less-critical, less-time
+sensitive software.
+
+\paragraph{Resource Sharing}
+
 Mixed-criticality systems also bring opportunities for new types of
 systems, and are indeed required for emerging cyber-physical systems like
-advanced driver assistance systems, autonomous vehicles and internet of things devices.
-For example consider the system for a self driving
-car as with components as outlined in \Cref{tab:self-driving-car}.  The safety
-systems are the most critical: if air bag or anti-lock brakes fail this could
-cause great injury or death to the passengers.  The communications system is
-least critical, however useful: it downloads weather and road conditions,
-status of road works and accidents.  This feeds in to the more critical
-navigation system, requiring resource sharing.  This sort of system would not
-be possible without a mixed criticality system: unless the communications
-system were certified to the same level as the navigation system, which would
-greatly increase the cost of development.  Consequently, mixed-criticality
-systems provide increased functionality over physically separated, isolated
-systems.
+advanced driver assistance systems, autonomous vehicles and aircraft.
 
 % TODO would be cool if this was a real system
 \begin{table} 
 \rowcolors{2}{gray!25}{}
 \centering
-\begin{tabular}{ccc}\toprule
-    \emph{System}     & \emph{Purpose} & \emph{Criticality} \\\midrule
-     Airbags            & Safety &  Catastrophic \\
-     Anti lock breaks   & Safety &  Catastrophic \\
-     Obstacle detection & Safety &  Hazardous    \\
-     Navigation         & Route planning & Minor \\  
-     Communications     & Optimal route planning & No effect \\
+\begin{tabularx}{\textwidth}{lXl}\toprule
+    \emph{System}            & \emph{Purpose}                                                           & \emph{Criticality} \\\midrule
+     Obstacle detection      & Safety: failure can lead to collision, which could lead to significant
+    damage and loss of life. & Catastrophic    \\
+    \gls{GPS} Navigation          & Route planning:  failure can lead to an incorrect turn and further
+    time travelling.         & Minor \\
+     Traffic service.        & Route planning: failure can lead to a slower trip, by failing to
+    avoid congested paths.
+    & Minor \\
     \bottomrule
-\end{tabular}
+\end{tabularx}
 \caption{Fictional example systems in a self driving car.}
 \label{tab:self-driving-car}
 \end{table}
 
-% TODO present UAV case study here, brief list of components with criticalities - expand and build upon throughout document
+Consider the systems required for a self-driving car to determine what commands to issue the vehicle
+next, as outlined in \Cref{tab:self-driving-car}. The object-detection is the most critical, and is
+generally comprised of a host of sensors: infra-red, LIDAR, cameras, and RADAR, which themselves
+are subject to different criticality levels. Object-detection,
+especially from image data, is a function of the amount and complexity of data available: when
+driving in desert, compared to driving in a blizzard, far less input is available. It is also the
+most critical system in our example, with failure leading to potentially disastrous collisions.
 
-% An example of a mixed-criticality system is a modern car.
-% \gls{HRT} systems include airbag controls, tyre pressure monitors and anti-lock braking, whereas \gls{SRT} systems include the infotainment unit, electric window controls and air-conditioning.
+However, a GPS navigation service is also required to determine the route to take, and finally a
+traffic service which allows cars to avoid congestion. Although the same criticality, the GPS
+service is likely more highly assured than the traffic service: the traffic service is connected to
+the internet, requiring complex network drivers, and subject to attacks from remote attackers. 
+In fact, the fastest way to integrate a traffic service is to run a large, open source code base
+with existing network drivers like Linux, which has no assurance level. 
 
-\paragraph{Efficiency}
+All three systems are important to the car manufacturer: a bad review due to poor navigation, or not
+avoiding a traffic jam, can have a marked impact on sales. The three systems must access the same
+shared resource (the driving logic), which requires the system to be mixed-criticality: the traffic
+service, and to a lesser extent the GPS, are not practical to develop at high assurance levels. 
+In order to gain high utilisation, the resources must be overbooked: the traffic service may have a
+low-level guarantee to some hardware resources, but the object-detection service may infringe
+on that resource occasionally. If the traffic service is statically assigned its resource
+allocation, its utility may decrease, as it can run more frequently when the object-detection does not
+require that time. Similarly, when stuck in traffic, the GPS service isn't much use: the traffic
+service is of far more utility to find alternate routes. Conversely, when on a highway at high speed, the GPS
+service requires more processing time, and the traffic service can run less frequently. 
 
-High system utilisation is essential for addressing SWaP challenges, and high responsiveness is
-important for much of a system's desirable functionality. But high utilisation is a challenge in
-critical real-time systems, which are usually over-provisioned, both with redundant hardware and 
-excess capacity; the core \emph{integrity property} is that deadlines must always be
-met, meaning that there must always be time to let such threads execute their full \emph{\gls{WCET}}.
-This may be orders of magnitude larger than the typical execution time, and
-computation of safe \gls{WCET} bounds for non-trivial software tends to be highly pessimistic
-\citep{Wilhelm_EEHTWBFHMMPPSS_08}.  
+Consequently, through shared resources, mixed-criticality are integral to future cyber-physical
+systems which require resource sharing, something that is not possible with traditional separating
+of physical hardware. At the same time, for high system utilisation, 
+asymmetric protection, and over-booking are required to address SWaP challenges. Finally without
+sufficient mechanisms, none of this system is possible, as developing such a system to high
+assurance levels is not practical.
 
-Consequently, most of the time the highly-critical components
-leave plenty of slack, which should be usable by less critical components. In terms of
-schedulability analysis, this constitutes an \emph{overcommitted} system, where not everything is
-guaranteed to be schedulable.  In case of actual overload, the system must guarantee sufficient time
-to the critical components at the expense of the less critical ones, which is referred to as
-\emph{asymmetric protection}.
+\section{Definitions}
 
-Additionally, the higher the criticality
-of a software component, the higher the pessimism in analysis, raising the \gls{WCET} and reducing
-the amount of software that can be consolidated onto a single platform. Therefore it is 
-impractical to raise all software to the same criticality level should it share hardware, as the
-total resource utilisation is lowered.
-
-More complex systems such as those found in aviation allow for highly
-restricted mixed-criticality systems in the form of separation kernels.
-\citet{ARINC653} allows for sharing of hardware between software applications
-of mixed criticality, and outlines the primitives required from an \gls{OS}
-built for these systems, mandating full temporal and spatial isolation of the
-different criticality components and controlled communication. However, this is one 
-standard that may not be suitable for all types of system.
-
-
-% TODO move this somewhere that makes sense, along with definition of temporal isolation
-  Temporal isolation in mixed-criticality systems can result in \emph{criticality inversion}, where
-    high criticality tasks miss their deadlines due to lower criticality tasks.  Rather than
-    temporal
-      isolation, mixed-criticality systems require \emph{asymmetric protection}, where deadline
-      misses of
- low-criticality tasks caused by high-criticality tasks are permitted, but not vice-versa.
+\begin{description}
+    \item[Mixed-criticality] In the real-time community, much work has been
+conducted around a theoretical model introduced by \citet{Vestal_07} which we discuss in
+\cref{sched:mixed-criticality-schedulers}.
+The focus on this thesis is for the broader definition of mixed-criticality, such that software of
+different levels of criticality can safely share hardware, and not specifically the model
+presented by \citet{Vestal_07} and beyond~\citep{Burns_Davis_17}, although it is discussed in
+\cref{chap:scheduling}.
+\item[Temporal isolation] For a system $A$ to be temporally isolated from system $B$, $B$ cannot
+        cause temporal failures in $A$. This does not necessarily mean that $B$ cannot effect $A$,
+        but that any temporal effect $B$ can have on $A$ is deterministic and bounded, such that $A$
+        is correct regardless of $B$. 
+\item[Asymmetric Protection] In order to leverage an overbooked system, high-criticality tasks
+        must be able to cause failures in low-criticality tasks but not vice-versa. Another way to
+        state this is that \emph{criticality inversion} must be bounded, where a low-criticality
+        task must not cause failures in a high-criticality task.
+\end{description}
 
 
-\section{Contributions}
+\section{Objectives}
 
 Given their improvements to \gls{SWaP}, function and efficiency, mixed-criticality systems offer
 great advantages over the traditional physical isolation approach. 
@@ -262,14 +291,14 @@ microbenchmarks and case studies to evaluate the implementation.
 \Cref{chap:background} establishes the basic terminology required to present
 the remaining ideas. In \Cref{chap:scheduling} we examine in detail methods for achieving temporal
 isolation and safe resource sharing in real-time systems; \Cref{chap:operating-systems} investigates
-the same concepts from the systems perspective, and presents a survey of existing commercial, open-source
+the same concepts from a systems perspective, and presents a survey of existing commercial, open-source
 and research operating systems. We then present the relevant details of our implementation platform,
 \selfour, in \Cref{chap:sel4}.
 
-We then draw on all of the previous chapters to design mechanisms for efficiently supporting mixed
+We then draw on all the previous chapters to design mechanisms for efficiently supporting mixed
 criticality systems, and present our findings, along with the trade-offs and consequences of our
 design in \cref{chap:model}.  \Cref{chap:implementation} delves deeply into the implementation details.
-Finally \Cref{chap:evaluation} presents our benchmarks, case studies and findings. 
+Finally, \Cref{chap:evaluation} presents our benchmarks, case studies and findings. 
 
 \section{Scope}
 
