@@ -58,7 +58,7 @@ benchmarks that require a network.
     \small{x86}                     & Haswell            &                 & 8$\times$ & 8$\times$ & 16$\times$ & 8$\times$ \\
     \bottomrule
 \end{tabularx}
-    \caption{Hardware platform details, ``$\times$`` is associativity, and + indicates i-cache+d-cache.}
+\caption[Hardware platform details.]{Hardware platform details, ``$\times$`` is associativity, and + indicates i-cache+d-cache.}
 \label{t:evaluation-hardware}
 \end{table}
 
@@ -96,7 +96,7 @@ note the timer hardware used on the specific platform.
     \textsc{x64}               & TSC deadline mode        & 11 (2.3) & 217 (2.0) & 228 \\
     \bottomrule\hline
 \end{tabularx}
-\caption{Latency of timer operations per platform in cycles. Standard deviations shown
+\caption[Latency of timer operations.]{Latency of timer operations per platform in cycles. Standard deviations shown
 in parentheses.}
 \label{t:evaluation-timer}
 \end{table}
@@ -164,7 +164,7 @@ only the kernel cost of the operation\footnote{The \gls{IPC} benchmarks already 
     \ipcmicro{ia32}{ia32}{fastpath}
     \bottomrule
 \end{tabular}
-\caption{Time in cycles for \selfour fastpath \gls{IPC}.}
+\caption[Fastpath IPC overhead]{Time in cycles for \selfour fastpath \gls{IPC}. Standard deviations shown in brackets.}
 \label{t:fastpath-ipc-micro}
 \end{table}
 
@@ -249,8 +249,8 @@ performance, but it has not been examined extensively.
     \ipcmicro{ia32}{ia32}{slowpath}
     \bottomrule
 \end{tabular}
-\caption{Time in cycles \selfour slowpath \gls{IPC} between passive threads.}
-\label{t:slowpath-ipc-micro}
+\caption[Slowpath IPC overhead.]{Slowpath IPC overhead in cycles, baseline \selfour versus MCS.
+Standard deviations shown in brackets.} \label{t:slowpath-ipc-micro}
 \end{table}
 
 \subsection{Faults}
@@ -290,7 +290,8 @@ to read the cycle counter efficiently on this platform, so the fault benchmark d
     \faultmicro{ia32}{ia32}
     \bottomrule
 \end{tabular}
-\caption{Time in cycles of \selfour fault \gls{IPC} between passive threads.}
+\caption[Fault handler overhead.]{Fault IPC slowpath overhead in cycles, baseline \selfour versus
+MCS. Standard deviations shown in brackets.}
 \label{t:slowpath-fault-micro}
 \end{table}
 
@@ -333,8 +334,8 @@ timer, in the case where older hardware with smaller caches and slower timer dev
     \irqmicro{ia32}{ia32}
     \bottomrule
 \end{tabular}
-\caption{Time in cycles of \selfour signal and IRQ latency on \selfour baseline vs. MCS kernels. Standard deviations
-shown in brackets.}
+\caption[Fastpath IRQ and Signal overhead.]{Fastpath IRQ and signal overhead in cycles, baseline
+    \selfour versus MCS. Standard deviations shown in brackets.}
 \label{t:micro-irq}
 \end{table}
 
@@ -357,7 +358,8 @@ shown in brackets.}
     \schedulemicro{ia32}{ia32}
     \bottomrule
 \end{tabular}
-\caption{Time in cycles of \selfour IPC scheduling costs.}
+\caption[Slowpath yield and scheduler costs.]{Slowpath yield and scheduler costs in cycles, baseline \selfour 
+versus MCS. Standard deviations shown in brackets.}
 \label{t:micro-schedule}
 \end{table}
 
@@ -403,7 +405,7 @@ this setup forces frequent invocations of the scheduler and interrupt path.
  \begin{figure}[ht]
     \centering
     \includegraphics{redis-arch}
-    \caption{System architecture of the Redis / \gls{YCSB} benchmark on \selfour, 
+    \caption[System architecture of Redis benchmark.]{System architecture of the Redis / \gls{YCSB} benchmark on \selfour, 
         Linux, NetBSD and Rump unikernel.}
     \label{f:redis-arch}
 \end{figure}
@@ -437,7 +439,7 @@ indicates that the MCS model comes with low overhead.
       \input{data/ycsb-redis.inc}
       \bottomrule
     \end{tabularx}
-    \caption{Throughput (k\,ops/s) achieved by Redis using the YCSB
+    \caption[Results of Redis throughput benchmark.]{Throughput (k\,ops/s) achieved by Redis using the YCSB
       workload A with 2 clients.  Latency is the average Read and Update,
       standard deviations in parentheses and omitted where less than the least
       significant digit shown.}
@@ -474,7 +476,7 @@ thread). All data points are the average of three benchmark runs.
 \begin{figure}[h]
   \centering
   \includegraphics{redis}
-  \caption{Throughput of Redis YCSB workload A and idle time versus available bandwidth.}
+  \caption[Results of Redis isolation benchmark.]{Throughput of Redis YCSB workload A and idle time versus available bandwidth.}
   \label{f:redis}
 \end{figure}
 
@@ -526,7 +528,7 @@ interference of a high-priority process.
 \begin{figure}[h]
   \centering
   \includegraphics{ipbench}
-  \caption{Average and maximum latency of UDP packets with a CPU hog running a high priority with a 10\,ms budget.}
+  \caption[Results of ipbench isolation benchmark.]{Average and maximum latency of UDP packets with a CPU hog running a high priority with a 10\,ms budget.}
   \label{f:ipbench}
 \end{figure}
 
@@ -549,7 +551,7 @@ benchmarks on both \textsc{x86} and \textsc{Sabre}.
 \begin{figure}
 \centering
 \includegraphics{aes-arch}
-\caption{Architecture of the \gls{AES} case study. Client $A$ and $B$ make \gls{IPC} requests over
+\caption[Architecture of the AES case study.]{Architecture of the \gls{AES} case study. Client $A$ and $B$ make \gls{IPC} requests over
 endpoint $E_{1}$ of passive $AES$ which has an active timeout fault handling thread waiting for
 fault \gls{IPC} messages on endpoint $E_{2}$.}
 \label{f:aes-arch}
@@ -695,7 +697,7 @@ initialisation protocol (recall \cref{sec:impl-passive-servers}).
                           \input{data/generated/haswell-aes.inc}
                           \bottomrule
 \end{tabular}
-\caption{Cost of timeout handler operations in \(\mu\)s, as measured
+\caption[Cost of timeout handler operations.]{Cost of timeout handler operations in \(\mu\)s, as measured
   by timeout exception handler. \(\sigma\) is the standard deviation.}
 \label{t:rollback}
 \end{table}
@@ -716,7 +718,7 @@ the budget is sufficient) or is rolled back after processing less than 4\,MiB.
 \begin{figure*}[t]
   \centering
   \includegraphics{aes-shared}
-  \caption{Throughput for clients A and B of a passive AES server processing 10 requests of 4\,MiB of data with
+  \caption[Results of AES server isolation benchmark.]{Throughput for clients A and B of a passive AES server processing 10 requests of 4\,MiB of data with
       limited budgets on the \textsc{x64} (top row) and \textsc{Sabre} (bottom row) platforms. The two clients' budgets
       add up to the period, which is varied between graphs (10, 100, 1000\,ms). Clients sleep when
       they process each 4\,MiB, until the next period, except when their budgets are full. Each data point is the average of 10 runs, error bars show the standard deviation.}
@@ -757,7 +759,7 @@ one at a time. In our prototype implementation, the kernel tracks all threads of
 \begin{figure}
   \centering
   \includegraphics[width=\linewidth]{mode-switch-all}
-  \caption{Cost of switching the priority of $n$ threads in kernel and user level, with hot
+  \caption[Kernel vs. user-level criticality switch.]{Cost of switching the priority of $n$ threads in kernel and user level, with hot
             and cold caches, on \textsc{x64} (left) and \textsc{Sabre} (right). All data points are the average of 100 runs,
                   with very small standard deviations.}
   \label{f:mode-switch}
@@ -833,7 +835,7 @@ This shows that it is sufficient to implement criticality at user-level, and our
         \input{data/generated/mode_switch.inc}
         \bottomrule
     \end{tabular}
-    \caption{Results of mode switch benchmark for each
+    \caption[Results of criticality switch benchmark.]{Results of criticality switch benchmark for each
         stage, where the  criticality \(L_S\) is raised each stage. \(T\) =
         period, \textit{C} = worst observed execution time (ms),
       \textit{U} = allowed utilisation (budget/period),
@@ -889,8 +891,8 @@ implementing different policies on top of the base scheduler is quite feasible.
 \begin{figure}[t]
     \centering
     \includegraphics{edf}
-    \caption{Execution time of \selfour user-mode EDF scheduler compared to
-             kernel scheduler in \textsc{x64} LITMUS$^{RT}$.}
+    \caption[Results of \selfour user-level EDF versus \litmus.]{Execution time of \selfour user-mode EDF scheduler compared to
+             kernel scheduler in \textsc{x64} \litmus.}
     \label{f:edf}
 \end{figure}
 
@@ -929,7 +931,7 @@ per-core state, with no extra shared state between cores.
 \begin{figure}[ht] 
     \centering
     \includegraphics{smp}
-    \caption{Results of the multicore IPC throughput benchmark, baseline \selfour vs MCS. 
+    \caption[Results of the multicore IPC throughput benchmark.]{Results of the multicore IPC throughput benchmark, baseline \selfour vs MCS. 
         Each series is named \textit{name-N}, where \textit{name} is \textit{base} and \textit{mcs} for 
         the baseline and MCS kernel respectively, and \textit{N} is the upper
         bound on the number of cycles between each IPC for that series.}
@@ -955,7 +957,7 @@ we run two variants.
 \begin{figure}[ht] 
     \centering
     \includegraphics{smp_aes}
-    \caption{Results of the AES shared server multicore case study. \emph{Single} shows results for a 
+    \caption[Results of the AES shared server multicore case study.]{Results of the AES shared server multicore case study. \emph{Single} shows results for a 
         passive server thread migrating between cores to service clients, while \emph{Multiple} has one
         passive server thread per core. For both series, the number of clients is equal to the number of
         cores and each client requests 1MiB of data encrypted. }

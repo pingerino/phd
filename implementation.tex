@@ -194,7 +194,7 @@ to specify the exact number of replenishment to use, up to the object size.
 
 
     \end{tabular}
-    \caption[Layout of a scheduling context object]{Layout of a scheduling context object on a 32-bit system.}
+    \caption[Layout of a scheduling context object.]{Layout of a scheduling context object on a 32-bit system.}
     \label{t:impl-sc-layout}
 \end{table}
 
@@ -271,7 +271,7 @@ void refill_update(sched_context_t *sc, ticks_t new_period, ticks_t new_budget, 
     }
 }
 \end{minted}
-\caption[Refill update routine]{Code to initialise a scheduling context that is not bound to a currently active thread.}
+\caption[Refill update routine.]{Code to initialise a scheduling context that is not bound to a currently active thread.}
 \label{list:refill-init}
 \end{listing}
 
@@ -315,7 +315,7 @@ uint_64_t check_budget(sched_context_t *sc, uint64_t usage) {
   }
 }
 \end{minted}
-\caption[Check budget routine]{Check budget routine used to implement sporadic servers.}
+\caption[Check budget routine.]{Check budget routine used to implement sporadic servers.}
 \label{list:check-budget}
 \end{listing}
 
@@ -343,7 +343,7 @@ void split_check(sched_context_t *sc, uint64_t usage) {
   add_tail(sc, split);
 }
 \end{minted}
-\caption[Split check routine]{Split check routine used to implement sporadic servers.}
+\caption[Split check routine.]{Split check routine used to implement sporadic servers.}
 \label{list:split-check}
 \end{listing}
 
@@ -371,7 +371,7 @@ void unblock_check(sched_context_t *sc) {
     }
 }
 \end{minted}
-\caption[Unblock check routine]{Unblock check routine used to implement sporadic servers.}
+\caption[Unblock check routine.]{Unblock check routine used to implement sporadic servers.}
 \label{list:unblock-check}
 \end{listing}
 
@@ -397,7 +397,7 @@ there was enough space available. The altered fields are shown in \cref{t:tcb-fi
         \sout{\code{faultEndpoint}} &  Moved to the TCB \cnode. \\
         \bottomrule
     \end{tabularx}
-    \caption{Added and removed fields in a \gls{TCB} object.}
+    \caption[Added and removed fields in a TCB.]{Added and removed fields in a \gls{TCB} object.}
     \label{t:tcb-fields}
 \end{table}
 
@@ -525,7 +525,7 @@ the thread is blocked until it is replenished.
         \yield                 & scheduling                & \no & \no &  \cref{api:yield} \\
         \sout{\reply}          & \sout{sending} & -  & - & Removed \\ 
     \end{tabularx}
-    \caption[New seL4 system call summary]{New \selfour system call summary, indicating which system calls can trigger donation.
+    \caption[New seL4 system call summary.]{New \selfour system call summary, indicating which system calls can trigger donation.
     and/or receiving messages. }
     \label{t:new-system-calls}
 \end{table}
@@ -759,7 +759,7 @@ stored consumed value from the timestamp.
 \begin{figure}
     \centering 
     \includegraphics[width=0.8\textwidth]{tickless}
-    \caption{Kernel structure}
+    \caption{New tickless kernel structure.}
     \label{figure:tickless}
 \end{figure}
 

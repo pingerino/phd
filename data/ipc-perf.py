@@ -105,7 +105,7 @@ def gen_plat_table(plat, output, slowpath, passive, replyRecv, name):
     elif plat == 'haswell':
         plat = 'x64'
     output.write('\\bottomrule\\end{tabularx}\n')
-    output.write('\\caption{\\textsc{' + plat + '}'  + name + '}\n')
+    output.write('\\caption{\\textsc{' + plat + '}'  + name + '.}\n')
     output.write('\\end{table}\n')
 
 

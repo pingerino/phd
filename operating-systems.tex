@@ -40,7 +40,7 @@ influence much \gls{OS} design.  Scheduling policies specified by \gls{POSIX} ar
     for temporal isolation. For practical requirements, the POSIX specification of \schedsporadic
     specifies a maximum number of replenishments which is implementation defined. \\\bottomrule
 \end{tabular}
-\caption{\gls{POSIX} real-time scheduling policies}
+\caption[POSIX RT scheduling policies.]{\gls{POSIX} real-time scheduling policies.}
 \label{tab:posix-sched}
 \end{table}
 
@@ -69,7 +69,7 @@ protocols.
 \prioprotect & Mutexes with \gls{HLP} to prevent priority inversion, recall \Cref{sec:hlp}. \\
 \bottomrule
 \end{tabular}
-\caption{\gls{POSIX} real-time mutex policies for resource sharing.}
+\caption[POSIX mutex policies.]{\gls{POSIX} real-time mutex policies for resource sharing.}
 \label{tab:posix-mutex}
 \end{table}
 
@@ -331,8 +331,8 @@ Deos    & \gls{FP}             & ARINC 653\\
 \bottomrule
 \end{tabular}
 \label{t:os-summary}
-\caption{Summary of scheduling and temporal isolation mechanisms in surveyed open source and
-commercial \glspl{OS}.}
+\caption[Scheduling and isolation in OSes.]{Summary of scheduling and temporal isolation mechanisms
+in surveyed open-source and commercial \glspl{OS}.}
 \end{table}
 
 Although temporal isolation is sometimes provided with the possibility of bounded bandwidth via
@@ -494,7 +494,7 @@ the threads accessing those resources.
 \begin{figure}
     \centering
     \includegraphics[width=0.8\textwidth]{ipc-port}
-    \caption{Thread execution during IPC between client and server}
+    \caption[Thread execution during IPC.]{Thread execution during IPC between client and server.}
     \label{f:os-ipc}
 \end{figure}
 

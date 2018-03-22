@@ -560,7 +560,7 @@ in \cref{sec:model-policies}.
 \begin{figure}
     \centering
     \includegraphics[width=0.7\textwidth]{legend-full}
-    \caption{Legend for diagrams in this section, an expanded version of \cref{f:legend-1}}
+    \caption[Legend for diagrams in this chapter.]{Legend for diagrams in this chapter, an expanded version of \cref{f:legend-1}}
     \label{f:legend-2}
 \end{figure}
 
@@ -579,7 +579,7 @@ in \cref{sec:model-policies}.
         \caption{Phase 2}
         \label{f:passive2}
     \end{subfigure}
-    \caption{IPC phases between an active client and passive server: (a) shows the initial IPC rendezvous, (b) shows the
+    \caption[IPC phases between an active client and passive server.]{IPC phases between an active client and passive server: (a) shows the initial IPC rendezvous, (b) shows the
     reply phase. The client's $SC_{A}$ is donated between client and server. See \Cref{f:legend-2} for the legend.}
     \label{f:passive}
 \end{figure}
@@ -597,7 +597,7 @@ in \cref{sec:model-policies}.
     \caption{Phase 2}
     \label{f:active2}
 \end{subfigure}
-\caption{IPC phases between an active client and active server: (a) shows the initial IPC rendezvous, (b) shows the
+\caption[IPC phases between active client and active server.]{IPC phases between an active client and active server: (a) shows the initial IPC rendezvous, (b) shows the
 reply phase. Both client and server have their own SC. See \Cref{f:legend-2} for the legend.}
 \label{f:active}
 \end{figure}
@@ -647,7 +647,7 @@ for such cases.
 \begin{figure}
     \centering
     \includegraphics[width=0.8\textwidth]{timeout}
-    \caption{Example of a timeout exception handler. The passive server $S$ performs a request on
+    \caption[Example of a timeout exception handler.]{Example of a timeout exception handler. The passive server $S$ performs a request on
     client $A$'s scheduling context, $SC_{A}$. A timeout fault is generated when $SC_{A}$ is
 exhausted and send to the server's timeout fault endpoint $E_{2}$, and the timeout handler receives
 it. See legend \cref{f:legend-2}}
@@ -735,7 +735,7 @@ capabilities and scheduling contexts, as shown in \cref{f:model-forward}.
         $E_{2}$ again. }
         \label{f:forward4}
 \end{subfigure}
-\caption{IPC forwarding. Client $A$ sends a request to passive server $S_{2}$ via a passive proxy $S_{1}$,
+\caption[IPC forwarding.]{IPC forwarding: client $A$ sends a request to passive server $S_{2}$ via a passive proxy $S_{1}$,
 and the scheduling context passes from $A \rightarrow S_{1} \rightarrow S_{2} \rightarrow A$. See \Cref{f:legend-2} for the legend.}
 \label{f:model-forward}
 \end{figure}
@@ -859,7 +859,7 @@ receive periodic notifications from a timer service.
 \begin{figure}
     \centering
     \includegraphics[width=0.7\textwidth]{pip}
-    \caption{Example of proxying requests via a server that manipulates priorities before resource
+    \caption[Example of proxying requests via a server.]{Example of proxying requests via a server that manipulates priorities before resource
     access, see \cref{f:legend-2} for the Legend.}
     \label{f:model-pip}
 \end{figure}

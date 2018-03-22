@@ -69,7 +69,7 @@ the next section.
     \cnodesavecaller    & Saves the kernel generated resume capability into the designated slot. \\
     \bottomrule 
     \end{tabularx}
-    \caption{Summary of operations on capabilities provided by baseline \selfour~\citep{seL417}}.
+    \caption[Operations on capabilities.]{Summary of operations on capabilities provided by baseline \selfour~\citep{seL417}}.
     \label{t:capability_ops}
 \end{table}
 
@@ -126,7 +126,7 @@ the kernel. Each capability type has a different set of invocations available, a
         \yield             & \no            & \no                          & \no   \\
         \bottomrule
     \end{tabularx}
-    \caption{\selfour system call summary. All system calls except \yield are based on sending
+    \caption[seL4 system call summary.]{\selfour system call summary. All system calls except \yield are based on sending
     and/or receiving messages. The \emph{return} column indicates if a system call returns a message
 or not.}
     \label{t:system-calls}
@@ -166,7 +166,7 @@ what type of memory is at that physical address. Options for different types are
     Frame           & Mappable physical memory. \\
     \bottomrule
     \end{tabularx}
-    \caption{Major memory object types in \selfour, excluding platform specific objects. For further detail
+    \caption[Memory object types in seL4.]{Major memory object types in \selfour, excluding platform specific objects. For further detail
     consult the \selfour manual~\citep{seL417}}.
      \label{t:kernel_objects}
 \end{table}
@@ -257,7 +257,7 @@ capabilities for \gls{IPC}.
         \cref{s:notification-binding}). \\
     \bottomrule 
     \end{tabularx}
-    \caption{Summary of operations on \glspl{TCB}. Further operations are available that batch several
+    \caption[Summary of operations on TCBs.]{Summary of operations on \glspl{TCB}. Further operations are available that batch several
     setters to reduce thread configuration overheads.}.
      \label{t:tcb_ops}
 \end{table}
@@ -344,7 +344,7 @@ resource capabilities in empty slots.
         1592---($2^{16}-1$) & empty \\
         \bottomrule
 	\end{tabularx}
-    \caption{Slot layout in the initial \cnode set up by the kernel for the root task on the
+    \caption[Slot layout in the initial \cnode.]{Slot layout in the initial \cnode set up by the kernel for the root task on the
 \textsc{Sabre}.}
 	\label{t:initial_cnode}
 \end{table}
@@ -384,7 +384,7 @@ invoked to send the message.
 \begin{figure}[t]
     \centering
     \includegraphics[width=0.8\textwidth]{endpoint}
-    \caption{State diagram of a single endpoint, where \emph{blocked} tracks the number of threads
+    \caption[State diagram of an endpoint.]{State diagram of a single endpoint, where \emph{blocked} tracks the number of threads
     waiting to send or receive. Note that only one list of threads is maintained by the endpoint:
 senders and receivers cannot be queued at the same time.}
     \label{f:endpoint}
@@ -432,7 +432,7 @@ message back.
 \begin{figure}
     \centering
     \includegraphics[width=0.5\textwidth]{legend-1}
-    \caption{Legend for diagrams in this section}
+    \caption{Legend for diagrams in this section.}
     \label{f:legend-1}
 \end{figure}
 
@@ -442,16 +442,16 @@ message back.
     \begin{subfigure}[h]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{ipc1}
-        \caption{Initial IPC rendezvous}
+        \caption{Initial IPC rendezvous.}
         \label{f:ipc1}
     \end{subfigure}%
     \begin{subfigure}[h]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{ipc2}
-        \caption{Reply phase}
+        \caption{Reply phase.}
         \label{f:ipc2}
     \end{subfigure}
-    \caption{IPC phases: a TCB, $A$ sends a message to endpoint $E$ using \call. Another
+    \caption[IPC phases.]{IPC phases: a TCB, $A$ sends a message to endpoint $E$ using \call. Another
         TCB, $S$, blocks on $E$ using \recv. At this point the message is transferred from 
         $A$ to $S$ and $A$ is blocked the reply capability. (b) shows the
     reply phase, where $S$ uses \reply to send a reply message to $A$, waking $A$. See \Cref{f:legend-1} for the legend.}
@@ -473,7 +473,7 @@ message back.
         \caption{Notification binding.}
         \label{f:signal2}
     \end{subfigure}
-    \caption{Example of a thread, TCB $A$, receiving notifications, by blocking on the notification and by
+    \caption[Notification illustrations.]{Example of a thread, TCB $A$, receiving notifications, by blocking on the notification and by
         notification binding. In \cref{f:signal1} $A$ blocks waiting on notification
         object $N$, and wakes when any notifications or interrupts are sent to $N$. In
         \cref{f:signal2}, $A$ blocks on endpoint $E$, however since
@@ -540,7 +540,7 @@ accumulate messages in the data word.
 \begin{figure}
     \centering
     \includegraphics[width=0.8\textwidth]{notification}
-    \caption{State diagram Notification object state transitions based on invocations. \send and
+    \caption[State diagram of notification objects.]{Notification object state transitions based on invocations. \send and
     \nbsend correspond to notify in the diagram, want wait corresponds to a \recv.}
     \label{f:notification}
 \end{figure}
@@ -639,7 +639,7 @@ word_t getHighestPrio(void) {
     return (l1index << 5 | l2index);
 }
     \end{minted}
-    \caption{Example algorithms for adding a priority to the scheduler bitmap and extracting the highest
+    \caption[Scheduler bitmap algorithm.]{Example algorithms for adding a priority to the scheduler bitmap and extracting the highest
         active priority, on a 32-bit system. Both operations are $O(1)$ and involve two memory
         accesses. 
     \code{CLZ} is the hardware instruction for count leading zeros.}
@@ -655,7 +655,7 @@ as can be seen in the simplified thread state diagram shown in \cref{f:thread_st
 \begin{figure}[h!tb]
     \centering
     \includegraphics[width=0.6\textwidth]{thread_state}
-    \caption{Thread state transitions in \selfour}
+    \caption{Thread state transitions in \selfour.}
     \label{f:thread_state}
 \end{figure}
 The \code{BlockedOnObject} state in the diagram maps to \code{blockedOn<N>} in the following thread
