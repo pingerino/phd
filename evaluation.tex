@@ -685,23 +685,30 @@ restart the server and send \glspl{IPC} messages on its behalf (rollback, reply)
 expensive as they must restore the server state from a checkpoint and follow the passive server
 initialisation protocol (recall \cref{sec:impl-passive-servers}). 
 
-\begin{table}[t]\centering
+\newpage
+\begin{table}[h]\centering
 \begin{tabular}{cllrrrr}\toprule
 \emph{Platform} & \emph{Operation} & \emph{Cache} & \emph{Min} &
                           \emph{Max} & \emph{Mean} &
                           \multicolumn{1}{c}{\boldmath \(\sigma\)} \\\midrule
+                          \multirow{8}{*}{\textsc{x64}}
+                          \input{data/generated/haswell-aes.inc}
+                          \midrule
                           \multirow{8}{*}{\textsc{Sabre}} 
                           \input{data/generated/sabre-aes.inc} 
                           \midrule
-                          \multirow{8}{*}{\textsc{x64}}
-                          \input{data/generated/haswell-aes.inc}
+                          \multirow{8}{*}{\textsc{Hikey64}} 
+                          \input{data/generated/hikey64-aes.inc} 
+                          \midrule
+                          \multirow{8}{*}{\textsc{TX1}} 
+                          \input{data/generated/tx1-aes.inc} 
                           \bottomrule
 \end{tabular}
 \caption[Cost of timeout handler operations.]{Cost of timeout handler operations in \(\mu\)s, as measured
   by timeout exception handler. \(\sigma\) is the standard deviation.}
 \label{t:rollback}
 \end{table}
-
+\clearpage
 \subsection{Rollback isolation}
 
 We next demonstrate temporal isolation in the server by using the rollback
