@@ -97,7 +97,7 @@ illustrated in \cref{f:reply-stack}, where $A$ has called $S_{1}$ which has call
 \begin{figure}[t]
     \centering
     \includegraphics[width=0.7\textwidth]{replychain}
-    \caption{The state of the reply stack when a nested server $S_{2}$ is
+    \caption[Reply stack example]{The state of the reply stack when a nested server $S_{2}$ is
 performing a request on behalf of an initial server $S_{1}$ for client $A$.}
     \label{f:reply-stack}
 \end{figure}
@@ -194,7 +194,7 @@ to specify the exact number of replenishment to use, up to the object size.
 
 
     \end{tabular}
-    \caption{Layout of a scheduling context object on a 32-bit system.}
+    \caption[Layout of a scheduling context object]{Layout of a scheduling context object on a 32-bit system.}
     \label{t:impl-sc-layout}
 \end{table}
 
@@ -271,7 +271,7 @@ void refill_update(sched_context_t *sc, ticks_t new_period, ticks_t new_budget, 
     }
 }
 \end{minted}
-\caption{Code to initialise a scheduling context that is not bound to a currently active thread.}
+\caption[Refill update routine]{Code to initialise a scheduling context that is not bound to a currently active thread.}
 \label{list:refill-init}
 \end{listing}
 
@@ -315,7 +315,7 @@ uint_64_t check_budget(sched_context_t *sc, uint64_t usage) {
   }
 }
 \end{minted}
-\caption{Check budget routine used to implement sporadic servers.}
+\caption[Check budget routine]{Check budget routine used to implement sporadic servers.}
 \label{list:check-budget}
 \end{listing}
 
@@ -343,7 +343,7 @@ void split_check(sched_context_t *sc, uint64_t usage) {
   add_tail(sc, split);
 }
 \end{minted}
-\caption{Split check routine used to implement sporadic servers.}
+\caption[Split check routine]{Split check routine used to implement sporadic servers.}
 \label{list:split-check}
 \end{listing}
 
@@ -371,7 +371,7 @@ void unblock_check(sched_context_t *sc) {
     }
 }
 \end{minted}
-\caption{Unblock check routine used to implement sporadic servers.}
+\caption[Unblock check routine]{Unblock check routine used to implement sporadic servers.}
 \label{list:unblock-check}
 \end{listing}
 
@@ -525,7 +525,7 @@ the thread is blocked until it is replenished.
         \yield                 & scheduling                & \no & \no &  \cref{api:yield} \\
         \sout{\reply}          & \sout{sending} & -  & - & Removed \\ 
     \end{tabularx}
-    \caption{New \selfour system call summary, indicating which system calls can trigger donation.
+    \caption[New seL4 system call summary]{New \selfour system call summary, indicating which system calls can trigger donation.
     and/or receiving messages. }
     \label{t:new-system-calls}
 \end{table}
