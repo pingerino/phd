@@ -1,12 +1,23 @@
 \chapter{Introduction}
 
-% what is criticality
-\emph{Criticality} of a software system refers to the severity of the impact of a failure.  In a
-high-criticality system, failure risks significant loss of life or damage to the environment.  In a
-low-criticality system, failure may risk a downgrade in user-experience.  Traditionally, systems of
-different criticality were isolated by hardware.  This approach is no longer practical as it has
-proven inefficient and restrictive.  The result is \emph{mixed-criticality} systems, where software
-applications with different criticalities execute on the same hardware.
+Criticality of a software system refers to the severity of the impact of a failure.
+In a high-criticality system, failure risks significant loss of life or damage to the environment.
+In a low-criticality system, failure may risk a downgrade in user-experience.
+As criticality of a software system increases, so too does the cost and time to develop that
+software: raising the criticality also raises the assurance level, with the highest levels requiring
+extensive, independent certification.
+
+For modern cyber-physical systems, including autonomous aircraft and vehicles, the traditional
+approach of isolating systems of different criticality by using completely separate physical
+hardware, is no
+longer practical, being both restrictive and inefficient.
+The result is \emph{mixed-criticality} systems, where software applications with different criticalities
+execute on the same hardware. Sufficient mechanisms are required to ascertain that software in
+mixed-criticality systems  is sufficiently isolated, otherwise, all software on that hardware is
+promoted
+to the highest criticality level, driving up costs to impractical levels. For mixed-criticality
+systems to be
+viable, both spatial and temporal isolation are required.
 
 % introduce challenges, example
 However, mixed-criticality systems have conflicting requirements that challenge \glspl{OS} design:
