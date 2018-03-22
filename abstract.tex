@@ -2,19 +2,31 @@
 Criticality of a software system refers to the severity of the impact of a failure.
 In a high-criticality system, failure risks significant loss of life or damage to the environment.
 In a low-criticality system, failure may risk a downgrade in user-experience.
-Traditionally, systems of different criticality were isolated by hardware.
-This approach is no longer practical as it has proven inefficient and restrictive.
-The result is mixed-criticality systems, where software applications with different criticalities execute on the same hardware.
-Such systems go beyond standard temporal isolation and require asymmetric protection between applications of different criticalities.
+As criticality of a software system increases, so too does the cost and time to develop that
+software: raising the criticality also raises the assurance level, with the highest levels requiring
+extensive, independent certification.
 
-Whilst there has been some momentum in real-time operating system (RTOS) research, the implications of mixed-criticality systems for OSes have not been fully explored.
-The goal of this project is to develop a mixed-criticality OS.
+For modern cyber-physical systems, including autonomous aircraft and vehicles, the traditional
+approach of isolating systems of different criticality by using completely separate physical
+hardware, is no
+longer practical, being both restrictive and inefficient.
+The result is mixed-criticality systems, where software applications with different criticalities
+execute on the same hardware. Sufficient mechanisms are required to ascertain that software in
+mixed-criticality systems  is sufficiently isolated, otherwise, all software on that hardware is promoted
+to the highest criticality level, driving up costs to impractical levels. For mixed-criticality systems to be
+viable, both spatial and temporal isolation are required.
+
+Current aviation standards allow for mixed-criticality systems where temporal and spatial resources
+are strictly and statically partitioned, allowing some improvement over 
+in time and space. However, further improvements are not possible, but required for future
+innovation in cyber-physical systems. 
+
+This thesis explores further operating mechanisms to allow for mixed-criticality
+software to share resources in far less restrictive ways, opening further possibilities in
+cyber-physical system design without sacrificing assurance properties. 
 Two key properties are required: first, time must be managed as a central resource of the system, while allowing for overbooking with asymmetric protection without increasing certification burdens.
 Second, components of different criticalities should be able to safely share resources without suffering undue utilisation penalties.
-The implementation platform will be the \selfour microkernel, which is built for the safety-critical, high assurance domain.
-
-\TODO{Make point that assurance is essential}
-\TODO{update with eurosys abstract}
+The implementation platform is the \selfour microkernel, which is built for the safety-critical, high assurance domain.
 
 \end{abstract}
 \addcontentsline{toc}{chapter}{Abstract}
