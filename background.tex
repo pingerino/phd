@@ -547,43 +547,6 @@ combined with \gls{FIFO} spin-locks which guard global resources.
 Multiprocessor real-time locking protocols are an extensive field of research, and 
 many more sophisticated locking protocols exist, however we do not survey them here.
 
-\section{Mixed-criticality systems}
-\label{s:mixed-criticality}
-
-Broadly, a mixed-criticality system is simply a system where software classified at different levels
-of criticality, according to a standard such as DO-178C (recall \Cref{tab:criticality_table}), share
-the same physical hardware. 
-
-\TODO{references in this paragraph}
-Varying definitions exist in the literature. Some consider merely
-the combination of \gls{HRT}, \gls{SRT} and best-effort tasks, with criticality observed in that order.
-Others allow for \gls{QoS} specifications, which can reflect criticality. 
-
-In the real-time community, much work has been
-conducted around a theoretical model introduced by \citet{Vestal_07}. In this model, a system has
-a specific range of criticality levels, $L_{min}-L_{max}$ and a current criticality level
-$L_{now}$. Each task in the system is assigned a criticality level, $L_{i}$, and has a vector of
-execution times of size $L_{i}-L_{min}$. When the system undergoes a mode change, should $L_{i}
-\geq L_{now}$ the execution time required by that task is set to the value in the vector
-corresponding to the new $L_{now}$. If a task's criticality is less than $L_{now}$, it may be dropped
-or scheduled with much lower priority until a mode switch increases $L_{now}$. 
-
-This model can be interpreted in several ways; as a form of graceful degradation; or as an
-optimisation in the case where a system designer and \gls{CA} disagree on \gls{WCET}
-estimates for a system. Theoretically, if the system designer could show that the higher estimates
-of the \gls{CA} can be met by such a mode change, they could schedule less criticality tasks when in
-a low criticality mode. 
-
-However, while this model, and many variations upon it have been subject too much research in the
-real-time community, questions have been raised as to its practicality in industry.
-\citet{Ernst_DiNatale_16} claim that a \gls{CA} would be unlikely to accept multiple \gls{WCET}
-definitions and state that the focus of mixed-criticality research should be on providing systems
-for error handling and proof of isolation in order to make mixed-criticality systems practical. 
-
-The focus on this thesis is for the broader definition of mixed-criticality, such that software of
-different levels of criticality can safely share hardware, and not specifically the model
-presented by \citet{Vestal_07} and beyond~\citep{Burns_Davis_17}.
-
 \section{Operating systems}
 \label{sec:background-operating-systems}
 

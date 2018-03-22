@@ -21,7 +21,7 @@ viable, both spatial and temporal isolation are required.
 
 % introduce challenges, example
 However, mixed-criticality systems have conflicting requirements that challenge \glspl{OS} design:
-they require mutually distrusting components of different criticalities to share resources and must
+they require distrusting components of different criticalities to share resources and must
 degrade gracefully in the face of failure.  For example, an \gls{AAV} has multiple inputs to its
 flight-control algorithm: object detection, to avoid flying into obstacles, and navigation, to get
 to the desired destination.  Clearly the object detection is more critical than navigation, as
@@ -40,8 +40,8 @@ standards.
 % what's wrong with static partitioning
 While MCS are becoming the norm in avionics, this is presently in a very restricted form: the system
 is orthogonally partitioned spatially and temporally, and partitions are scheduled with fixed time
-slices~\citep{ARINC653}. Any components that share resources are promoted to the highest criticality
-level and must meet the same certification standards; in other words, a critical component must not
+slices~\citep{ARINC653}. Shared resources are permitted but can only be accessed through fixed-time
+partitions; in other words, a critical component must not
 trust a lower criticality one to behave correctly. This limits integration and cross-partition
 communication, and implies long interrupt latencies and poor resource utilisation. 
 % not just planes
@@ -50,19 +50,32 @@ ago~\citep{Broy_KPS_07}; with the robust packaging and wiring required for vehic
 SWaP problem is obvious, and will be magnified by the move to more autonomous operation. Other
 classes of cyber-physical systems, such as smart factories, will experience similar challenges.
 
+% let's use the WCET
+% finally, overcommitting
+One could reduce the number of separate processors without mixed-criticality by simply consolidating 
+systems of the same criticality level, however, this is does not lead to efficient use of resources. 
+High-criticality systems that are subject to high levels of assurance have very high \gls{WCET} estimates,
+which are often orders of magnitude beyond the average execution time due to the limitations in analysis,
+and the complexity of modern hardware. However in current systems the full \gls{WCET} must be
+statically reserved for the high criticality tasks. By building mixed-criticality systems, low
+criticality tasks where errors only lead to degredation in performance, or not at all, this excess
+processing power can be leveraged. 
+
 % more than consolidation
-However, mixed-criticality systems are about more than basic consolidation; they can achieve more
+Finally, mixed-criticality systems are about more than basic consolidation and leveraging excess
+resources; they can achieve more
 than traditional physically isolated systems. Allowing untrusted, less critical components to
 share hardware and communicate with more critical components, far more complex software can be
 introduced to the system. Examples include heuristic algorithms that are common in artificial
 intelligence algorithms, or internet connected software which by its nature cannot be completely
 trusted. Both of these use-cases are far too complex to certify to the highest criticality standard,
-but are essential for emerging cyber-physical systems like self-driving cars.
+but are essential for emerging cyber-physical systems like self-driving cars. 
 
-% finally, overcommitting
-Our goal is to design and implement an OS that provides the right mechanisms for efficiently
-supporting mixed criticality systems, and to reason about their safety.
-The implementation platform will be the \selfour~\citep{Klein_EHACDEEKNSTW_09}.
+Our goal is to design and implement an OS that provides the trustworthy, high-assurance mechanisms
+for efficiently
+supporting mixed criticality systems, without requiring all systems to be promoted to the highest
+criticality in the system. 
+The implementation platform will be the \selfour~\citep{Klein_EHACDEEKNSTW_09}
 microkernel, which is has been designed for the high-assurance, safety-critical domain.
 
 Concisely, the goals of this research are to provide:
@@ -104,6 +117,16 @@ software for commercial aircraft in the United States.
      \caption[Criticality levels from DO-178C]{Criticality levels from DO-178C, a safety standard for commercial aircraft.}
      \label{tab:criticality_table}
  \end{table}
+
+
+ % TODO: note the model of mixed criticality
+In the real-time community, much work has been
+conducted around a theoretical model introduced by \citet{Vestal_07} which we discuss in
+\cref{sched:mixed-criticality-schedulers}.
+The focus on this thesis is for the broader definition of mixed-criticality, such that software of
+different levels of criticality can safely share hardware, and not specifically the model
+presented by \citet{Vestal_07} and beyond~\citep{Burns_Davis_17}.
+
 
 % TODO are there any citations on cost per line of code?
 Higher engineering and safety standards are required for higher criticality levels, up to
@@ -197,6 +220,16 @@ of mixed criticality, and outlines the primitives required from an \gls{OS}
 built for these systems, mandating full temporal and spatial isolation of the
 different criticality components and controlled communication. However, this is one 
 standard that may not be suitable for all types of system.
+
+
+% TODO move this somewhere that makes sense, along with definition of temporal isolation
+  Temporal isolation in mixed-criticality systems can result in \emph{criticality inversion}, where
+    high criticality tasks miss their deadlines due to lower criticality tasks.  Rather than
+    temporal
+      isolation, mixed-criticality systems require \emph{asymmetric protection}, where deadline
+      misses of
+ low-criticality tasks caused by high-criticality tasks are permitted, but not vice-versa.
+
 
 \section{Contributions}
 

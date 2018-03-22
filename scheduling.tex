@@ -245,41 +245,50 @@ in the system and current load of periodic tasks.  This method does not provide 
 for the aperiodic tasks, unless a certain bound is placed on the execution of periodic tasks.
 
 \section{Mixed-criticality schedulers}
+\label{sched:mixed-criticality-schedulers}
 
-In this section, we briefly consider schedulers designed specifically for mixed-criticality systems. 
-However, as this has been a very active topic, we refer the reader to \citet{Burns_Davis_17} for
-an extensive background. 
+In the real-time community, much work has been conducted around a theoretical mixed-criticality task
+model introduced by \citet{Vestal_07}.  In this model, a system has a specific range of criticality
+levels, $L_{min}-L_{max}$ and a current criticality level $L_{now}$. Each task in the system is
+assigned a criticality level, $L_{i}$, and has a vector of execution times of size $L_{i}-L_{min}$.
+When the system undergoes a mode change, should $L_{i} \geq L_{now}$ the execution time required by
+that task is set to the value in the vector corresponding to the new $L_{now}$. If a task's
+criticality is less than $L_{now}$, it may be dropped or scheduled with much lower priority until
+a criticality mode-switch increases $L_{now}$.
 
-Temporal isolation in mixed-criticality systems can result in \emph{criticality inversion}, where
-high criticality tasks miss their deadlines due to lower criticality tasks.  Rather than temporal
-isolation, mixed-criticality systems require \emph{asymmetric protection}, where deadline misses of
-low-criticality tasks caused by high-criticality tasks are permitted, but not vice-versa.  This can
-be realised as a system mode-switch or form of graceful degradation.
-
-A key observation about mixed-criticality systems is neither the strictness of the real-time model,
-nor rate-monotonic priorities have any direct correlation with the criticality of a task.  While in
-general critical tasks are \gls{HRT}, it is possible to have critical tasks that are \gls{SRT}, for
-instance, object tracking algorithms whose \gls{WCET} depends on factors external to the software
-system.
+\citet{Vestal_07}'s model can be interpreted in several ways; as a form of graceful degradation; or as an
+optimisation in the case where a system designer and \gls{CA} disagree on \gls{WCET}
+estimates for a system, which results in a tasks with two {\gls{WCET}} estimates, one very pessimistic one from
+the \gls{CA} and a less pessimistic one from the system designers or automated tools. 
+Theoretically, if the system designer could show that the higher estimates
+of the \gls{CA} can be met by such a mode change, they could schedule less criticality tasks
+when in a low criticality mode. 
 
 None of the scheduling algorithms so far directly support mixed-criticality systems.  \gls{RBED} is
 the closest, although it assumes a direct relationship between criticality and real-time model, with
 the assumption that \gls{HRT} tasks are more critical than \gls{SRT} tasks which are more critical
 than best-effort tasks. 
 
-Recall that in this model \glspl{CA} provide \gls{WCET} estimates that must be schedulable, however they are often very
-pessimistic.  This results in a task with two {\gls{WCET}} estimates, one very pessimistic one from
-the \gls{CA} and a less pessimistic one from the system designers or automated tools.  As a result
+As a result
 of this, a family of mixed-criticality schedulers exists that handle high criticality tasks with two
 {\gls{WCET}} estimates, and low-criticality tasks.  The scheduling algorithm will always schedule
 high-criticality tasks.  If high-criticality tasks finish before the lower \gls{WCET} estimate,
 lower criticality tasks are also scheduled.  Otherwise, tasks of lower criticality may not be
 scheduled at all. 
 
-Scheduling algorithms in this class are distinguished by a mode-switch between two or more criticality levels,
+Scheduling algorithms in this class are distinguished by a \emph{criticality mode-switch} between two or more criticality levels,
 which may result in low criticality tasks being dropped or de-prioritised in some way. 
 Schedulers for this model of mixed-criticality have been developed and extensively studied for
-\gls{FP}~\citep{Vestal_07, Pathan:phd} and \gls{EDF}~\citep{Baruah_BDMVS_11},
+\gls{FP}~\citep{Vestal_07, Pathan:phd} and \gls{EDF}~\citep{Baruah_BDMVS_11}, and further. 
+ As this has been a very active topic, we refer the reader to \citet{Burns_Davis_17} for
+an extensive background. 
+
+However, while this model, and many variations upon it have been subject to much research
+in the real-time community, questions have been raised as to its practicality in industry.
+\citet{Ernst_DiNatale_16} claim that a \gls{CA} would be unlikely to accept multiple \gls{WCET}
+definitions and state that the focus of mixed-criticality research should be on
+providing systems for error handling and proof of isolation in order to make mixed-criticality
+systems practical.
 
 \subsection{Zero Slack Scheduling}
 \label{s:zero-slack-scheduling}
@@ -372,6 +381,12 @@ prevents systems of mixed-criticality being constructed safely and securely.
 Mixed-criticality systems require at minimum temporal isolation, however the asymmetric protection property allows for higher utilisation in systems.
 \gls{EDF} and \gls{FP} scheduling can be adapted to have temporal isolation, or another approach, like PFair scheduling can be used to provide temporal isolation.
 Much research has been done into scheduling algorithms that provide asymmetric protection, but the consequences of practical implementations in \glspl{OS} have yet to be explored.
+
+A key observation about mixed-criticality systems is neither the strictness of the real-time model,
+nor rate-monotonic priorities have any direct correlation with the criticality of a task.  While in
+general critical tasks are \gls{HRT}, it is possible to have critical tasks that are \gls{SRT}, for
+instance, object tracking algorithms whose \gls{WCET} depends on factors external to the software
+system.
 
 In the next chapter, we survey existing operating systems and systems techniques with respect to temporal isolation capability, resource sharing, and asymmetric protection.
 
