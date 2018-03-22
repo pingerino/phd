@@ -171,7 +171,8 @@ constrained deadlines.
 \label{sec:rt-scheduling}
 % introduce scheduling terms, how we describe and evaluate schedulers
 
-Simply put, scheduling is deciding which task to run at a specific time. More formally, scheduling
+Simply put, scheduling is deciding which task to run at a specific time. In operating systems terms,
+this is deciding which thread, or process to run on the processor next. More formally, scheduling
 is the act of assigning resources to activities or tasks~\citep{Baruah_CPV_96}, generally discussed
 in the context of processing time, but is required for other resources such as communication
 channels.  A correct scheduling algorithm  can guarantee that all deadlines are met within their
@@ -186,7 +187,7 @@ change once the system is running.
 Dynamic or \emph{on-line} scheduling occurs while the system is running, and the schedule is
 calculated whenever a scheduling decision is required. In dynamic systems, the task set can change,
 allowing task parameters to be adjusted, and allowing tasks to be added and removed while the system
-is running.
+is running. All schedulers in known operating systems like Linux, are dynamic, online schedulers. 
 
 All possible permutations of task parameters are not schedulable, and optimal scheduling is
 equivalent to a bin-packing problem. Thus, we refer to feasible and non-feasible task sets. 
@@ -339,23 +340,29 @@ language~\citep{Burns_Wellings:crtpa}, often used to build real-time systems.
 
 \subsection{Earliest Deadline First versus Fixed Priority Scheduling}
 \label{s:overload}
-\TODO{Clarify what is and isn't a misconception: main one is overload, rest are BS}
 
-\gls{EDF} is less popular in commercial practice than \gls{FP} for a number of reasons.  \gls{EDF}
-is considered more complex to implement and to have higher overhead-related capacity loss.
-Both algorithms have different behaviour under overload, and many consider the \gls{FP} behaviour
-preferable.  Consequently, \gls{FP}
-is mandated by the POSIX standard.
+\gls{EDF} is less popular in commercial practice than \gls{FP} for a number of reasons, some which
+are misconceptions, such as complexity of implementation and algorithmic capacity loss, and others
+which represent concrete concerns, such as behaviour on overload. 
 
-One common argument for
-\gls{FPRM} is the idea that the algorithmic capacity loss is mediated by the overhead related
-capacity loss of \gls{EDF}, and much easier to implement. 
-
-However, all of these points were debunked by \citet{Buttazzo_05}.  Although \gls{EDF} is difficult
+In terms of misconceptions, \gls{EDF}
+is considered more complex to implement and to have higher overhead-related capacity loss. 
+However, both of these points were debunked by \citet{Buttazzo_05}.  Although \gls{EDF} is difficult
 and inefficient to implement on top of existing, priority-based \glspl{OS}, both schedulers
 can be considered equally complex to implement from scratch.  \gls{FP} scheduling has higher
 overhead-related capacity loss due to an increase in the amount of preemption.  This compounds the
-algorithmic capacity loss, rendering \gls{EDF} a clear winner in from-scratch implementations.
+algorithmic capacity loss, rendering \gls{EDF} a clear winner in from-scratch implementations in
+terms of both properties.
+
+Both algorithms behave differently under constant
+overload. \gls{EDF} allows progress for all jobs but at a lower rate, while \gls{FP} will
+continue to meet deadlines for jobs with higher \gls{RM} priorities, completely starving other
+jobs. Whether these behaviours are desirable is subject to context, under
+transient overload conditions both algorithms can cause deadline misses. \gls{FP} overload behaviour
+is often preferred, as it will drop jobs from lower priority tasks deterministically. In contrast,
+\gls{EDF} will drop jobs from all tasks, with no prioritisation. However, note that the
+deterministic overload behaviour of \gls{FP} scheduling comes with a price: optimal priority
+ordering is determined by the rate of jobs, not their importance to the system. 
 
 Other comparisons between \gls{EDF} and \gls{FP} are the complexity of their schedulability tests.
 \gls{EDF} and \gls{FP} scheduling both have pseudo-polynomial
@@ -365,14 +372,6 @@ that deadlines must be equal to periods ($d = p$), while periods themselves are 
 not minimum.} has an $O(n)$ schedulability test.  Like all pseudo-polynomial problems,
 approximations can be made to reduce the complexity, although this comes with an error factor which
 may not be suitable for \gls{HRT} systems.  
-
-Both algorithms behave differently under constant
-overload. \gls{EDF} allows progress for all jobs but at a lower rate, while \gls{FP} will
-continue to meet deadlines for jobs with higher \gls{RM} priorities, completely starving other
-jobs. Whether these behaviours are desirable is subject to context, under
-transient overload conditions both algorithms can cause deadline misses.
-
-% TODO mention reneging?
 
 \subsection{Multiprocessors}
 
@@ -475,8 +474,17 @@ true, thus avoiding the risk of deadlock. \gls{OPCP} results in less blocking ov
 however requires global state to be tracked across all tasks, even those that do not share
 resources, increasing the complexity of an implementation.
 
-Neither protocol requiring resource ceilings is suitable for dynamic priority scheduling algorithms
-like \gls{EDF}, however analogous algorithms exist, namely the \gls{SRP}~\citep{Baker_91}.
+\subsection{Stack Resource Protocol}
+
+Ceiling-based protocols are only appropriate for \gls{FP} schedulers, however the
+\gls{SRP}~\citep{Baker_91} is provides similar functionality for \gls{EDF}. Under the \gls{SRP}, 
+all tasks are assigned \emph{preemption levels} and all resources are assigned ceilings. A resource
+ceiling is derived from the maximum, preemption level of tasks accessing that specific resources.
+Similar to \gls{OPCP}, a system ceiling is also maintained, and is the maximum active preemption
+level of
+all tasks currently executing in the system. \gls{SRP} works by preventing preemption: a task is only allowed to preempt the system when two
+conditions are met: that tasks absolute deadline must be less than the currently executing task, and
+its preemption level must be higher than the current system ceiling. 
 
 \subsection{Other locking protocols}
 
