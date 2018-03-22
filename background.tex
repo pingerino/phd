@@ -486,17 +486,19 @@ all tasks currently executing in the system. \gls{SRP} works by preventing preem
 conditions are met: that tasks absolute deadline must be less than the currently executing task, and
 its preemption level must be higher than the current system ceiling. 
 
-\subsection{Other locking protocols}
+\subsection{Lock free algorithms}
 
-\TODO{Is there a reference for this subsection / I don't get why lock-free and wait-free can't be
-used?}
-We do not consider lock-free and wait-free algorithms in detail in this chapter, but note while
-these may be deployed in real time systems there are always resources that need true blocking in
-order to access them; in a word, stateful devices. For memory based resources, there is no need for 
-algorithms that avoid blocking, as long as the total blocking time is bounded 
-and fairness is not mandated. Any approach that is 
-transactional with no guarantee of progress is not suitable, additionally, fair algorithms are not suited to a
-real-time system, which are fundamentally not fair. 
+Lock-free data structures can be used to avoid locks and priority inversion altogether,
+on a uniprocessor this is achieved with
+atomic compare-and-swap, which is either supported by hardware or provided by disabling preemption. 
+Lock-free data structures allow concurrent access to the same memory, however interleaved access can
+result in a given operation being unbounded due to the failure of atomic retries. Although this
+seems incompatible with real-time systems, \citet{Anderson_RJ_97b} show that lock free approaches can
+be bounded and occur less overhead than wait-free or lock-based schemes.
+
+However, given our approach uses formal verification, we do not consider lock-free options further,
+as interleaving of program execution results in a state-space explosion and remains a challenge 
+for verification on a large scale. 
 
 \subsection{Summary}
 
@@ -538,6 +540,11 @@ Protocols for multiprocessor locking are either spinning- or suspension-based;
 task until the resource is available, such that other tasks can use the processor during that time.
 Spin-lock protocols are effective for short critical sections, but once the critical section exceeds
 the time taken to switch to another task and back, semaphore protocols are more efficient. 
+\citet{Brandenburg_CBLA_08} find that for small, simple objects, non-blocking algorithms are
+preferably, and that wait-free or spin-based approaches are better for large or complex objects,
+in a real-time context with few cores. 
+However, for systems with many-cores, spin-lock approaches do not scale beyond a small number (~10)
+cores~\citep{Clements_KZ_13}. 
 
 Multiprocessor locking protocols differ depending on the scheduling policy across cores; in
 partitioned approaches, priorities on different cores are not comparable, meaning existing protocols
