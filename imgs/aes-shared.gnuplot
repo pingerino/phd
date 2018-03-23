@@ -3,7 +3,7 @@ load "imgs/common.inc"
 
 set output "imgs/aes-shared.eps"
 # NX,NY are the number of graphs horizontally and vertically
-NX=3;NY=3
+NX=3;NY=2
 # DX,DY are the offset into the page that the graphs start at
 # SX,SY are the dimensios of the graphs themselves
 DX=0.15;DY=0.1;SX=0.3;SY=0.3
@@ -11,17 +11,12 @@ set bmargin 1; set tmargin 1; set lmargin 1; set rmargin 1
 set size SX*NX+DX*1.5+0.05,SY*NY+DY*1.8+0.1
 
 # data files
-x86_file_10 = "data/generated/haswell-shared-aes-10.dat"
-x86_file_100 = "data/generated/haswell-shared-aes-100.dat"
-x86_file_1000 = "data/generated/haswell-shared-aes-1000.dat"
-
 arm_file_10 = "data/generated/sabre-shared-aes-10.dat"
+x86_file_10 = "data/generated/haswell-shared-aes-10.dat"
 arm_file_100 = "data/generated/sabre-shared-aes-100.dat"
+x86_file_100 = "data/generated/haswell-shared-aes-100.dat"
 arm_file_1000 = "data/generated/sabre-shared-aes-1000.dat"
-
-tx1_file_10 = "data/generated/tx1-shared-aes-10.dat"
-tx1_file_100 = "data/generated/tx1-shared-aes-100.dat"
-tx1_file_1000 = "data/generated/tx1-shared-aes-1000.dat"
+x86_file_1000 = "data/generated/haswell-shared-aes-1000.dat"
 
 #set xlabel "A budget (ms)"
 set ytics nomirror
@@ -33,7 +28,7 @@ set y2range [0:100]
 set size SX,SY
 
 # dummy plot outside area to get full control over keys
-set key at screen 0.6, screen 1.1 center maxrows 1
+set key at screen 0.6, screen 0.8 center maxrows 1
 set origin 0,NY*2
 plot x86_file_10 using ($1/1000):($2):($3) with errorlines title "A", \
      x86_file_10 using ($1/1000):($5):($6) with errorlines title "B" axes x2y1, \
@@ -83,6 +78,7 @@ plot x86_file_1000 using ($1/1000):($2):($3) with errorlines title "A", \
 
 # plot arm results
 set yrange [0:15]
+set title "10ms period"
 # turn off x tick labels
 set format x ''
 set xtics 0,1
@@ -101,6 +97,7 @@ plot arm_file_10 using ($1/1000):($2):($3) with errorlines title "A", \
      arm_file_10 using ($1/1000):($8):($9) with errorlines title "base", \
      arm_file_10 using ($1/1000):(100 - $10*100) with errorlines title "cpu" axes x1y2
 
+set title "100ms period"
 set ylabel
 set xtics 0,25
 set format y ''
@@ -110,6 +107,7 @@ plot arm_file_100 using ($1/1000):($2):($3) with errorlines title "A", \
      arm_file_100 using ($1/1000):($8):($9) with errorlines title "base", \
      arm_file_100 using ($1/1000):(100 - $10*100) with errorlines title "cpu" axes x1y2
 
+set title "1000ms period"
 set format y2 '%3g'
 set xtics 0,250
 set y2label "CPU %"
@@ -118,48 +116,5 @@ plot arm_file_1000 using ($1/1000):($2):($3) with errorlines title "A", \
      arm_file_1000 using ($1/1000):($5):($6) with errorlines title "B" axes x2y1, \
      arm_file_1000 using ($1/1000):($8):($9) with errorlines title "base", \
      arm_file_1000 using ($1/1000):(100 - $10*100) with errorlines title "cpu" axes x1y2
-
-# plot tx1 results
-set yrange [0:70]
-# turn off x tick labels
-set format x ''
-set xtics 0,1
-set ylabel "TX1 Xput (MiB/s)"
-set ytics 0,20 
-# Turn off y2 tick labels
-set format y2 ''
-# Turn off y2 axis label
-set y2label
-# Turn on y tick labels
-set format y '%g'
-
-set title "10ms period"
-set origin DX,DY+SY*2
-plot tx1_file_10 using ($1/1000):($2):($3) with errorlines title "A", \
-     tx1_file_10 using ($1/1000):($5):($6) with errorlines title "B" axes x2y1, \
-     tx1_file_10 using ($1/1000):($8):($9) with errorlines title "base", \
-     tx1_file_10 using ($1/1000):(100 - $10*100) with errorlines title "cpu" axes x1y2
-
-set title "100ms period"
-set ylabel
-set xtics 0,25
-set format y ''
-set origin DX+SX,DY+SY*2
-plot tx1_file_100 using ($1/1000):($2):($3) with errorlines title "A", \
-     tx1_file_100 using ($1/1000):($5):($6) with errorlines title "B" axes x2y1, \
-     tx1_file_100 using ($1/1000):($8):($9) with errorlines title "base", \
-     tx1_file_100 using ($1/1000):(100 - $10*100) with errorlines title "cpu" axes x1y2
-
-set title "1000ms period"
-set format y2 '%g'
-set xtics 0,250
-set y2label "CPU %"
-set origin DX+SX*2,DY+SY*2
-plot tx1_file_1000 using ($1/1000):($2):($3) with errorlines title "A", \
-     tx1_file_1000 using ($1/1000):($5):($6) with errorlines title "B" axes x2y1, \
-     tx1_file_1000 using ($1/1000):($8):($9) with errorlines title "base", \
-     tx1_file_1000 using ($1/1000):(100 - $10*100) with errorlines title "cpu" axes x1y2
-
-
 
 unset multiplot

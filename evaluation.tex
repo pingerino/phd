@@ -725,9 +725,6 @@ thus monopolising the processor. In all other cases, each client
 processes at most 4\,MiB of data per period, and either succeeds (if
 the budget is sufficient) or is rolled back after processing less than 4\,MiB.
 
-\TODO{I've just added the TX1 data and I don't understand it. If I can't figure it out, I'll omit
-it}
-
 \begin{figure*}[t]
   \centering
   \includegraphics{aes-shared}
@@ -876,7 +873,7 @@ utilisation for each stage respectively. Standard deviations are shown in parent
 \end{table}
 
 \subsection{User-level EDF}\label{s:edf-impl}
-\TODO{If I get time I'll get this to work on TX1 and Hikey and add here}
+
 We implement the EDF scheduler as an active server with active
 clients which run at an \selfour priority below the user-level scheduler.
 The scheduler waits on an endpoint on which it receives messages from
