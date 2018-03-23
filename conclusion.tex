@@ -28,36 +28,6 @@ specifications written and first-level refinement proofs are currently in progre
 beyond the scope of this PhD, although we continue to work closely with the team to assist in
 verification. 
 
-\section{Related work}
-
-% survey any related work here not covered by the OS chapter?
-Nemesis~\citep{Leslie_MBRBEFH_96} was a single-address-space microkernel designed for multimedia
-performance, however this architecture is not suitable for mixed-criticality systems as all the
-code must be at the highest criticality.
-
-AUTOBEST~\citep{Zuepke_BL_15} is a separation kernel where the authors demonstrate implementations
-of AUTOSAR and ARINC653 in separate partitions.
-
-\minix is a traditional microkernel with a focus on reliability rather than performance.
-\citet{Herder_BGHT_06} implemented temporal isolation in \minix by allowing threads to be
-selectively switched to \gls{EDF} scheduling, and providing hooks that allowed for a \gls{CBS}
-implementation at user level. % TODO why bad.
-
-% already mentioned, refer back, but more detail here?
-Quest-V~\citep{Danish_LW_11} provides reservations through \gls{SS}, however \IO and normal
-processes are distinguished statically: \IO processes use polling servers and normal processes
-use sporadic servers. In Quest-V, separate partitions are assigned to different priority levels,
-and communication via shared memory and inter-processor interrupts is permitted between
-partitions.
-
-\fiascooc introduced scheduling contexts in order to allow paravirtualised guests to switch between
-scheduling context with different parameters in order to provide flattened hierarchical
-scheduling~\citep{Lackorzynski_WVH_12}, which prevents scheduling integrity violations when
-scheduling multiple real-time guests by exporting scheduling information to the hypervisor.
-Scheduling contexts in \fiascooc contained a budget, a replenishment rule, and a priority, and
-guests can change scheduling contexts on priority switches and interrupt service routines.
-
-\citet{Petters_LHE_09} completed an implementation of RBED in OKL4.
 
 \section{Future work}
 

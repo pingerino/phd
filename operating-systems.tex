@@ -9,7 +9,7 @@ the scheduling and resource sharing policies and mechanisms available, with a fo
 asymmetric protection, policy freedom, and resource sharing.  
 % TODO is asymmetric protection still a thing we want to support?
 First we present a number of industry standards, before examining
-Linux other open source operating systems, in addition to
+Linux and other open source operating systems, in addition to
 commercial offerings, in order to establish current industry standards for temporal isolation.
 Finally, we survey existing, relevant operating systems
 from systems research, deeply examining techniques that can be leveraged to build mixed-criticality
@@ -17,7 +17,8 @@ systems, including isolation and resource sharing techniques.
 
 \section{Standards}
 
-In order to establish standard industry practices, we first present three standards (POSIX, ARINC
+In order to establish standard industry practices, we first present three standards industry
+standards which provide real-time scheduling and resource sharing (POSIX, ARINC
 653, and AUTOSAR) and examine their mechanisms for temporal isolation and resource sharing.
 
 \subsection{POSIX}
@@ -136,7 +137,7 @@ privileged mode. This is effectively an all-or-nothing mechanism for spatial iso
 from the fact that much of the hardware AUTOSAR runs on is embedded without an \gls{MMU}, which
 would allow for more fine-grained spatial isolation.
 In terms of temporal isolation, AUTOSAR provides a mechanism referred to as \emph{timing
-protection}, where tasks execution times, resource access durations and inter-arrival times are
+protection}, where task's execution times, resource access durations and inter-arrival times are
 specified and monitored, such that exceptions can be raised on temporal
 violations~\citep{Zuepke_BL_15}. 
 
@@ -162,14 +163,14 @@ partitions with no flexibility.
 \section{Existing operating systems}
 
 There is a significant gap between real-time theory, as surveyed in the last chapter, and real-time
-practice, which we have partially highlighted in the previous section. Now we survey of existing open-source
+practice, which we have partially highlighted in the previous section. Now we survey existing open-source
 and commercial operating systems, which are used in practice, to demonstrate the status quo, and 
 the impact of the discussed specifications and standards on their development.
 
 \subsection{Open source}
 
 Many open source \glspl{OS} are used in real-time settings, although generally not in
-safety-criticality systems. Regardless, temporal isolation and resource sharing mechanisms remain important to
+high-assurance, safety-critical systems. Regardless, temporal isolation and resource sharing mechanisms remain important to
 guarantee the function of the software.
 
 \subsubsection{Linux}
@@ -181,7 +182,7 @@ provide low-criticality services in a mixed-criticality setting, as long as it i
 isolated. Additionally, Linux is often used as a platform for conducting real-time systems research. 
 
 % TODO cite completely fair scheduler
-Linux has fixed-priority preemptive scheduler which is split into scheduling classes.  Real-time
+Linux has a fixed-priority preemptive scheduler which is split into scheduling classes.  Real-time
 threads can be scheduled with \gls{POSIX} \schedfifo and \schedsporadic. Best-effort threads are
 scheduled with the time-sharing \gls{CFS}, and real-time threads are scheduled either \gls{FIFO} or round-robin, and
 are prioritised over the best-effort tasks.  Fixed priority threads in Linux are completely trusted:
@@ -221,16 +222,16 @@ practical use, but for developing and benchmarking scheduling and resource shari
 Implementations of global- and partitioned-, EDF and FP schedulers exist for \litmus, in addition to
 \emph{PFair} schedulers. A \gls{SS} implementation exists, as well as various multicore,
 real-time locking protocols.
-Both MC$^@$ (\cref{sec:sched-mc2} and MC-IPC (\cref{sec:sched-mc-ipc}, which were discussed in are implemented
+Both MC$^2$ (\cref{sec:sched-mc2}) and MC-IPC (\cref{sec:sched-mc-ipc}) are implemented
 and evaluated using \litmus. However both contain strict policies, not mechanisms, that are only
 suitable for a monolithic kernel. Additionally, MC-IPC is a very heavy-weight \gls{IPC}. 
 
 \linuxrk~\citep{Oikawa_Rajkumar_98} is a resource kernel implementation of Linux with scheduling,
-admission control, and enforcement in the kernel. Every resource, memory, CPU time and devices was
+admission control, and enforcement in the kernel. Every resource, memory, CPU time and device is 
 time-multiplexed using a recurrence period, processing time and deadline. Reservations in \linuxrk
-could be hard, firm of soft, which altered resource scheduling after a resource was exhausted. Hard
-reservations were not scheduled again until replenishment, firm would only be scheduled if no other
-undepleted reserve or unreserved resource use was scheduled, while soft allowed resource usage to be
+can be hard, firm of soft, which alters resource scheduling after exhaustion. Hard
+reservations are not scheduled again until replenishment, firm are only scheduled if no other
+undepleted reserve or unreserved resource use is scheduled, while soft allows resource usage to be
 scheduled at a background priority. \linuxrk is additionally often used to implement and test other
 schedulers, such as \Gls{ZS} scheduling~\citep{deNiz_LR_09}, which was presented in
 \cref{s:zero-slack-scheduling}.
@@ -286,7 +287,7 @@ scheduler.
 
 \subsubsection{PikeOS}
 
-PikeOS~\citep{PikeOS:URL} is a second-generation microkernel which implements ARINC 653~\citep{ARINC653} 
+PikeOS~\citep{PikeOS:URL} is a second-generation microkernel which implements ARINC 653 
 and runs RTOSes as paravirtualised guests in different partitions. Partitions are scheduled
 statically in a cyclic fashion, and each partition has its own scheduling structure supporting 256
 priorities.
@@ -360,32 +361,41 @@ The majority of kernels surveyed here are microkernels, as introduced in
 \cref{sec:background-operating-systems} and are as follows: 
 
 \begin{itemize}
+    \item KeyKOS~\citep{Bomberger_FFHLS_92}, a persistent, capability based microkernel. 
     \item Real-time Mach~\citep{Mercer_RZ_94, Mercer_ST_93}, a first-generation microkernel.
     \item The \gls{DROPS}~\citep{Haertig_BBHHMRSW_98}, a second
         generation, L4 microkernel.
     \item EROS~\citep{Shapiro_SF_99}, the first third-generation microkernel.
     \item Fiasco~\citep{Hohmuth_02} is a second-generation L4 microkernel, with fixed-priority scheduling.
+    \item \minix~\citep{Herder_BGHT_06}, a traditional microkernel with a focus on reliability
+        rather than performance. 
     \item Tiptoe~\citep{Craciunas_KPRS_09} is a now-defunct research microkernel that also aims at
 temporal isolation between user-level processes and the operating system.
     \item NOVA~\citep{Steinberg_Kauer_10} a third-generation microkernel and hypervisor.
-    \item \composite~\citep{Parmer:phd} is a component-based \gls{OS} with similar with goals to a microkernel,
+    \item \composite~\citep{Parmer:phd} is a component-based \gls{OS} with similar goals to a microkernel,
 however with a more dominant focus on support for fine-grained components, and massive scalability.
-    \item \citet{FiascoOC:URL}, a third-generation iteration of Fiasco, both microkernel and
-        hypervisor.
     \item Barrelfish~\citep{Peter_SBBIHR_10} is a capability-based multi-kernel \gls{OS}, where a separate kernel runs on each processing core and kernels themselves share no memory and are essentially \emph{\gls{CPU}-drivers}.
+    \item \fiascooc~\citep{Lackorzynski_WVH_12}, a third-generation iteration of Fiasco, both microkernel and
+        hypervisor.
     \item Quest-V~\citep{Danish_LW_11} is a separation kernel / hypervisor.
     \item \selfour~\citep{Klein_AEMSKH_14}, a third-generation microkernel with
         hypervisor support and a proof of functional correctness. We present \selfour 
         and its mechanisms in more detail in \cref{chap:sel4}.
+    \item AUTOBEST~\citep{Zuepke_BL_15} is a separation kernel where the authors demonstrate implementations
+           of AUTOSAR and ARINC653 in separate partitions.
 \end{itemize}
 
+We do not consider Nemesis~\citep{Leslie_MBRBEFH_96}, as although it treated time as a first-class
+resource, the focus was on multimedia performance. Nemesis was as single-address-space operating
+system, which rules out any possibility of isolation.
 
 \subsection{Scheduling}
 
 As in commercial and open source \glspl{OS}, fixed-priority scheduling dominates in research, with
 only Tiptoe and Barrelfish providing \gls{EDF} schedulers, although \minix has been adapted for 
 real-time~\citep{Mancina_LFHGT_09}, by allowing the kernel's best-effort scheduling to be
-set to \gls{EDF} on a per-process basis.   
+set to \gls{EDF} on a per-process basis, with kernel scheduler activations that allow for a
+user-level \gls{CBS} implementation.    
 
 \composite stands out, as it does not provide a scheduler or blocking semantics in the kernel at all,
 requiring user-level
@@ -403,7 +413,7 @@ their own policy.
 \label{s:timeslices-and-meters}
 
 Meters were one of the first mechanisms used to treat time as a resource, originating 
-in KeyKOS ~\citep{Bomberger_FFHLS_92}. A \emph{meter} represented a
+in KeyKOS. A \emph{meter} represented a
 defined length of processing time, and threads required meters to execute. Once a meter was
 depleted a higher authority was required to replenish it, requiring another thread to run.
 
@@ -439,7 +449,7 @@ Reservation schemes differ in the algorithm used to ensure the specified bandwid
 exceeded: Mach and EROS used \gls{DS}, Tiptoe \gls{CBS}, while Barrelfish provides \gls{RBED}. 
 \Glspl{SS} are provided by Quest-V~\citep{Li_WCM_14}, which address the back-to-back
 problem of \gls{DS} however require a more complex implementation.
-Quest-V~\citep{Danish_LW_11} provides reservations through \gls{SS}, however \IO and normal processes
+Quest-V provides reservations through \gls{SS}, however \IO and normal processes
 are distinguished statically: \IO processes use polling servers and normal processes use sporadic
 servers. 
 
@@ -460,7 +470,7 @@ best-effort and \gls{SRT} tasks can run in slack time.
 higher priority for a certain amount of cycles, before returning to a lower priority, essentially
 running expired reservations in slack time. 
 
-The importance or reservations also varies. In the case of RBED, the highest criticality threads
+The importance of reservations also varies. In the case of RBED, the highest criticality threads
 are trusted, and their execution is not monitored at all, while threads with reservations are
 considered second tier and best-effort threads the least important. This allows for a strict form 
 of asymmetric protection where \gls{HRT} threads can temporally effect \gls{SRT} threads and
@@ -513,7 +523,7 @@ Timeslice donation works as follows: the client calls the server, if the server 
 priority it is switched to directly without invoking the scheduler at all, effectively a yield.
 The intuition is that in
 a fast IPC system, the request should be finished before the timeslice expires. In reality, longer
-requests do occur, so while the clients timeslice is used for the start of the request, the servers
+requests do occur, so while the client's timeslice is used for the start of the request, the server's
 timeslice is used beyond that. This results in no
 proper accounting of the server's execution, and no temporal isolation.
 
@@ -584,8 +594,8 @@ differentiating temporal and spatial capabilities.
 
 The major challenge of applying capabilities to time is the fact that time cannot be treated
 as fungible. This is very different to spatial resources like memory, which is rendered fungible by the
-flexibility of virtual memory systems: it where a page of memory is, as long as it has the correct
-contents. One window of time is not replaceable for another window, even in the case of a
+flexibility of virtual memory systems: a page of memory can be swapped for another page,
+as long as it has the correct contents. One window of time is not replaceable for another window, even in the case of a
 best-effort task: a minor change in schedule can force a deadline miss somewhere else.
 Consider real estate: like time, it is (arbitrarily) divisible but not fungible: If
 a block is too small to build a house, then having a second,
@@ -599,7 +609,6 @@ this delegation is not their defining characteristic, which is actually
 \emph{prima facie evidence of access}; in the case of time
 capabilities, the access is to processor time.
 Previous implementations all have caveats and limitations, which we now detail.
-
 
 KeyKOS provided capabilities to \emph{meters}, which granted the holder
 the right to execute for the unit of time held by the meter, however as established in 
@@ -639,8 +648,8 @@ implement in a capability system.
 
 \section{Summary}
 % TODO rewrite to reflect update
-In this chapter we have reviewed standards and specifications for real-time operation systems,
-commercial and open-source real-time operation systems, and finally, surveyed the state-of-the-art
+In this chapter we have reviewed standards and specifications for real-time operating systems,
+commercial and open-source real-time operating systems, and finally, surveyed the state-of-the-art
 research into mechanisms for temporal isolation, resource sharing, and access control to processing
 time.
 
