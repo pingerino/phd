@@ -218,9 +218,12 @@ schedulers to be easily developed for testing multiprocessor schedulers which sc
 threads. Real-time schedulers run at a higher priority than best-effort threads, and schedulers can
 be dynamically switched at run time. \litmus is not intended for
 practical use, but for developing and benchmarking scheduling and resource sharing algorithms.
-Implementations of global- and partitioned-, EDF and FP schedulers exist for LITMUS, in addition to
+Implementations of global- and partitioned-, EDF and FP schedulers exist for \litmus, in addition to
 \emph{PFair} schedulers. A \gls{SS} implementation exists, as well as various multicore,
 real-time locking protocols.
+Both MC$^@$ (\cref{sec:sched-mc2} and MC-IPC (\cref{sec:sched-mc-ipc}, which were discussed in are implemented
+and evaluated using \litmus. However both contain strict policies, not mechanisms, that are only
+suitable for a monolithic kernel. Additionally, MC-IPC is a very heavy-weight \gls{IPC}. 
 
 \linuxrk~\citep{Oikawa_Rajkumar_98} is a resource kernel implementation of Linux with scheduling,
 admission control, and enforcement in the kernel. Every resource, memory, CPU time and devices was

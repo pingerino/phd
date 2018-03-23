@@ -47,13 +47,6 @@ approaches discussed so far provide temporal isolation, although both can be ada
 this chapter we examine the techniques used by the real-time community to achieve temporal
 isolation.
 
-% TODO we should consider asymmetric protection here?
-% TODO this sounds like it belongs in the chapter summary
-%Temporal isolation requires tasks to specify their expected, or permitted temporal behaviour. This
-%can be done by specifying a processor share, as in proportional share schedulers, or by using the
-%period and execution requirement of the sporadic task model as an upper bound on task processor
-%utilisation.
-
 \section{Scheduling}
 
 % TODO intro here
@@ -143,8 +136,8 @@ it, and breaks down \gls{SRT} jobs into sub-jobs such that the utilisation rate 
 exceed the assigned bandwidth.  Any sub-job that will cause the bandwidth to be exceeded is
 postponed, but still executed.
 
-\gls{CBS} stands out from previous server-based approaches~\citep{Spuri_Buttazzo_96,
-Ghazalie_Baker_95, Spuri_Buttazzo_94, Deng_Liu_97} as it does not require a \gls{WCET} or a minimum
+\gls{CBS} stands out from previous server-based approaches like the total bandwidth
+server\citep{Spuri_Buttazzo_94} as it does not require a \gls{WCET} or a minimum
 bound on job inter-arrival time, making it much more suitable for \gls{SRT} tasks.  Implementation
 wise, \gls{CBS} has less hardware overheads than Pfair schedulers.
 
@@ -178,29 +171,34 @@ real-time tasks more explicitly.
 \subsection{Isolation with FP schedulers}
 \label{background:fp-isolation}
 
-While \gls{CBS} and \gls{RBED} provide temporal isolation for \gls{EDF} scheduling, we will now
-examine methods for temporal isolation in fixed-priority systems, whilst maintaining compatibility
-with rate-monotonic schedulability tests.  Like \gls{CBS}, tasks are constrained by encapsulating
-one or more tasks in a server which prevents the task(s) from overrunning their assigned scheduling
-parameters.
+We will now
+examine methods for temporal isolation in fixed-priority systems. 
+Like \gls{CBS}, tasks are constrained by being encapsulating in a server, an algorithm which
+rations out processing time, preventing specific scheduling parameters from being exceeded.
+Approaches include polling servers, deferrable servers, sporadic servers, priority exchange servers
+and slack stealing servers. 
+
 
 \subsubsection{Polling servers}
 \label{p:polling-servers}
 
 Polling servers~\citep{Lehoczky_LS_87} wake every period,
-to check if there are any pending tasks, then runs them for maximum their budget time. If there is no
+to check if there are any pending jobs, then runs them for maximum their budget time. If there is no
 task to run, the polling server will go back to sleep. That is, at time $t_{i}$, if there are no
 tasks ready to execute, the server will sleep until $t_{i+1}$. This has the limitation that task latency
-is a function of the period $T$.
+is just under the period $T$ -- if an event triggers a job just after the polling server wakes,
+finds there is no work and returns to sleep, the pending job is delayed until the polling server
+wakes again. 
 
 \subsubsection{Deferrable Servers}
 \label{p:ds} 
 
 Unlike polling servers, \emph{deferrable
 servers}~\citep{Lehoczky_LS_87, Strosnider_LS_95} preserve any unused budget across periods, although
-the budget can never be exceeded.  This removes latency problems with polling servers, but
-unfortunately breaks rate-monotonic schedulability analysis, as this policy can result in servers
-executing back-to-back and exceeding their allocated scheduling bandwidth for any specific occurrence of
+the budget can never be exceeded.  This removes latency problems with polling servers, as deferrable
+servers can wake any time a job is available. Unfortunately, deferrable servers do not provide 
+true temporal isolation and cannot guarantee that tasks will not exceed a maximum bandwidth. 
+This is due to the fact that deferrable servers permit jobs to execute back-to-back, thus exceeding their allocated scheduling bandwidth for any specific occurrence of
 the period.  This occurs as deferrable servers replenish the budget to full at the start of each
 period, and the budget can be used at any point during a task's execution. 
 
@@ -231,7 +229,7 @@ accurate the sporadic server, but the more memory used resulting in degraded per
 
 \subsubsection{Priority exchange servers}
 
-Priority exchange servers~\citep{Sprunt_SL_89a} allow inactive, high-priority tasks to swap their
+Priority exchange servers~\citep{Sprunt_SL_89a, Spuri_Buttazzo_94} allow inactive, high-priority tasks to swap their
 priorities with active, low-priority tasks, such that server capacity is not lost but used at a lower
 priority. Implementations of priority exchange require control and access to priorities across an
 entire system.
@@ -258,7 +256,7 @@ a criticality mode-switch increases $L_{now}$.
 
 \citet{Vestal_07}'s model can be interpreted in several ways; as a form of graceful degradation; or as an
 optimisation in the case where a system designer and \gls{CA} disagree on \gls{WCET}
-estimates for a system, which results in a tasks with two {\gls{WCET}} estimates, one very pessimistic one from
+estimates for a system, which results in tasks with two {\gls{WCET}} estimates, one very pessimistic one from
 the \gls{CA} and a less pessimistic one from the system designers or automated tools. 
 Theoretically, if the system designer could show that the higher estimates
 of the \gls{CA} can be met by such a mode change, they could schedule less criticality tasks
@@ -276,7 +274,11 @@ high-criticality tasks.  If high-criticality tasks finish before the lower \gls{
 lower criticality tasks are also scheduled.  Otherwise, tasks of lower criticality may not be
 scheduled at all. 
 
-Scheduling algorithms in this class are distinguished by a \emph{criticality mode-switch} between two or more criticality levels,
+\subsection{Static mixed-criticality}
+
+Static mixed-criticality schedulers are built for variants on \citet{Vestal_07}'s model.
+Scheduling algorithms in this class are distinguished by a \emph{criticality mode-switch}
+between two or more criticality levels,
 which may result in low criticality tasks being dropped or de-prioritised in some way. 
 Schedulers for this model of mixed-criticality have been developed and extensively studied for
 \gls{FP}~\citep{Vestal_07, Pathan:phd} and \gls{EDF}~\citep{Baruah_BDMVS_11}, and further. 
@@ -289,6 +291,27 @@ in the real-time community, questions have been raised as to its practicality in
 definitions and state that the focus of mixed-criticality research should be on
 providing systems for error handling and proof of isolation in order to make mixed-criticality
 systems practical.
+
+\subsection{MC$^2$}
+\label{sec:sched-mc2}
+
+MC$^2$~\citep{Herman_KMAJ_12} is a mixed-criticality two-level hierarchical scheduler 
+for multiprocessors with low core counts (2--8) which defines levels of task, which are scheduled differently.
+\emph{Level-A} tasks are high-criticality tasks which are scheduled with a cyclic executive (recall
+\label{s:cyclic-executive}), with parameters computed offline. If no level-A tasks are eligible to
+run, including in slack left in cyclic, level-A frames, \emph{level-B} tasks are considered. Level-B
+tasks are trusted, \gls{HRT} tasks scheduled with partitioned \gls{EDF}, where one \gls{EDF}
+scheduler exists per processor.
+The authors note that the scheduler at level-B could be swapped with \gls{FPRM}.
+In the slack left by level-A and level-B tasks, level-C tasks can run. Level-C tasks are globally
+scheduled with \gls{EDF}, using one scheduler queue for all cores. The intuition is that level-C
+tasks are \gls{SRT} tasks which run in the slack time of the more critical level-A and level-B
+tasks. Level-D tasks are considered to be best-effort tasks, and are scheduled in the remaining
+slack from A,B and C. MC$^2$ also has optional \emph{budget enforcement} that can be applied to all
+levels of task, which prevents tasks from exceeding a specified bandwidth. 
+
+The MC$^2$ scheduler is an example of a combination of policies, where criticality and real-time
+model are aligned, in a way that may not be appropriate for all systems.
 
 \subsection{Zero Slack Scheduling}
 \label{s:zero-slack-scheduling}
@@ -325,24 +348,36 @@ allow for further prioritisation than simply the rate of the task, required by \
 
 \section{Resource sharing}
 
-Like the scheduling algorithms, the locking protocols presented in
-\Cref{sec:resource-sharing-theory} do not work if tasks are untrusted: in all the protocols, if a
-task does not voluntarily release the resource, all other tasks sharing that resource will be
-blocked.
-
 One of our goals is to allow tasks of different criticality to share resources.  While the resource
-itself must be at the highest criticality of systems using it, this relationship need not be
-symmetric; low criticality systems should be able to use high criticality resources.
-
+itself must be at the highest criticality of any task using it, this relationship is not
+necessarily symmetric; low criticality systems should be able to use high criticality resources, as
+long as their resource access is bounded. 
 In this section we explore how resource reservations and real-time locking protocols interact, and
-asses their suitability for mixed criticality systems.  As introduced in
-\cref{sec:resource-kernels}, when combining locking protocols and reservations one must consider
-prioritisation, charging and enforcement.
+asses their suitability for mixed criticality systems.
+
+So far in this chapter we have looked at real-time
+theory for providing temporal isolation: usually in the form of isolation algorithms (termed servers
+in real-time theory) which
+ration out execution time, guaranteeing a maximum bandwidth or allowing aperiodic tasks to run in
+the slack time of other tasks. Similarly, the resource sharing locking protocols of priority
+inheritance and ceiling priorities are not designed to work if tasks misbehave: in all the
+protocols, if a
+task does not voluntarily release a resource, all other tasks sharing that resource will be
+blocked. One cannot blindly apply a technique like polling servers directly to resource sharing, as if the
+bandwidth expires while the resource is held no other task can access that resource.
+
+Resource kernels, as introduced in \cref{sec:resource-kernels}, outline the policy decisions that
+must be made when combining locking protocols and reservations: prioritisation, charging and
+enforcement. 
 
 Prioritisation, or what priority a task uses while accessing a resource, can be decided by any of
-the existing protocols: \gls{OPCP}, \gls{IPCP}, \gls{PIP} or \gls{SRP}. Which reservation to charge 
-for processing time consumed when accessing a shared resource, and when to charge, are more
-interesting. \citet{deNiz_LSR_01} describe the possible mappings
+the existing protocols: \gls{OPCP}, \gls{IPCP}, \gls{PIP} or \gls{SRP}. Charging is more complex.
+Notionally, when a thread is temporally contained by an isolation algorithm, that algorithm
+corresponds to a reservation. Under normal execution, the reservation is charged when that thread
+executes. However, if a several threads are vying for a resource, which thread's reservation should
+be charged for the time executed accessing that resource> 
+
+\citet{deNiz_LSR_01} describe the possible mappings
 between reservations and resources consuming those reservations, which comes down to the following
 choices:
 
@@ -357,36 +392,58 @@ choices:
     actively switches between them depending on which task it is servicing. 
 \end{description} 
 
-Of most relevant to mixed-criticality systems, where tasks cannot be guaranteed to unlock a
-resource, is the enforcement mechanism.  Many protocols rely on tasks being trusted with \emph{a
-priori} knowledge of a task's resource usage.  However, in systems where tasks may not be trusted
-(either due to security, certification level, or potential bugs) such \emph{a priori}
-knowledge is unavailable. 
+Finally, of the most relevant to mixed-criticality systems, is enforcement: if the reservation being
+charged for a resource access is fully consumed, what should happen? Without an enforcement
+mechanism, all tasks waiting to access that resource are blocked until more execution bandwidth is
+rationed by the isolation algorithm. In the majority of cases, the bandwidth inheritance is used,
+relying on the idea that any operations involving shared resources in real-time systems are bounded.
+Then, depending on the prioritisation protocol, tasks must have enough budget to account for that
+bound. This imposes a major restriction on shared resources: even in the case where soft-real time
+access is required of those resources, bounds must be known.
 
-\citet{Brandenburg_14} outlines a multiprocessor \gls{IPC} based protocol where shared resources are placed in
-resource servers accessed. In this scheme, the resources themselves must be at the ceiling
-criticality of any task accessing those resources, but all tasks do not have to be at that
-criticality level. The protocol works by channelling all IPC requests through a three-level,
-multi-ended queue where high criticality tasks are prioritised over best-effort tasks. 
+\subsection{MC-IPC}
+\label{sec:sched-mc-ipc}
+
+\citet{Brandenburg_14} implements a multiprocessor \gls{IPC}-based protocol referred to as MC-IPC,
+where shared resources are placed in resource servers accessed. In this scheme, the resources
+themselves must be at the ceiling criticality of any task accessing those resources,
+but all tasks do not have to be at that criticality level.
+The protocol works by channelling all IPC requests through a three-level, multi-ended queue
+where high-criticality tasks are prioritised over best-effort tasks. The protocol relies on bounded
+resource access if a task exhausts its allocation while using the resource, combined with correct
+queue ordering such that high-criticality tasks are not blocked by low-criticality ones. 
 
 \section{Summary}
 
-%TODO{rewrite to include whole chapter}
+In traditional scheduling algorithms (\gls{EDF} and \gls{FPRM}), temporal isolation only exists as a
+convention: tasks are expected to specify their parameters \emph{a priori}, and trusted to not
+exceed those parameters, an approach which is not suitable for mixed-criticality systems, where
+tasks of different levels of assurance need to share resources.
 
-Traditional scheduling algorithms, like \gls{EDF} and \gls{FP}-\gls{RM} schedule processor time but do not consider criticality differences between tasks, and also trust all tasks to stay within their \gls{WCET}.
-Due to pessimism in \gls{WCET} estimates, this results in low utilisation in such systems and also
-prevents systems of mixed-criticality being constructed safely and securely.
+In this chapter we have covered theoretical techniques for temporal isolation, mostly derived from 
+theoretical approaches to contain aperiodic tasks, which are unpredictable workloads. One approach
+is to specify a processor share, or bandwidth, and use an algorithm such as \gls{CBS} or \gls{SS} to 
+temporally contain a task. The majority of these algorithms can be used to implement processor
+reservations.
 
-% TODO asymmetric protection comes out of the blue here
-Mixed-criticality systems require at minimum temporal isolation, however the asymmetric protection property allows for higher utilisation in systems.
-\gls{EDF} and \gls{FP} scheduling can be adapted to have temporal isolation, or another approach, like PFair scheduling can be used to provide temporal isolation.
-Much research has been done into scheduling algorithms that provide asymmetric protection, but the consequences of practical implementations in \glspl{OS} have yet to be explored.
+We also examined several mixed-criticality schedulers, however all incorporated a great deal of
+policy: schedulers that provide a criticality mode switch assume multiple \gls{WCET} estimates, and
+that low-criticality tasks can be de-prioritised or dropped. MC$^2$ defines four levels of
+scheduling and assumes that the highest criticality task are also hard real time, and that
+best-effort tasks are less critical than \gls{SRT} tasks, while \gls{ZS}-scheduling is optimised for
+a particular measure of utility. 
 
-A key observation about mixed-criticality systems is neither the strictness of the real-time model,
-nor rate-monotonic priorities have any direct correlation with the criticality of a task.  While in
+The mixed-criticality schedulers studied all assume that the criticality of a task is directly
+related to the real-time strictness: for example, MC$^2$ prioritises \gls{HRT} over \gls{SRT}. 
+While in
 general critical tasks are \gls{HRT}, it is possible to have critical tasks that are \gls{SRT}, for
 instance, object tracking algorithms whose \gls{WCET} depends on factors external to the software
-system.
+system. Therefore, although the scheduling policies discussed can solve a specific problem, they are
+not appropriate for all systems, and should not be mandated.
 
-In the next chapter, we survey existing operating systems and systems techniques with respect to temporal isolation capability, resource sharing, and asymmetric protection.
+Finally, we looked at resource sharing, and how this interacts with processor reservations,
+We saw that while there are existing policies for prioritisation and charging, the
+majority of enforcement mechanisms are based on bandwidth inheritance. 
 
+In the next chapter, we survey existing operating systems and systems techniques with respect to
+temporal isolation capability, resource sharing, and asymmetric protection.
