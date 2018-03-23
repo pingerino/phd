@@ -83,7 +83,7 @@ reprogram the timer on non-fastpath kernel entries, and when performing a schedu
 We show the results of microbenchmarks of both of these operations in \Cref{t:evaluation-timer}, and
 note the timer hardware used on the specific platform. 
 
-\begin{table}[b]\centering
+\begin{table}[t]\centering
 \rowcolors{2}{gray!25}{white}
 \begin{tabularx}{\textwidth}{lXccc}\toprule
     \emph{Platform} & \emph{Timer} & \emph{Read time} & \emph{Set timeout} & \emph{Sum}
@@ -111,13 +111,13 @@ All platforms excluding \textsc{KZM} have a 64-bit timer available, making \text
 platform requiring timer overflow interrupts, which are not measured as \textsc{KZM} is a deprecated
 platform provided for comparison with modern ARM versions.
 
-\textsc{Sabre} and \textsc{KZM} both use memory mapped timers, the 32-bit general purpose timer for
+\textsc{KZM} and \textsc{Sabre} both use memory mapped timers, the 32-bit general purpose timer for
 the former and 64-bit ARM global timer for the latter. \textsc{Sabre} has four cores and the timer
 registers are banked, making access fast for each core. Timer access on \textsc{Sabre} is
 significantly faster than the \textsc{KZM}. 
 
 For all other ARM platforms, the ARM generic timers are available, which are accessed via the
-coprocessor. The majority of new ARM platforms support the generic timers. 
+coprocessor. The majority of new ARM platforms support the ARM generic timers. 
 
 On \textsc{x64} we use the \gls{TSC} with \gls{TSC}-deadline
 mode~\citep{Intel_64_IA-32:asdmspg_325384}, an architectural \gls{MSR} available since
@@ -188,10 +188,12 @@ and resume object) and two validation checks. In detail, the \call fastpath is a
 Overheads on the \call fastpath are low, with the worst effected platform being
 \textsc{KZM} with a 10\% overhead, which is the oldest platform with the smallest caches. On call,
 \textsc{KZM} shows L1 data cache miss and 1 memory access, which shows that the new fastpath does not
-fit into the small, 16KiB L1 cache. \textsc{Sabre} suffers a 7\% overhead, due to a TLB miss likely
-due to the relatively low associativity on Cortex-A9 TLBs.  In general, as hardware becomes newer the overhead is reduces,
-except for the \textsc{Hikey} which has in order execution compared to all other
-platforms, we posit that further hand optimisation of the fastpath would result in better
+fit into the small, 16KiB L1 cache. \textsc{Sabre} suffers a 7\% overhead, due to a \gls{TLB} miss likely
+due to the relatively low associativity on Cortex-A9 \glspl{TLB}.  In general, as hardware becomes newer the
+overhead reduces, with the exception of the \textsc{Hikey} which is the only platform we use that has in
+order execution. Additionally \textsc{Hikey} has a smaller L2 cache than the older \textsc{Sabre},
+but a larger \gls{TLB} wit higher associativity.
+We posit that for the Hikey, further hand optimisation of the fastpath would result in better
 performance. The newest ARM hardware is the TX1, which only shows a 5\% overhead. x86 with its large
 caches and highly optimised pipeline only incurs a 1\% overhead. For further detail on the
 numbers read from the performance counters cited here, please see
@@ -199,7 +201,7 @@ numbers read from the performance counters cited here, please see
 
 The fastpath for \replyrecv has a higher impact, for two reasons: first, we add a new capability
 lookup, being the resume object provided to receive, which must be looked up by the \replyrecv
-fastpath. Although we remove of the reply capability from the \gls{TCB}
+fastpath. Although we remove of reply capability from the \gls{TCB}
 \code{cnode}, that \code{cnode} is still accessed to validate the caller's root cspace capability
 and top-level page directory capability, so that cache line is still read. Additionally, because
 \gls{IPC} is now ordered, the fastpath must check if the callee's \gls{TCB} will be appended to the
@@ -207,7 +209,7 @@ endpoint queue. Otherwise, the fastpath is aborted for an ordered insert.
 
 As a result, the overheads shown in \cref{t:fastpath-ipc-micro} for \replyrecv are generally higher
 than \call, except for \textsc{Sabre}, which already suffered some \gls{TLB} misses on
-the baseline kernel, again due to low TLB associativity.
+the baseline kernel, again due to low \gls{TLB} associativity.
 
 \subsubsection{Slowpath}
 \label{eval:slowpath}
@@ -219,10 +221,10 @@ pair of threads to do \call and \replyrecv 10,000 times and divide the result by
 for 110 runs, abandoning the first 10, to calculate the standard deviation and average. In order to guarantee that we hit the
 slowpath on a non-error condition, we set the message length to ten words. 
 
-\cref{t:slowpath-ipc-micro} shows the results for round-trip, slowpath \gls{IPC}. For passive slowpath IPC,
+\cref{t:slowpath-ipc-micro} shows the results for round-trip, slowpath \gls{IPC}. For passive, slowpath IPC
 we see the cost of the
-timer read, extra objects and extra code, which decreases as hardware caches increase in size and
-timer access faster (for ARM the worst result is on the \textsc{KZM} and best on \textsc{TX1}).
+timer read, extra objects and extra code. The overhead decreases as hardware caches increase in size and
+timer accesses faster (for ARM the worst result is on the \textsc{KZM} and best on \textsc{TX1}).
 For active slowpath \gls{IPC}, the scheduling context is changed on the IPC, invoking the sporadic
 check routines and requiring a time reprogram. 
 
@@ -231,7 +233,7 @@ favour of establishing shared memory protocols to transfer large amounts of data
 fastpath checks make sure the thread being switched to is valid and runnable. Only two cases hit the
 fastpath frequently: if a medium priority thread has woken, and is higher priority than the
 \gls{IPC} target, and if the target is active, not passive. 
-Additionally, many can be improvements to the \gls{IPC} slowpath to improve
+Additionally, many improvements can be made to the \gls{IPC} slowpath to improve
 performance, but it has not been examined extensively.
 
 \begin{table}[hb]\centering
@@ -317,7 +319,7 @@ scheduling context or access to the timer device.  In this benchmark, a high pri
 a low priority thread, a common operation for interrupt service routines. As \cref{t:micro-irq}
 shows, in 
 cases where slowpath performance is a issue, further fastpaths can be added to avoid accessing the
-timer, in the case where older hardware with smaller caches and slower timer devices is required.
+timer, in the case where older hardware is required.
 
 \begin{table}[t]\centering
 \begin{tabular}{cl r@{~}l r@{~}l r@{~}r}\toprule
@@ -467,10 +469,10 @@ the \textsc{x64} platform.
 First, we demonstrate our isolation properties with the Redis architecture described in
 \Cref{s:evaluation-redis-overhead} with an additional, high-priority active CPU-hog thread
 competing for \gls{CPU} time.  All scheduling contexts in the system are configured with a
-5\,ms period. We use the budget of the hog to control the amount of time left over
+5\,ms period. We use the budget of the CPU-hog to control the amount of time left over
 for the server configuration. \autoref{f:redis} shows the throughput
 achieved by the YCSB-A workload as a function of the available CPU
-bandwidth (i.e \ the complement of the bandwidth granted to the hog
+bandwidth (i.e \ the complement of the bandwidth granted to the CPU-hog
 thread). All data points are the average of three benchmark runs.
 
 \begin{figure}[h]
@@ -528,7 +530,8 @@ interference of a high-priority process.
 \begin{figure}[h]
   \centering
   \includegraphics{ipbench}
-  \caption[Results of ipbench isolation benchmark.]{Average and maximum latency of UDP packets with a CPU hog running a high priority with a 10\,ms budget.}
+  \caption[Results of ipbench isolation benchmark.]{Average and maximum latency of UDP packets with
+  a CPU-hog VM running a high priority with a 10\,ms budget.}
   \label{f:ipbench}
 \end{figure}
 
