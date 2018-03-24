@@ -46,7 +46,7 @@ capability to a specific kernel resource. For brevity, a \cspace address is refe
 a \emph{slot}. 
 
 % access rights
-Each capability has three potential access rights: read, right and grant. How those rights affect
+Each capability has three potential access rights: read, write and grant. How those rights affect
 the resource the capability provides access to depends on the type of resource, and is explained in
 the next section.
 
@@ -126,10 +126,10 @@ the kernel. Each capability type has a different set of invocations available, a
     \label{t:system-calls}
 \end{table}
 
-All the operations on capabilities are that are listed in \cref{t:capability_ops} are invocations
+All the operations on capabilities that are listed in \cref{t:capability_ops} are invocations
 on \cnode capability addresses. For example, to copy a capability, one uses \call on a
-\cnode, and provides the invocation code for copy, as well as the arguments. In the case of
-copy, one provides the slot of the capability being copied, in addition to the destination
+\cnode, and provides the invocation code for \cnodecopy, as well as the arguments. In the case of
+\cnodecopy, one provides the slot of the capability being copied, in addition to the destination
 \cnode and
 slot. 
 
@@ -187,7 +187,7 @@ While the majority of objects in \selfour have a platform-dependent size fixed a
 are sized dynamically at runtime, \eg untyped and \cnodes, which can be any power of two size.
 
 Any capability to memory---untyped or not---is a capability to a specific object in memory,
-containing a pointer to that object. When retype is used to create sub-objects in from an untyped
+containing a pointer to that object. When retype is used to create sub-objects from an untyped
 object, those
 subsets of memory will not become available for retyping again until every capability to that object has been deleted, somewhat like reference counting pointers.
 
@@ -527,7 +527,7 @@ thread is rendered inactive and no fault message is sent.
 
 Notification objects provide the mechanism for semaphores in \selfour, and consist of a word of
 data. Sending on a notification either sends the badge of the invoked notification capability to a 
-thread waiting on that notification object, or if no threads are waiting stores, the badge in the
+thread waiting on that notification object or---if no threads are waiting---stores the badge in the
 data word of the notifications. Unlike IPC, where messages being sent are queued, notifications
 accumulate messages in the data word.
 
@@ -676,8 +676,9 @@ higher than any other runnable thread by querying the scheduler bit field. If so
 directly switched to and the scheduler is avoided all together. Otherwise, the receiver is moved from
 the endpoint queue into the scheduling queue and the scheduler called.
 
+% Citation?
 \emph{Benno} scheduling, named for its inventor Ben Leslie, removes the current thread from the 
-scheduler, changing the invariant that all runnable thread are in the scheduler, to all runnable
+scheduler, changing the invariant that all runnable threads are in the scheduler, to all runnable
 threads \emph{except the current thread} are in the scheduler. Consequently, we avoid manipulating the
 scheduling queues when doing a direct switch, reducing the cache footprint and resulting in a performance improvement.
 
@@ -794,5 +795,5 @@ scheduling support is deficient, and temporal isolation is not possible over sha
 
 In the next section we will outline our model for a more principled approach to managing time by
 extending the baseline \selfour model presented in this chapter. We appeal to resource kernel
-principles where time is treated as a first-class resource, with the aim of support diverse task
+principles where time is treated as a first-class resource, with the aim of supporting diverse task
 sets, including those for mixed-criticality systems.
