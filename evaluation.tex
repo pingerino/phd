@@ -177,7 +177,7 @@ add significantly to the \call fastpath, by accessing two further objects (the s
 and resume object) and two validation checks. In detail, the \call fastpath is altered as follows:
 
 \begin{itemize}
-\item We remove the reply capability lookup, so the sending \gls{TCB}'s \code{cnode} is no
+\item We remove the reply capability lookup, so the sending \gls{TCB}'s \cnode is no
         longer accessed. 
 \item We read the resume object pointer from the thread state, however the thread state is already accessed
     by the \call fastpath. 
@@ -205,7 +205,7 @@ numbers read from the performance counters cited here, please see
 The fastpath for \replyrecv has a higher impact, for two reasons: first, we add a new capability
 lookup, being the resume object provided to receive, which must be looked up by the \replyrecv
 fastpath. Although we remove of reply capability from the \gls{TCB}
-\code{cnode}, that \code{cnode} is still accessed to validate the caller's root \cnode capability
+\cnode, that \cnode is still accessed to validate the caller's root \cnode capability
 and top-level page directory capability, so that cache line is still read. Additionally, because
 \gls{IPC} is now ordered, the fastpath must check if the callee's \gls{TCB} will be appended to the
 endpoint queue. Otherwise, the fastpath is aborted for an ordered insert. 
