@@ -37,7 +37,7 @@ Tasks can be untrusted for many reasons including:
 
 The issue of trust in real-time literature has not been greatly addressed: real-time tasks are often
 assumed to perform correctly and safely.  However, much research has looked into the scheduling of
-aperiodic tasks, which by definition do cannot be trusted to follow a specific schedule, or abide by
+aperiodic tasks, which by definition cannot be trusted to follow a specific schedule, or abide by
 their estimated minimum inter-arrival time. Further applicable research examines the scheduling of
 \gls{SRT} and best-effort tasks along with \gls{HRT} tasks. Consequently, we examine scheduling methods for
 these types of systems. 
@@ -183,7 +183,7 @@ and slack stealing servers.
 \label{p:polling-servers}
 
 Polling servers~\citep{Lehoczky_LS_87} wake every period,
-to check if there are any pending jobs, then runs them for maximum their budget time. If there is no
+to check if there are any pending jobs, then allows jobs to run until their budget is exhausted, at most. If there is no
 task to run, the polling server will go back to sleep. That is, at time $t_{i}$, if there are no
 tasks ready to execute, the server will sleep until $t_{i+1}$. This has the limitation that task latency
 is just under the period $T$ -- if an event triggers a job just after the polling server wakes,
@@ -353,7 +353,7 @@ itself must be at the highest criticality of any task using it, this relationshi
 necessarily symmetric; low criticality systems should be able to use high criticality resources, as
 long as their resource access is bounded. 
 In this section we explore how resource reservations and real-time locking protocols interact, and
-asses their suitability for mixed criticality systems.
+assess their suitability for mixed criticality systems.
 
 So far in this chapter we have looked at real-time
 theory for providing temporal isolation: usually in the form of isolation algorithms (termed servers
@@ -392,7 +392,7 @@ choices:
     actively switches between them depending on which task it is servicing. 
 \end{description} 
 
-Finally, of the most relevant to mixed-criticality systems, is enforcement: if the reservation being
+Finally, the most relevant to mixed-criticality systems, is enforcement: if the reservation being
 charged for a resource access is fully consumed, what should happen? Without an enforcement
 mechanism, all tasks waiting to access that resource are blocked until more execution bandwidth is
 rationed by the isolation algorithm. In the majority of cases, the bandwidth inheritance is used,

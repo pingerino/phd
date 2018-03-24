@@ -32,13 +32,14 @@ isolated.
 The \gls{AAV} is an example of a mixed-criticality system, a notion that originates in avionics and its
 need to reduce \gls{SWaP} by consolidating growing functionality onto a smaller
 number of physical processors. More recently the
-\gls{MCAR}\citep{Barhorst_BBHPSSSSU_09} program was launched, which recognises that in order to
+\gls{MCAR}~\citep{Barhorst_BBHPSSSSU_09} program was launched, which recognises that in order to
 construct fully autonomous systems, critical and less critical systems must be able to share
 resources. However, resource sharing between components of mixed-criticality is heavily restricted by current
 standards.
 
 % what's wrong with static partitioning
-While MCS are becoming the norm in avionics, this is presently in a very restricted form: the system
+While MCS are becoming the norm in avionics, this is presently in a very restricted form: in the
+ARINC standard, the system
 is orthogonally partitioned spatially and temporally, and partitions are scheduled with fixed time
 slices~\citep{ARINC653}. Shared resources are permitted but can only be accessed through fixed-time
 partitions; in other words, a critical component must not
@@ -201,7 +202,7 @@ advanced driver assistance systems, autonomous vehicles and aircraft.
     & Minor \\
     \bottomrule
 \end{tabularx}
-\caption{Fictional example systems in a self driving car.}
+\caption{Fictional example systems in a self-driving car.}
 \label{tab:self-driving-car}
 \end{table}
 
@@ -250,7 +251,7 @@ different levels of criticality can safely share hardware, and not specifically 
 presented by \citet{Vestal_07} and beyond~\citep{Burns_Davis_17}, although it is discussed in
 \cref{chap:scheduling}.
 \item[Temporal isolation] For a system $A$ to be temporally isolated from system $B$, $B$ cannot
-        cause temporal failures in $A$. This does not necessarily mean that $B$ cannot effect $A$,
+        cause temporal failures in $A$. This does not necessarily mean that $B$ cannot affect $A$,
         but that any temporal effect $B$ can have on $A$ is deterministic and bounded, such that $A$
         is correct regardless of $B$. 
 \item[Asymmetric Protection] In order to leverage an overbooked system, high-criticality tasks

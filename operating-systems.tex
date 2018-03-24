@@ -9,7 +9,7 @@ the scheduling and resource sharing policies and mechanisms available, with a fo
 asymmetric protection, policy freedom, and resource sharing.  
 
 First we present a number of industry standards, before examining
-Linux and other open source operating systems, in addition to
+Linux and other open-source operating systems, in addition to
 commercial offerings, in order to establish current industry standards for temporal isolation.
 Finally, we survey existing, relevant operating systems
 from systems research, deeply examining techniques that can be leveraged to build mixed-criticality
@@ -137,7 +137,7 @@ privileged mode. This is effectively an all-or-nothing mechanism for spatial iso
 from the fact that much of the hardware AUTOSAR runs on is embedded without an \gls{MMU}, which
 would allow for more fine-grained spatial isolation.
 In terms of temporal isolation, AUTOSAR provides a mechanism referred to as \emph{timing
-protection}, where task's execution times, resource access durations and inter-arrival times are
+protection}, where tasks' execution times, resource access durations and inter-arrival times are
 specified and monitored, such that exceptions can be raised on temporal
 violations~\citep{Zuepke_BL_15}. 
 
@@ -169,7 +169,7 @@ the impact of the discussed specifications and standards on their development.
 
 \subsection{Open source}
 
-Many open source \glspl{OS} are used in real-time settings, although generally not in
+Many open-source \glspl{OS} are used in real-time settings, although generally not in
 high-assurance, safety-critical systems. Regardless, temporal isolation and resource sharing mechanisms remain important to
 guarantee the function of the software.
 
@@ -227,7 +227,8 @@ and evaluated using \litmus. However both contain strict policies, not mechanism
 suitable for a monolithic kernel. Additionally, MC-IPC is a very heavy-weight \gls{IPC}. 
 
 \linuxrk~\citep{Oikawa_Rajkumar_98} is a resource kernel implementation of Linux with scheduling,
-admission control, and enforcement in the kernel. Every resource, memory, CPU time and device is 
+admission control, and enforcement in the kernel. Every resource, including memory, CPU time and
+devices, is 
 time-multiplexed using a recurrence period, processing time and deadline. Reservations in \linuxrk
 can be hard, firm of soft, which alters resource scheduling after exhaustion. Hard
 reservations are not scheduled again until replenishment, firm are only scheduled if no other
@@ -248,7 +249,7 @@ and best-effort applications.
 \subsubsection{RTEMS}
 
 \citet{RTEMS:URL} is an open-source \gls{RTOS} that operates with or without memory protection,
-although in either case it is statically configured.  Although it is an open source project, RTEMS
+although in either case it is statically configured.  Although it is an open-source project, RTEMS
 is used widely in industry and research.  The main scheduling policy is \gls{FPRM}, however
 \gls{EDF} is also available with temporal isolation an option using \gls{CBS}.  No temporal
 isolation mechanisms are present for fixed-priority scheduling.  RTEMS provides semaphores with
@@ -272,7 +273,7 @@ all of \gls{POSIX}.
 \subsubsection{QNX Neutrino}
 
 \citet{QNX_10} was one of the first commercial microkernels, widely used in the transport industry.
-QNX is a separation based, first-generation microkernel that provides
+QNX is a separation-based, first-generation microkernel that provides
 \gls{FP} scheduling and resource sharing with POSIX semantics.  QNX satisfies many industry
 certification standards, although these in practice do not require {\gls{WCET}} analysis or formal
 verification of correctness. 
@@ -373,8 +374,8 @@ The majority of kernels surveyed here are microkernels, as introduced in
     \item Tiptoe~\citep{Craciunas_KPRS_09} is a now-defunct research microkernel that also aims at
 temporal isolation between user-level processes and the operating system.
     \item NOVA~\citep{Steinberg_Kauer_10} a third-generation microkernel and hypervisor.
-    \item \composite~\citep{Parmer:phd} is a component-based \gls{OS} with similar goals to a microkernel,
-however with a more dominant focus on support for fine-grained components, and massive scalability.
+    \item \composite~\citep{Parmer:phd} is a component-based \gls{OS} microkernel, with a dominant focus
+        on support for fine-grained components, and massive scalability.
     \item Barrelfish~\citep{Peter_SBBIHR_10} is a capability-based multi-kernel \gls{OS}, where a separate kernel runs on each processing core and kernels themselves share no memory and are essentially \emph{\gls{CPU}-drivers}.
     \item \fiascooc~\citep{Lackorzynski_WVH_12}, a third-generation iteration of Fiasco, both microkernel and
         hypervisor.
@@ -392,7 +393,7 @@ system, which rules out any possibility of isolation.
 
 \subsection{Scheduling}
 
-As in commercial and open source \glspl{OS}, fixed-priority scheduling dominates in research, with
+As in commercial and open-source \glspl{OS}, fixed-priority scheduling dominates in research, with
 only Tiptoe and Barrelfish providing \gls{EDF} schedulers, although \minix has been adapted for 
 real-time~\citep{Mancina_LFHGT_09}, by allowing the kernel's best-effort scheduling to be
 set to \gls{EDF} on a per-process basis, with kernel scheduler activations that allow for a
@@ -422,7 +423,7 @@ L4 kernels~\citep{Elphinstone_Heiser_13} extended this concept with timeslices,
 which like meters are consumed as threads execute, but no
 authority is invoked to replenish the meter: the timeslice simply represents an amount of time 
 that a thread could execute at a priority before preemption. 
-On preemption, the thread placed at the end of
+On preemption, the thread is placed at the end of
 the \gls{FIFO} scheduling queue for the appropriate priority, with a refilled timeslice, in a
 round-robin fashion. 
 
@@ -456,7 +457,7 @@ servers.
 
 All the research OSes that implement reservations have an admission
 test in the kernel which is run on new reservations, and checks that the set of reservations are
-schedulable. Although the testing is done dynamically, providing the admission test in the kernel makes the scheduler used, and the
+schedulable. Although admission testing is dynamic, providing the admission test in the kernel makes the scheduler used, and the
 schedulability test, an inflexible policy mandated by the kernel. 
 
 Enforcement policy, which determines what occurs when a reserve is exhausted,
@@ -474,7 +475,7 @@ running expired reservations in slack time.
 The importance of reservations also varies. In the case of RBED, the highest criticality threads
 are trusted, and their execution is not monitored at all, while threads with reservations are
 considered second tier and best-effort threads the least important. This allows for a strict form 
-of asymmetric protection where \gls{HRT} threads can temporally effect \gls{SRT} threads and
+of asymmetric protection where \gls{HRT} threads can temporally affect \gls{SRT} threads and
 best-effort threads, but not vice-versa. The Mach approach, on the other hand, only guarantees time
 to threads with reservations, which are scheduled ahead of any threads in the time-sharing
 scheduler. We consider both models to be policy, as is the original resource kernel concept where
@@ -644,7 +645,7 @@ Additionally, time capabilities cannot be revoked unless empty.
 \composite's mechanism of temporal capabilities is the most promising, and decoupling access
 control from scheduling is surely key to providing mechanisms for temporal isolation without 
 heavily restricting policy freedom. However, the static limit on delegations and lack of revoke
-makes the design incomplete for a production system, revoke is generally the hardest part to
+makes the design incomplete for a production system, especially as revoke is generally the hardest part to
 implement in a capability system. 
 
 \section{Summary}
@@ -656,15 +657,15 @@ time.
 
 While real-time literature is divided between which real-time scheduling algorithm should be
 deployed as the core of real-time systems (\gls{EDF} or \gls{FP}), no such divide exists in industry
-where the all \glspl{OS} provide \gls{FP}. 
+where all \glspl{OS} provide \gls{FP}. 
 Except in a pure research sense, kernels that provide
 \gls{EDF} do so in addition to \gls{FP}.  Resource reservations and \gls{EDF} are more common in
-research OSes, whilst commercial and open source products are heavily influenced by ARINC 653 and
+research OSes, whilst commercial and open-source products are heavily influenced by ARINC 653 and
 provide static partitioning. 
  
 As we have seen, many existing systems conflate criticality and time sensitivity 
 in a single value: priority. A further assumption is that high criticality, time-sensitive tasks are
-always trusted, one the falls apart in the mixed criticality context. 
+always trusted, one that falls apart in the mixed-criticality context. 
 
 The \emph{criticality} of a component reflects its importance to the
 overall system mission.

@@ -50,7 +50,7 @@ Each capability has three potential access rights: read, write and grant. How th
 the resource the capability provides access to depends on the type of resource, and is explained in
 the next section.
 
-\begin{table}
+\begin{table}[b]
     \centering
     \rowcolors{2}{gray!25}{}
     \begin{tabularx}{\textwidth}{lX}\toprule
@@ -137,7 +137,7 @@ slot.
 \label{sec:sel4-memory}
 
 All kernel memory in \selfour is managed at user-level and accessed via capabilities,
-which is key to \selfour's isolation and security, but also essential for
+which is key to \selfour's isolation and security properties, but also essential for
 understanding the complexity and limitations of integrating new models into the kernel. Additionally, this allows for the ultimate in policy
 freedom: all resource allocation is done from user-level by those holding the appropriate
 capabilities. Capabilities to kernel memory contain a physical address and a type which indicates
@@ -191,14 +191,16 @@ containing a pointer to that object. When retype is used to create sub-objects f
 object, those
 subsets of memory will not become available for retyping again until every capability to that object has been deleted, somewhat like reference counting pointers.
 
-\Cref{t:untyped} shows an example initial memory layout for the \textsc{Sabre} platform, which has a
+\Cref{t:untyped} shows an example initial memory layout for the \textsc{Sabre}
+platform\footnote{\textsc{Sabre} a 32-bit ARM system-on-chip, and the verification platform for
+\selfour. Further details are provided in the evaluation.},  which has a
 500MiB kernel window. Physical memory on this platform starts at 0x10000000, which is mapped into
 the kernel address space at 0xe0000000. Physical addresses outside of this range are devices and
 are not writeable by the kernel.
 Capabilities to all available memory and devices are set up as untyped in the initial root task's
 \cnode. 
 
-\begin{table}[b] 
+\begin{table}[t] 
     \centering
     \rowcolors{2}{gray!25}{}
     \begin{tabularx}{\textwidth}{llX} \toprule
@@ -275,8 +277,8 @@ which contains the semaphore state. Further information on notifications is pres
 
 \subsection{Consequences}
 
-User-level management of kernel memory provides true policy freedom---there is no
-policy required by the kernel on memory layout---this design is not without trade-offs. Ultimately,
+User-level management of kernel memory provides true policy freedom, as there is no
+policy required by the kernel on memory layout, but this design is not without trade-offs. Ultimately,
 user-level management of kernel memory is key to \selfour's isolation
 guarantees as system designers can fully partition systems by using specific memory layouts and
 avoid shared structures determined by the kernel itself. However, there are two major impacts on kernel 
@@ -284,7 +286,7 @@ design: back-pointers, and dynamic data structures.
 
 The fact that any capability may be deleted at any time means that any pointer between two memory
 objects must be doubled, with pointers from each object to each other, as any object must be able to be
-traversed on order to reach any other linked object. This is analogous to a doubly-linked list,
+traversed in order to reach any other linked object. This is analogous to a doubly-linked list,
 where for $O(1)$ deletion from any node in the list, the list must have pointers in both directions.
 This increases performance of deletion but also doubles the memory required for each list node. 
 
@@ -339,11 +341,11 @@ resource capabilities in empty slots.
         \bottomrule
 	\end{tabularx}
     \caption[Slot layout in the initial \cnode.]{Slot layout in the initial \cnode set up by the kernel for the root task on the
-\textsc{Sabre}.}
+\textsc{Sabre} platform.}
 	\label{t:initial_cnode}
 \end{table}
 
-\cref{t:initial_cnode} shows the root tasks initial \cspace layout as set up by the kernel for the
+\cref{t:initial_cnode} shows the root task's initial \cspace layout as set up by the kernel for the
 \textsc{Sabre} platform. Apart from capabilities to memory objects for the root task and the
 remaining untyped, the initial \cnode contains five control capabilities for managing
 interrupts, \glspl{ASID}, \IO Ports, \IO Spaces and domains.
@@ -447,7 +449,7 @@ message back.
     \end{subfigure}
     \caption[IPC phases.]{IPC phases: a TCB, $A$ sends a message to endpoint $E$ using \call. Another
         TCB, $S$, blocks on $E$ using \recv. At this point the message is transferred from 
-        $A$ to $S$ and $A$ is blocked the reply capability. (b) shows the
+        $A$ to $S$ and $A$ is blocked on the reply capability. (b) shows the
     reply phase, where $S$ uses \reply to send a reply message to $A$, waking $A$. See \Cref{f:legend-1} for the legend.}
     \label{f:ipc}
 \end{figure}
@@ -471,7 +473,7 @@ message back.
         notification binding. In \cref{f:signal1} $A$ blocks waiting on notification
         object $N$, and wakes when any notifications or interrupts are sent to $N$. In
         \cref{f:signal2}, $A$ blocks on endpoint $E$, however since
-        $N$ is bound to the $A$, if $N$ receives an interrupt or notification,
+        $N$ is bound to $A$, if $N$ receives an interrupt or notification,
         $A$ is woken and the data word delivered to $A$.
         See \Cref{f:legend-1} for the legend.}
     \label{f:signal}
@@ -481,11 +483,12 @@ message back.
 when one thread blocks (\recv) on the endpoint and another thread sends on that endpoint
 then the message is consumed by the receiver. This occurs for both one-way and two-way \gls{IPC}.
 Receivers can save
-the \emph{resume} capability into their \cspace to send a reply to later, but otherwise the resume capability is
+the \emph{resume} capability into their \cspace to send a reply to after receiving other messages
+that would override the resume slot, but otherwise the resume capability is
 installed in the \gls{TCB} \cnode. The \emph{reply} system call directly invokes the resume
 capability in this slot. 
 
-Multiple senders and receivers can use the same endpoint, and which act as \gls{FIFO}
+Multiple senders and receivers can use the same endpoint, which act as \gls{FIFO}
 queues. In order to distinguish senders, receivers can use endpoint badges, which are unforgeable as
 they are copied by the kernel directly. 
 
@@ -496,7 +499,7 @@ they are copied by the kernel directly.
 Recall from \cref{s:background-ipc} that \gls{IPC} performance is critical to a microkernel, which
 is achieved through optimised fastpaths. A fastpath is an optimised code path for the most
 performance critical operations. \selfour
-contains two \gls{IPC} fastpaths which is used when the following, common-case conditions are satisfied:
+contains two \gls{IPC} fastpaths which are used when the following, common-case conditions are satisfied:
 
 \begin{enumerate}
     \item the sender is using \call or the receiver is using \replyrecv,
@@ -535,7 +538,7 @@ accumulate messages in the data word.
     \centering
     \includegraphics[width=0.8\textwidth]{notification}
     \caption[State diagram of notification objects.]{Notification object state transitions based on invocations. \send and
-    \nbsend correspond to notify in the diagram, want wait corresponds to a \recv.}
+    \nbsend correspond to notify in the diagram, while wait corresponds to a \recv.}
     \label{f:notification}
 \end{figure}
 
@@ -579,7 +582,7 @@ until the interrupt is acknowledged, using the \code{seL4\_IRQHandler\_Ack} invo
 \label{s:notification-binding}
 
 Some systems require threads that can receive both notifications and IPC while blocked, in order to
-prevent the requirement that services which receive both IPC message and notifications be
+prevent the requirement that services which receive both IPC messages and notifications be
 multi-threaded.  The mechanism for this is \emph{notification binding} where threads can register a
 specific notification capability to receive notifications from while blocked on an endpoint waiting
 for IPC. This is done by invoking the TCB with the \tcbbindnotification invocation, which
@@ -601,11 +604,16 @@ At a scheduling decision, the kernel chooses the head of the highest-priority, n
 Implementation wise, the scheduler consists of an array of lists: one list of ready threads for each
 priority level. A two-level bit field is used to track which priority lists contain threads, 
 in order to achieve a scheduling decision complexity of $O(1)$. In fact, the \(O(1)\) scheduler is a
-recent addition to \selfour: scheduling used to be far more expensive.
+recent addition to \selfour: scheduling used to be far more expensive before the bit field was
+introduced.
 
 The bit field data structure works as follows: the
 top-level consists of one word, each bit representing $N$ priorities, where $N$ is 32 or 64
-depending on the word size. The second level consists of $256/N$ words, which are indexed by the first bit set in the
+depending on the word size. Bit 0 in the top level bit field, on a 32-bit system, represents the first 0--31
+priorities, bit 1 the next 32-63, \etc: if a bit in the top level is set, it indicates that at least
+one priority in that range is active. 
+The second level distinguishes which priorities in the
+range indicated by the first level are set, and consists of $256/N$ words, which are indexed by the first bit set in the
 top-level bit field. To construct a priority we use the hardware instruction count leading zeros
 (\code{CLZ}) to find the highest bit set in the top-level index. We take that index and use
 \code{CLZ} on the bottom level bit field corresponding to that index, then construct the priority
@@ -618,8 +626,8 @@ $1 * 32 + 5 = 37$ as the highest priority.
 
 \begin{listing}
     \begin{minted}{c}
-uint32_t top_level_index = 0;
-uint32_t bottom_level_index[256 / (1u << 5u)];
+uint32_t top_level_bitmap = 0;
+uint32_t bottom_level_bitmap[256 / (1u << 5u)];
 
 void addToBitmap(word_t prio) {
     uint32_t l1index = prio >> 5u;
@@ -699,7 +707,7 @@ timeslice exhaustion.
 \selfour implements timeslice donation, as discussed in \cref{sec:os-timeslice-donation}. 
 When threads communicate with a service over \gls{IPC}, the TCB of the thread providing the service
 is charged for any ticks incurred while that service is active. As a result isolation in shared
-server is not possible: clients are not charged for their execution time.
+servers is not possible: clients are not charged for their execution time.
 
 \subsubsection{Priorities}
 
@@ -734,7 +742,7 @@ with the domain scheduler, as they require preemption.
 
 \subsection{Real-time support}
 
-We introduced basic \selfour concepts and terminology, and investigated mechanisms that effect
+We introduced basic \selfour concepts and terminology, and investigated mechanisms that affect
 timing behaviour in the kernel: the scheduler, domains, priorities, \yield and IPC. 
 In this section we will look at how real-time scheduling could be implemented with those mechanisms.
 

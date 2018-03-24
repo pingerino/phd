@@ -174,7 +174,7 @@ constrained deadlines.
 Simply put, scheduling is deciding which task to run at a specific time. In operating systems terms,
 this is deciding which thread, or process to run on the processor next. More formally, scheduling
 is the act of assigning resources to activities or tasks~\citep{Baruah_CPV_96}, generally discussed
-in the context of processing time, but is required for other resources such as communication
+in the context of processing time, but is also required for other resources such as communication
 channels.  A correct scheduling algorithm  can guarantee that all deadlines are met within their
 requirements, whilst also maintaining maximum utilisation of the scheduled resource(s). Real-time
 scheduling algorithms differ from their non-real-time equivalents in that they must guarantee that
@@ -198,7 +198,7 @@ An \emph{optimal} scheduling algorithm can schedule every feasible task set.
 To test if a task set is schedulable by a scheduling algorithm, a \emph{schedulability test} is applied.
 The complexity of schedulability tests is important for both dynamic and static schedulers. For
 static schedulers, the test is conducted offline and not repeated, but the algorithm must complete
-in a reasonable time for the number of tasks in the task set. Dynamic schedulers conduct
+in a reasonable time for the number of tasks in the task set. Dynamic schedulers conduct a
 schedulability test each time a new task is submitted to the scheduler, or scheduling parameters are
 altered, which means the test cannot be too complex to reduce overheads. The schedulability test conducted at admission time is
 referred to as an \emph{admission test}.
@@ -267,7 +267,7 @@ is the greatest common divisor of all the task periods.
 
 Cyclic executives can, in theory, schedule task sets where the total utilisation is 100\%, as in \cref{eq:1}.
 However, this only holds
-if a task model where tasks can be split into infinite chunks, as tasks that do not fit into the
+in a task model where tasks can be split into infinite chunks, as tasks that do not fit into the
 minor cycle must be split. This assumption is unrealistic as many tasks
 cannot be split, and task switching is not without overheads. Calculating a cyclic schedule is
 NP-hard, and must be done every time the task set changes.
@@ -458,7 +458,7 @@ of \gls{PIP}.
 The disadvantage of \gls{IPCP} is that all priorities of task that access locked resources must be known \emph{a
 priori}.  Additionally, if priority ceilings are all set to the highest priority, then behaviour
 degrades to that of \gls{NCP}. Finally, this protocol allows intermediate priority tasks that do not need
-the resource to be blocked. 
+the resource to be blocked unnecessarily. 
 
 \subsection{Original Priority Ceiling Protocol}
 
@@ -478,8 +478,8 @@ resources, increasing the complexity of an implementation.
 
 Ceiling-based protocols are only appropriate for \gls{FP} schedulers, however the
 \gls{SRP}~\citep{Baker_91} is provides similar functionality for \gls{EDF}. Under the \gls{SRP}, 
-all tasks are assigned \emph{preemption levels} and all resources are assigned ceilings. A resource
-ceiling is derived from the maximum, preemption level of tasks accessing that specific resources.
+all tasks are assigned \emph{preemption levels} and all resources are assigned ceilings, which are
+derived from the maximum preemption-level of tasks accessing those resources.
 Similar to \gls{OPCP}, a system ceiling is also maintained, and is the maximum active preemption
 level of
 all tasks currently executing in the system. \gls{SRP} works by preventing preemption: a task is only allowed to preempt the system when two
@@ -531,7 +531,7 @@ implementation complexity but requires a policy on priority assignment to be in 
 \subsection{Multiprocessor locking protocols}
 
 Resource sharing on multiprocessors is far more complicated than the single processor case and still
-a topic of active research. Of course, uniprocessor techniques can be used for resources that are
+a topic of active research~\citep{Davis_Burns_11}. Of course, uniprocessor techniques can be used for resources that are
 local to a processor, but further protocols are required for resources shared across cores (termed
 \emph{global} resources).
 
@@ -543,7 +543,8 @@ the time taken to switch to another task and back, semaphore protocols are more 
 \citet{Brandenburg_CBLA_08} find that for small, simple objects, non-blocking algorithms are
 preferably, and that wait-free or spin-based approaches are better for large or complex objects,
 in a real-time context with few cores. 
-However, for systems with many-cores, spin-lock approaches do not scale beyond a small number (~10)
+However, for systems with many-cores, spin-lock approaches do not scale beyond a small number
+($\tilde10$)
 cores~\citep{Clements_KZ_13}. 
 
 Multiprocessor locking protocols differ depending on the scheduling policy across cores; in
@@ -615,21 +616,6 @@ Both microkernels and monolithic kernels can also be hypervisors, although monol
 are often smaller than full OS counterparts, as they provide less functionality and rely on guest
 OSes to provide most systems. 
 
-\subsection{Capabilities}
-\label{s:b-capabilities}
-
-Many security-focused microkernels make use of \emph{capabilities}~\citep{Dennis_VanHorn_66}, an
-established mechanism for fine-grained access control to spatial resources which allow for spatial
-    isolation. A capability is a unique, unforgeable token that gives the possessor permission to access
-an entity or object in system. Capabilities can have different levels of access rights, e.g. read,
-write, execute etc. 
-
-By combining access rights with object identifiers capabilities avoid the
-confused deputy problem, a form of privilege escalation where a deputy program
-acting on behalf of a client is  tricked into using
-its own rights to manipulate a resource that the client would not normally have access
-to~\citep{Hardy_88}. 
-
 \subsection{IPC}
 \label{s:background-ipc}
 
@@ -644,6 +630,22 @@ kernel and fast, optimised code paths for IPC, referred to as \emph{fastpaths}.
 \emph{Third-generation} microkernels follow the pattern of minimality and speed, whilst also
 promoting security as a first-class concern, which resulted in the incorporation of capability
 systems. 
+
+
+\subsection{Capabilities}
+\label{s:b-capabilities}
+
+Third-generation microkernels make use of \emph{capabilities}~\citep{Dennis_VanHorn_66}, an
+established mechanism for fine-grained access control to spatial resources which allow for spatial
+    isolation. A capability is a unique, unforgeable token that gives the possessor permission to access
+an entity or object in system. Capabilities can have different levels of access rights, e.g. read,
+write, execute etc. 
+
+By combining access rights with object identifiers capabilities avoid the
+confused deputy problem, a form of privilege escalation where a deputy program
+acting on behalf of a client is  tricked into using
+its own rights to manipulate a resource that the client would not normally have access
+to~\citep{Hardy_88}. 
 
 \subsection{Open vs. Closed Systems}
 

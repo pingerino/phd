@@ -402,7 +402,7 @@ NetBSD~\citep{NetBSD:url} all on the \textsc{x64} machine.
 
 For \selfour, we use a single-core Rump library OS~\citep{Kantee_Cormack_14} to provide 
 NetBSD~\citep{NetBSD:url} network drivers at user level, by leveraging an existing port of this infrastructure
-to \selfour~\citep{McCleod:be}.
+to \selfour~\citep{McLeod:be}.
 The system consists of Redis/Rump running on three active \selfour threads: 
 two for servicing interrupts (network, timer) and one for Rump, as shown in
 \cref{f:redis-arch}. Interrupt threads run at the highest priority,
