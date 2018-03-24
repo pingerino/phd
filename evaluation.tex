@@ -1,30 +1,34 @@
 \chapter{Evaluation}
 \label{chap:evaluation}
 
-We now evaluate our model through a series of microbenchmarks, system benchmarks and case studies on
-a both and ARM and x86 hardware.
-First, we present the hardware platforms used in addition to the cost of timer operations on those
-platforms. Then we demonstrate the minimal performance overhead of our mechanisms using a set of 
-microbenchmarks which measure the overheads of the MCS kernel versus the existing \selfour kernel, 
-which is referred to as \emph{baseline}.  
+We now evaluate our model through a series of microbenchmarks, system benchmarks and case studies.
+First, we present the ARM and x86 hardware platforms used in addition to the cost of timer operations on those
+platforms. Then we demonstrate the low performance overhead of our mechanisms using a set of 
+microbenchmarks which measure the overheads of the MCS kernel versus a baseline, which is the \selfour
+kernel, at development version 7.0.0 with some added experimental fastpaths for interrupt and signal
+handling. The exact revisions used are available online at \url{https://github.com/pingerino/seL4}:
+\begin{description}
+    \item[Baseline:] b33b406f6a339f280a52905e484bd4c938a9025c;
+    \item[MCS:] 6ec7cc15a92b7c6aa93504104321f9cd56dfe7c8.
+\end{description}
 
-We then run a several system benchmarks, first comparing a Redis~\citep{redis:url} 
+We then run several system benchmarks, first comparing a Redis~\citep{redis:url} 
 implementation to baseline \selfour, Linux and NetBSD to show that our kernel is competitive.
 We then demonstrate temporal
 isolation between threads sharing the same CPU in two scenarios,
 using Redis again, followed by ipbench~\citep{Wienand_Macpherson_04}. Finally, we show isolation in a
-shared encryption server, and measure the cost of various timeout fault handling policies. 
+shared encryption server, and measure the cost of various timeout fault-handling policies. 
 
 In addition, we evaluate two user-level scheduler implementations: one which implements a static
 criticality switch, and a user-level \gls{EDF} implementation which we show is
 competitive with an in-kernel \gls{EDF} scheduling from \litmus. Lastly, we use an \gls{IPC}
-throughput benchmark to demonstrate minimal, multicore scalability overhead, and we show 
+throughput benchmark to demonstrate low, multicore-scalability overhead, and we show 
 how resource server threads can migrate between processing cores.
 
 \section{Hardware}
 
 % describe benchmark setup, details of each hardware platform
-We ran microbenchmarks on a variety of hardware to show the overheads of the model compared to
+We run microbenchmarks on a variety of hardware to show the overheads of the model compared to
 baseline \selfour. \Cref{t:evaluation-hardware} summarises the hardware platforms. \textsc{Sabre} is
 the verified platform for \selfour, although at the time of writing verification for \textsc{x64} is
 ongoing. Currently, the only platforms that support more than one core are \textsc{Sabre},
@@ -49,16 +53,16 @@ benchmarks that require a network.
     \rowcolor{gray!25}
     \small{ARMv7}                    & i.MX6             &               & 4$\times$  & 16 $\times$  & \no & 2$\times$  \\
     \textsc{Hikey} (64-bit)  & Cortex-A53        & 1.2           & 32+32     & 512 & \no & 128         \\
-    \small{ARMv8}                    & Kirin 620         &               & 4+2$\times$       & 16$\times$    & \no   & 4$\times$  \\
+    \small{ARMv8}                    & Kirin 620         &               & 4$\times$+2$\times$       & 16$\times$    & \no   & 4$\times$  \\
     \rowcolor{gray!25}
     \textsc{TX1}   (64-bit)  & Cortex-A57        & 1.9           &  32+48 & 2,048 & \no & 256          \\
     \rowcolor{gray!25}
-    \small{ARMv8}                   & Jetson TX1  &                   & 2+3$\times$       & 16$\times$ & \no & 4$\times$ \\
+    \small{ARMv8}                   & Jetson TX1  &                   & 2$\times$+3$\times$       & 16$\times$ & \no & 4$\times$ \\
     \textsc{x64}    (64-bit) & i7-4770           & 3.1           & 32+32 & 256 & 8 & 128,8 \\          
     \small{x86}                     & Haswell            &                 & 8$\times$ & 8$\times$ & 16$\times$ & 8$\times$ \\
     \bottomrule
 \end{tabularx}
-\caption[Hardware platform details.]{Hardware platform details, ``$\times$`` is associativity, and + indicates i-cache+d-cache.}
+\caption[Hardware platform details.]{Hardware platform details, ``$\times$`` is associativity, and + indicates I-cache+D-cache.}
 \label{t:evaluation-hardware}
 \end{table}
 
@@ -111,7 +115,7 @@ All platforms excluding \textsc{KZM} have a 64-bit timer available, making \text
 platform requiring timer overflow interrupts, which are not measured as \textsc{KZM} is a deprecated
 platform provided for comparison with modern ARM versions.
 
-\textsc{KZM} and \textsc{Sabre} both use memory mapped timers, the 32-bit general purpose timer for
+\textsc{KZM} and \textsc{Sabre} both use memory-mapped timers, the 32-bit general purpose timer for
 the former and 64-bit ARM global timer for the latter. \textsc{Sabre} has four cores and the timer
 registers are banked, making access fast for each core. Timer access on \textsc{Sabre} is
 significantly faster than the \textsc{KZM}. 
@@ -129,7 +133,7 @@ for \textsc{x64}, these operations are subject to pipeline parallelism and out-o
 reduces the overhead.
 
 Results on both architectures show that the overhead of a tickless kernel, which requires the timers
-to be frequently read and reprogrammed, is practical on modern hardware. On ARM, timer costs have
+to be frequently read and reprogrammed, is tolerable on modern hardware. On ARM, timer costs have
 reduced by an order of magnitude from ARMv6 through to ARMv8. 
 
 \subsection{IPC performance}
@@ -140,13 +144,13 @@ which has an established efficient \gls{IPC} fastpath~\citep{Elphinstone_Heiser_
 
 \subsubsection{Fastpath}
 
-To evaluate IPC fastpath performance we set up a client (the caller) and server (the callee) in different
+To evaluate IPC fastpath performance, we set up a client (the caller) and server (the callee) in different
 address spaces. We take timestamps on either side of the IPC operation being benchmarked and record
 the difference. This is done 16 times for each result value to prime the cache, then record the next
 value. Results presented are for performing this a total of 16 times. Additionally, we measure the
 overhead of system calls stubs in the same way and subtract this from the measurement, to obtain
 only the kernel cost of the operation\footnote{The \gls{IPC} benchmarks already existed for
- \selfour, but we modified them to support the \gls{MCS} kernel as part of this thesis}.
+ \selfour, but we modify them to support the \gls{MCS} kernel as part of this thesis}.
    The message sent is zero length, so neither the caller nor callee's \gls{IPC} buffer accessed.
 
 \begin{table}[t]\centering
@@ -187,11 +191,10 @@ and resume object) and two validation checks. In detail, the \call fastpath is a
 \cref{t:fastpath-ipc-micro} shows the results.
 Overheads on the \call fastpath are low, with the worst effected platform being
 \textsc{KZM} with a 10\% overhead, which is the oldest platform with the smallest caches. On call,
-\textsc{KZM} shows L1 data cache miss and 1 memory access, which shows that the new fastpath does not
-fit into the small, 16KiB L1 cache. \textsc{Sabre} suffers a 7\% overhead, due to a \gls{TLB} miss likely
+\textsc{KZM} shows L1 data cache miss and 1 memory access, which is likely an unlucky cache-conflict. \textsc{Sabre} suffers a 7\% overhead, due to a \gls{TLB} miss likely
 due to the relatively low associativity on Cortex-A9 \glspl{TLB}.  In general, as hardware becomes newer the
-overhead reduces, with the exception of the \textsc{Hikey} which is the only platform we use that has in
-order execution. Additionally \textsc{Hikey} has a smaller L2 cache than the older \textsc{Sabre},
+overhead is lower, with the exception of the \textsc{Hikey}, which is the only platform we use that has 
+in-order execution. Additionally \textsc{Hikey} has a smaller L2 cache than the older \textsc{Sabre},
 but a larger \gls{TLB} wit higher associativity.
 We posit that for the Hikey, further hand optimisation of the fastpath would result in better
 performance. The newest ARM hardware is the TX1, which only shows a 5\% overhead. x86 with its large
@@ -202,7 +205,7 @@ numbers read from the performance counters cited here, please see
 The fastpath for \replyrecv has a higher impact, for two reasons: first, we add a new capability
 lookup, being the resume object provided to receive, which must be looked up by the \replyrecv
 fastpath. Although we remove of reply capability from the \gls{TCB}
-\code{cnode}, that \code{cnode} is still accessed to validate the caller's root cspace capability
+\code{cnode}, that \code{cnode} is still accessed to validate the caller's root \cnode capability
 and top-level page directory capability, so that cache line is still read. Additionally, because
 \gls{IPC} is now ordered, the fastpath must check if the callee's \gls{TCB} will be appended to the
 endpoint queue. Otherwise, the fastpath is aborted for an ordered insert. 
@@ -231,12 +234,12 @@ check routines and requiring a time reprogram.
 It should be noted that the slowpath is avoided in most cases, as long IPC is discouraged in
 favour of establishing shared memory protocols to transfer large amounts of data. The majority of
 fastpath checks make sure the thread being switched to is valid and runnable. Only two cases hit the
-fastpath frequently: if a medium priority thread has woken, and is higher priority than the
+slowpath frequently: if a medium priority thread has woken, and is higher priority than the
 \gls{IPC} target, and if the target is active, not passive. 
 Additionally, many improvements can be made to the \gls{IPC} slowpath to improve
 performance, but it has not been examined extensively.
 
-\begin{table}[hb]\centering
+\begin{table}[t]\centering
 \begin{tabular}{ll r@{~}l r@{~}l r@{~}r}\toprule
 \emph{Platform}           & \multicolumn{1}{c}{\emph{Operation}}
                                 & \multicolumn{2}{c}{\emph{Base}}
@@ -257,13 +260,13 @@ Standard deviations shown in brackets.} \label{t:slowpath-ipc-micro}
 
 \subsection{Faults}
 
-Recall that fault handling in \selfour occurs via an \gls{IPC} simulated by the kernel to a fault
-endpoint, which a fault handling thread blocks on, waiting for any fault messages (\cref{api:faults}). 
+Recall that fault handling in \selfour occurs via an \gls{IPC}, simulated by the kernel, to a fault
+endpoint, which a fault handling-thread can wait upon for messages (\cref{api:faults}). 
 
-To measure the fault handling cost, we run two threads in the same address space: a fault handler
+To measure the fault-handling cost, we run two threads in the same address space: a fault handler
 and a faulting thread, with the same priority. We trigger a fault by executing an undefined instruction in a loop on the faulting thread's
 side. The fault handler then increments the instruction pointer past the undefined
-instruction, and the benchmark continues.  As this is also a slowpath we use the same method as
+instruction, and the benchmark continues.  As this is also a slowpath, we use the same method as
 above, and measure the amount of time it takes for 10,000 faults then divide the result. We do this
 for 110 runs, abandoning the first 10, to calculate the standard deviation and average. 
 
@@ -274,8 +277,9 @@ Note that although there is currently no fastpath for fault handling, it is mere
 engineering effort to add one should this become a performance issue. 
 
 We do not show results for the \textsc{KZM} platform, as it is ARMv6 and the performance monitor
-unit, including the cycle counter, cannot be read from user mode. Further, the use the undefined instruction 
-to read the cycle counter efficiently on this platform, so the fault benchmark does not work.
+unit, including the cycle counter, cannot be read from user mode. As a result we use the
+undefined instruction to read the cycle counter efficiently on this platform, 
+so the fault benchmark does not work.
 
 \begin{table}[t]\centering
 \begin{tabular}{cl r@{~}l  r@{~}l r@{~}r}\toprule
@@ -300,7 +304,7 @@ MCS. Standard deviations shown in brackets.}
 \subsection{Signalling and interrupts}
 
 As noted in the previous section, mainly engineering effort is required to add new fastpaths. For
-this reason, we add two new (non-verified) experimental fastpaths to the kernel: one for interrupt
+this reason, we add two new (non-verified) experimental fastpaths to the baseline and MCS kernels: one for interrupt
 delivery, and the other for signalling a low-priority thread, which we now examine.
 
 We measure interrupt latency using two threads, one spinning in a loop
@@ -310,7 +314,7 @@ interrupt latency by subtracting the
 looped timestamp from the current time. The overhead is higher here as we must switch scheduling
 contexts, which requires reprogramming the timer, however the scheduler is by-passed as the switch
 is to a higher priority thread. \textsc{KZM} shows the  highest overhead, where once again we
-exceed the small cache. The \textsc{Hikey} pays for its in order execution pipeline, which could be
+exceed the small cache. The \textsc{Hikey} pays for its in-order execution pipeline, which could be
 improved with further profiling of the fastpath. The \textsc{TX1} shows the least impact, with only
 a 5\% increase on the interrupt fastpath, as shown in \cref{t:micro-irq}. 
 
@@ -421,7 +425,7 @@ compared with the architecture of Redis on Linux, NetBSD and \gls{BMK}.
 across all four scenarios. \gls{BMK} only supports the legacy
 \gls{PIC},
 while NetBSD only supports \glspl{MSI}. Linux and seL4 both support the
-advanced \gls{APIC}.
+\gls{APIC}.
 
 The utilisation figures show that the system is fully loaded, except
 in the Linux case, where there is a small amount of idle time. The
@@ -467,7 +471,7 @@ the \textsc{x64} platform.
 \subsubsection{Network throughput}
 
 First, we demonstrate our isolation properties with the Redis architecture described in
-\Cref{s:evaluation-redis-overhead} with an additional, high-priority active CPU-hog thread
+\Cref{s:evaluation-redis-overhead}, with an additional, high-priority active CPU-hog thread
 competing for \gls{CPU} time.  All scheduling contexts in the system are configured with a
 5\,ms period. We use the budget of the CPU-hog to control the amount of time left over
 for the server configuration. \autoref{f:redis} shows the throughput
@@ -682,7 +686,7 @@ latency of timeout handling, from the time the handler wakes up
 until it replies to the server.
 
 \autoref{t:rollback} shows the results. The maximum
-cold-cache cost, which is relevant for schedulability analysis, differs by a factor of 3--4 between
+colD-cache cost, which is relevant for schedulability analysis, differs by a factor of 3--4 between
 the different recovery scenarios, indicating that all are about equally feasible.  Approaches that
 restart the server and send \glspl{IPC} messages on its behalf (rollback, reply) are the most
 expensive as they must restore the server state from a checkpoint and follow the passive server
@@ -977,7 +981,7 @@ we run two variants.
         Consequently, \cref{f:evaluation-smp-aes} shows there is no gain in throughput when further cores are
         added. 
     \item[Multiple:] the AES server has one passive thread per core, and an endpoint is set up for
-        each core, demonstrating a parallel server. Due to minimal bottlenecks in the stateless 
+        each core, demonstrating a parallel server. Due to the absence of bottlenecks in the stateless 
         AES server, this results in near perfect scalability.
 \end{description}
 
