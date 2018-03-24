@@ -11,7 +11,7 @@ objects, followed by new and altered API methods, and finally look at structural
 
 We add two new objects to the kernel, \emph{\glspl{SCO}} and \emph{resume objects}. Additionally, we modify
 the \gls{TCB} object although do not increase its total size. Finally, we modify the notification
-object to allow \glspl{SCO} to allow single-threaded, passive servers to receive signals in
+object to allow single-threaded, passive servers to receive signals in
 addition to IPC messages.
 
 \subsection{Resume objects}
@@ -24,46 +24,27 @@ magic ``reply slot'' in its capability space. The server replies by invoking tha
 objects remove the magic by explicitly representing the reply channel, and servers with multiple
 clients can dedicate a resume object per client.  Instead of generating a one-shot reply capability
 in a reply slot on a \call, the operation populates a resume object, while \recv de-populates the
-resume object.  They also provide more efficient support for stateful servers that handle concurrent
-client sessions, which we expand on further when we introduce the changed system call \gls{API} in
+resume object.  Additionally, resume objects also provide more efficient support for stateful servers that handle concurrent
+client sessions, which we expand on further when we introduce the changed system-call \gls{API} in
 \cref{s:new-api}.
-
-\begin{table}[b]
-    \centering
-    \rowcolors{2}{gray!25}{}
-    \begin{tabularx}{\textwidth}{lX}\toprule
-        \emph{Field} & \emph{Description} \\\midrule
-        \code{tcb}    & The calling or waiting thread that is blocked on this reply object. \\
-        \code{prev} & \code{NULL} if this is the start of the call stack, otherwise points to the previous
-        reply object in the call stack. \\
-        \code{next} & Either a pointer to the scheduling context that was last donated using this
-        reply object, if this reply object is the head of a call stack (the last caller before the
-        server) or a pointer to the next reply object in the stack. 0 if no scheduling context was
-        passed along the stack.\\\bottomrule
-    \end{tabularx}
-    \caption{Fields in a reply object.}
-    \label{tab:reply_object}
-\end{table}
-
-
-Resume objects are small (16 bytes on 32-bit platforms, and 32 bytes on 64-bit platforms), and
-contain the fields shown in \cref{tab:reply_object}.
-
-There are three states a resume object can be in: idle, meaning it is not currently being used,
-waiting, meaning it is being used by a thread blocked and waiting for a message, or active,
-which means the resume object currently has a thread blocked waiting for a reply associated with it.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.6\textwidth]{resume}
+    \includegraphics[width=0.5\textwidth]{resume}
     \caption{State diagram of resume objects.}
     \label{f:resume-state-diagram}
 \end{figure}
 
+A resume object can be in the following three states:
+\begin{itemize}
+    \item \emph{idle} meaning it is not currently being used,
+    \item \emph{waiting} meaning it is being used by a thread blocked and waiting for a message, 
+    \item or \emph{active}, which means the resume object currently has a thread blocked waiting for a reply associated with it.
+\end{itemize}
 Valid state transitions are shown in \cref{f:resume-state-diagram}. Resume objects are provided to
-\recv system calls along with endpoint capabilities, which transitions them from idle to
+receiving system calls along with endpoint capabilities, which transitions them from idle to
 waiting.
-If the endpoint is invoked with a \call, the caller is blocked on the resume capability, and
+If the endpoint is invoked with \call, the caller is blocked on the resume capability, and
 it transitions to active.  
 If a resume object is directly invoked, using a sending system call (recall from
 \cref{sec:sel4-system-call-and-invocations} that sending system calls are \send,
@@ -71,18 +52,22 @@ If a resume object is directly invoked, using a sending system call (recall from
 the object. Finally, if a resume object is in an active state, and provided to \recv, the object
 is first invoked, and removed from the call stack, which we now examine in detail. 
 
+
 \subsubsection{The call stack}
 
 Active resume objects track the \emph{call stack} that is built as nested \call operations take
-place. A \call triggers a push operation, adding to the top of the stack, while a reply message
+place. \call triggers a push operation, adding to the top of the stack, while a reply message
 triggers a
 pop, removing the top of the stack.  The call stack allows us to track the path of a donated
-scheduling context, from caller to callee, so that it can be returned to the previous caller
+scheduling context, from caller to callee, so that it can be returned to the previous caller,
 regardless of which thread sends the reply message. This is a direct consequence of flexible resume
 capabilities: resume capability can be moved between threads, and \emph{any} thread can execute the
 reply: usually the server, but occasionally a timeout fault handler, or a nested server which
 received the resume capability via \gls{IPC} forwarding. It is therefore impossible to derive the
-original callee from the thread sending the reply message.
+original callee from the thread which sent the reply message. When a reply message is sent via an 
+active resume object at the head of the call stack, that resume object is popped, and the SCO is
+linked to the thread that the resume object pointed to, overriding the previous \gls{SCO} to
+\gls{TCB} link.
 
 The call stack is structured as a doubly-linked list, with one minor difference: the head of the
 call stack is the scheduling context that was donated along the stack, which itself contains a
@@ -102,28 +87,53 @@ performing a request on behalf of an initial server $S_{1}$ for client $A$.}
     \label{f:reply-stack}
 \end{figure}
 
-In a capability system, one of the biggest challenges is that capabilities can be deleted at any
-time. The deletion semantics of the call stack are as follows: 
+In a capability system, one of the biggest challenges is that capabilities can revoked, and the
+object they grant to deleted, at any time, regardless of the state of the system. Therefore
+we provide the following deletion semantics for resume objects:
+
 \begin{itemize}
     \item If the \gls{SCO} is deleted, the head of the call stack becomes the first resume object. To avoid
         a long-running operation, the call stack of resume objects remains linked, and is dismantled
         as each resume object is deleted.
     \item If the head resume object (the object that points to the SC) is deleted, the \gls{SCO} is
         returned along the stack to the caller. 
-    \item If a resume object in the middle of the stack is deleted, we use the standard operation to
-        remove a node from a doubly-linked list: the previous node is connected to the next node,
+    \item If a resume object in the middle of the stack is deleted, we use the standard operation 
+        for removing
+        a node from a doubly-linked list: the previous node is connected to the next node,
         and the deleted object is no longer pointed to by any member of the stack.
-    \item If the resume object at the start of the stack, the node corresponding to the initial
+    \item If the resume object is at the start of the stack, \ie the node corresponding to the initial
         caller, it is simply removed. The \gls{SCO} cannot return to the initial caller by means of a reply
         message.
 \end{itemize}
-    
+\clearpage
+
+\begin{table}[t]
+    \centering
+    \rowcolors{2}{gray!25}{}
+    \begin{tabularx}{\textwidth}{lX}\toprule
+        \emph{Field} & \emph{Description} \\\midrule
+        \code{tcb}    & The calling or waiting thread that is blocked on this reply object. \\
+        \code{prev} & \code{NULL} if this is the start of the call stack, otherwise points to the previous
+        reply object in the call stack. \\
+        \code{next} & Either a pointer to the scheduling context that was last donated using this
+        reply object, if this reply object is the head of a call stack (the last caller before the
+        server) or a pointer to the next reply object in the stack. 0 if no scheduling context was
+        passed along the stack.\\\bottomrule
+    \end{tabularx}
+    \caption{Fields in a resume object.}
+    \label{tab:reply_object}
+\end{table}
+
+
+Resume objects are small (16 bytes on 32-bit platforms, and 32 bytes on 64-bit platforms), and
+contain the fields shown in \cref{tab:reply_object}.
+   
 \subsection{Scheduling context objects}
 \label{s:sco}
 
 We introduce a new kernel object type, \glspl{SCO}, which all processing time is accounted against, 
-and a new scheduler invariant: any thread in the scheduler must have a \gls{SCO}. 
-\glspl{SCO} are variable sized objects that represent access to a certain amount of time and
+and a new scheduler invariant: any thread in the scheduler queues must have an \gls{SCO}. 
+\glspl{SCO} are variable-sized objects that represent access to a certain amount of time and
 consist of a core amount of fields, and a circular buffer to track the consumption of time.
 Scheduling contexts encapsulate processor time reservations,
 derived from sporadic task parameters: minimum inter-arrival time ($T$) and a set of replenishments which is
@@ -131,7 +141,7 @@ populated from an original execution budget ($C$), representing the reserved rat
 ($U$) = $\frac{C}{T}$.
 Fields in an \glspl{SCO} are shown in \cref{t:sc-fields}.
 
-\begin{table}[t] 
+\begin{table}[b] 
     \centering
     \rowcolors{2}{gray!25}{}
     \begin{tabularx}{\textwidth}{lX}\toprule
@@ -141,11 +151,9 @@ Fields in an \glspl{SCO} are shown in \cref{t:sc-fields}.
      \code{Core}     & The ID of the processor this scheduling context grants time on.\\
      \code{TCB}      & A pointer to the thread (if any) that this scheduling context is
         currently providing time to.\\
-     \code{Reply}    & A pointer to the last resume object in a call stack
-        which this \gls{SCO} was donated along.\\
-     \code{Notification} & A pointer (if any) to the notification object this \gls{SCO} is bound
-        to.\\
-     \code{Badge} & A unique identifier for this scheduling context, which is delivered as part of a
+        \code{Reply}    & A pointer to the head resume object (if any) in a call stack.\\
+        \code{Notification} & A pointer to the notification object (if any) to which this \gls{SCO} is bound.\\
+     \code{Badge} & An unforgeable identifier for this scheduling context, which is delivered as part of a
         timeout fault message to identify the faulting client.\\
      \code{YieldFrom} & Pointer to a \gls{TCB} that has performed a directed yield to this
         \gls{SCO}.\\
@@ -162,20 +170,21 @@ Fields in an \glspl{SCO} are shown in \cref{t:sc-fields}.
 In addition to the core fields, \glspl{SCO} contain a variable amount of \emph{replenishments},
 which consist of a \code{timestamp} and \code{amount}. These are used for both round-robin and
 sporadic threads. For round-robin threads we simply use the head replenishment to track how much
-time is left in that \glspl{SCO} timeslice. 
+time is left in that \gls{SCO}'s timeslice. 
 
 Sporadic threads are more complex; the replenishments form a circular buffer used to track 
 how much time a thread can execute for (\code{amount}) and when that time can be used (\code{timestamp}).
 The size of the circular buffer is limited by both a variable
-provided on configuration and the size of the \gls{SCO}, configured on creation. This allows system
+provided on configuration of the \gls{SCO}, and the size of the \gls{SCO} (where the former must be
+$leq$ the latter). This allows system
 designers to control the preemption and fragmentation of sporadic replenishments as discussed in
 \cref{sec:model-sporadic}. 
 
 Each \gls{SCO} is minimum $2^{8}$ bytes in size, which can hold eight or ten replenishments for 32
 and 64-bit processors respectively. This is sufficient for most uses, but more replenishments can
 be supported by larger sizes, allowing system designers to trade-off latency for fragmentation
-overhead in the sporadic server implementation. Scheduling contexts can be created as larger
-objects, as any power of two, then the rest of the object can be filled with replenishments, as
+overhead in the sporadic server implementation. \glspl{SCO} can be created as larger
+objects, $2^{n}$ bytes, then the rest of the object can be filled with replenishments, as
 shown in \cref{t:impl-sc-layout}. System designers can then use the \code{max} replenishment field
 to specify the exact number of replenishment to use, up to the object size. 
 
@@ -208,14 +217,14 @@ badge fields to be set. The processing core is derived from the \schedcontrol ca
 that is invoked: only one exists per core. 
 
 The \schedcontrolconfigure operation behaves differently depending on the state of the target scheduling
-context and can be used not only to configure \glspl{SCO} but to migrate threads across cores, and
+context, and can be used not only to configure \glspl{SCO} but also to migrate threads across cores, and
 change the available bandwidth of a currently runnable thread. Semantics are as follows:
 
 \begin{itemize}
 \item If the scheduling context is not bound
-to a currently runnable thread, or does not represent any time currently, the operation is 
+to a currently runnable thread, or is empty---in that the parameters are set to 0---the operation is 
 a basic configure: the fields are
-simply set and the first replenishment is configured with budget provided and timestamp of the
+simply set and the first replenishment is configured with the budget provided and the timestamp of the
 kernel entry (see \code{refill\_new} in \cref{list:refill-init}).
 \item If the scheduling context is bound to a currently runnable thread, but that scheduling
 context is for a different processing core than the \schedcontrol capability, the fields are
@@ -278,11 +287,16 @@ void refill_update(sched_context_t *sc, ticks_t new_period, ticks_t new_budget, 
 \subsubsection{Sporadic Servers}
 \label{sec:impl-sporadic}
 
-Configured scheduling contexts with zero extra refills behave like polling servers (\cref{p:polling-servers}),
-otherwise they behave as sporadic servers (\cref{p:sporadic}), allowing application developers to
+Recall that polling servers (\cref{p:polling-servers}) provide a specified bandwidth to a thread,
+but once a thread wakes, if it blocks or is preempted, the budget is abandoned until the next
+period. Sporadic servers(\cref(p:sporadic) also limit threads to a specified execution bandwidth,
+but do so by tracking a buffer of replenishments, which is appended to each time a thread is
+preempted or blocks. Sporadic servers with only one replenishment act like polling servers.
+As a result, configured scheduling contexts with zero extra replenishments behave like polling servers,
+otherwise they behave as sporadic servers,  allowing application developers to
 tune the behaviour of threads depending on their preemption levels and execution durations.
 
-The algorithms to manage replenishments are taken from \citet{Danish_LW_11}, with adjustments to
+The algorithms for managing replenishments are taken from \citet{Danish_LW_11}, with adjustments to
 support periods of 0 (for round robin threads) and to implement a minimum budget.  Whenever the
 current scheduling context is changed, \code{check\_budget} (\cref{list:check-budget}) is called to bill the amount of time consumed since the last scheduling
 context change. If the budget is not completely consumed by \code{check\_budget},
@@ -406,10 +420,14 @@ there was enough space available. The altered fields are shown in \cref{t:tcb-fi
 
 We also change the contents of the TCB \cnode, removing two slots previously required by the reply
 capability implementation, as resume objects are now provided to receiving system calls, and
-no slot in the TCB \cnode is required. Additionally, we change the behaviour of fault handlers: in
-baseline seL4, the fault handling cap is looked up on every single fault, increasing the overhead of
+no slot in the TCB \cnode is required. In addition, we add two new slots by installing fault handler
+capabilities, for faults and timeouts, into the TCB \cnode. This is an optimisation for fault
+handling capabilities: in baseline seL4, the fault-handling capability is looked up on every single fault, increasing the overhead of
 fault handling. To minimise this overhead, we look up the fault endpoint when it is configured, and
-install it in the TCB \cnode. We do the same for timeout fault endpoints. 
+copy the capability into the TCB \cnode.
+Note that capabilities in the TCB \cnode cannot be changed
+by user-level: the TCB itself must be deleted for the endpoint capability to be fully revoked and
+the object deleted, which avoids a time-of-check time-of-use vulnerability.
 
 \subsubsection{Maximum controlled priorities}
 
@@ -806,7 +824,7 @@ implementation requirements of \selfour.
 Timeout exceptions are only triggered for threads with non-empty timeout handling slots in the
 \gls{TCB} \cnode, configured with \tcbsettimeoutep. The implementation is the same as for
 fault handlers with one exception: while fault \gls{IPC} messages can trigger scheduling context
-donation, allowing fault handling threads to be passive, timeout messages cannot. The timeout
+donation, allowing fault-handling threads to be passive, timeout messages cannot. The timeout
 message contains the badge of the scheduling context which triggered the fault, and the amount of
 time consumed by that scheduling context since the last reset.
 
