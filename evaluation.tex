@@ -6,10 +6,11 @@ First, we present the ARM and x86 hardware platforms used in addition to the cos
 platforms. Then we demonstrate the low performance overhead of our mechanisms using a set of 
 microbenchmarks which measure the overheads of the MCS kernel versus a baseline, which is the \selfour
 kernel, at development version 7.0.0 with some added experimental fastpaths for interrupt and signal
-handling. The exact revisions used are available online at \url{https://github.com/pingerino/seL4}:
+handling. Both branches have the same merge-base, \ie both branches divert from the master branch at
+the same point. The exact revisions used are available online at:
 \begin{description}
-    \item[Baseline:] b33b406f6a339f280a52905e484bd4c938a9025c;
-    \item[MCS:] 6ec7cc15a92b7c6aa93504104321f9cd56dfe7c8.
+    \item[Baseline:] \url{https://github.com/pingerino/seL4/releases/tag/phd-baseline},
+    \item[MCS:] \url{https://github.com/pingerino/seL4/releases/tag/phd-MCS}.
 \end{description}
 
 We then run several system benchmarks, first comparing a Redis~\citep{redis:url} 
