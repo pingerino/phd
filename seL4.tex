@@ -90,9 +90,10 @@ capability from a capability space, the latter removes all child capabilities.
 
 \selfour has a two-level system call structure, based on capabilities. The first level of system
 calls, listed in \cref{t:system-calls}, are distinguishable by system call number.  The majority of
-system calls are for communication; \send, \nbsend, \call, \reply are for
-sending messages; \recv, \nbrecv for receiving messages; and \yield for
-interacting with the scheduler. An \code{NB} prefix indicates that this system call will not block.
+system calls are for communication; \send, \nbsend, \call, \reply are \emph{sending system calls}
+for sending messages; \recv, \nbrecv are \emph{receiving system calls}, for receiving messages.
+Finally \yield is a \emph{scheduling system call} for interacting with the scheduler.
+An \code{NB} prefix indicates that this system call will not block.
 
 Second-level system calls are called \emph{invocations} and are modelled as sending a message
 to the kernel. All invocations are conducted by a sending system call. The kernel is modelled as if
@@ -104,31 +105,24 @@ the kernel. Each capability type has a different set of invocations available, a
 
 \begin{table}[t] 
     \centering
-    \begin{tabularx}{\textwidth}{llXl}\toprule
-        \emph{System call}                          & \emph{Parameter}     & \emph{Description}
-        & \emph{Return?} \\\midrule
-        \rowcolor{gray!25} \send, \nbsend    & \code{dest} & Capability to invoke. & \no     \\
-        \rowcolor{gray!25}                          & \code{info} & Description of message. & \\     
-        \call              & \code{dest}  & Capability to invoke. & \\
-                                   & \code{info}  & Description of message.   & \yes \\
-        \rowcolor{gray!25}
-        \recv, \nbrecv      & \code{src}   & Capability to block on. & \yes \\
-        \rowcolor{gray!25}
-                                   & \code{badge} & Destination for badge. & \\
-        \reply             & \code{info}  & Description of reply message. & \no\\
-        \rowcolor{gray!25}
-        \replyrecv         & \code{info}  & Description of reply message. &\yes\\
-        \rowcolor{gray!25}
-                                   & \code{src}   & Capability to block on. &        \\
-        \rowcolor{gray!25}
-                                   & \code{info}  & Description of reply message. & \\
-        \rowcolor{gray!25}         & \code{badge} & Destination for badge. &        \\
-        \yield             & \no            & \no                          & \no   \\
+    \rowcolors{2}{gray!25}{}
+    \begin{tabularx}{\textwidth}{llX}\toprule
+        \emph{System call} & \emph{Class} & \emph{Description}\\\midrule
+        \send              & sending      & Invoke a capability.      \\
+        \nbsend            & sending      & As above, but the invocation cannot result in the caller
+        blocking. \\
+        \recv              & receiving    & Block on a capability. \\
+        \nbrecv            & receiving    & Poll a capability. \\
+        \reply             & sending      & Invoke the capability in the current thread's reply. 
+        capability slot. \\
+        \call              & sending, receiving  & Invoke a capability and wait for a response, can
+        generate a reply capability. \\
+        \replyrecv         & sending, receiving & \reply, followed by \recv. \\
+        \yield             & scheduling         & Trigger the round-robin scheduler. \\
         \bottomrule
     \end{tabularx}
     \caption[seL4 system call summary.]{\selfour system call summary. All system calls except \yield are based on sending
-    and/or receiving messages. The \emph{return} column indicates if a system call returns a message
-or not.}
+    and/or receiving messages.}
     \label{t:system-calls}
 \end{table}
 

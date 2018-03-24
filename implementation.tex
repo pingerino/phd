@@ -220,22 +220,7 @@ The \schedcontrolconfigure operation behaves differently depending on the state 
 context, and can be used not only to configure \glspl{SCO} but also to migrate threads across cores, and
 change the available bandwidth of a currently runnable thread. Semantics are as follows:
 
-\begin{itemize}
-\item If the scheduling context is not bound
-to a currently runnable thread, or is empty---in that the parameters are set to 0---the operation is 
-a basic configure: the fields are
-simply set and the first replenishment is configured with the budget provided and the timestamp of the
-kernel entry (see \code{refill\_new} in \cref{list:refill-init}).
-\item If the scheduling context is bound to a currently runnable thread, but that scheduling
-context is for a different processing core than the \schedcontrol capability, the fields are
-set and the thread is migrated to the new core.  
-\item Finally, if the scheduling context is bound to a currently running thread and the
-    \schedcontrol capability is for the same core, we update the replenishment list without
-    allowing the sliding window constraint to be violated. The function \code{refill\_update} shows the
-    algorithm used.
-\end{itemize}
-
-\begin{listing}[h!]
+\begin{listing}[t]
 \begin{minted}{c}
 /* Shorthand for accessing refill queue items */
 #define REFILL_INDEX(sc, index) (((refill_t *) ((word_t) (sc) + sizeof(sched_context_t)))[index])
@@ -284,30 +269,23 @@ void refill_update(sched_context_t *sc, ticks_t new_period, ticks_t new_budget, 
 \label{list:refill-init}
 \end{listing}
 
-\subsubsection{Sporadic Servers}
-\label{sec:impl-sporadic}
 
-Recall that polling servers (\cref{p:polling-servers}) provide a specified bandwidth to a thread,
-but once a thread wakes, if it blocks or is preempted, the budget is abandoned until the next
-period. Sporadic servers(\cref(p:sporadic) also limit threads to a specified execution bandwidth,
-but do so by tracking a buffer of replenishments, which is appended to each time a thread is
-preempted or blocks. Sporadic servers with only one replenishment act like polling servers.
-As a result, configured scheduling contexts with zero extra replenishments behave like polling servers,
-otherwise they behave as sporadic servers,  allowing application developers to
-tune the behaviour of threads depending on their preemption levels and execution durations.
+\begin{itemize}
+\item If the scheduling context is not bound
+to a currently runnable thread, or is empty---in that the parameters are set to 0---the operation is 
+a basic configure: the fields are
+simply set and the first replenishment is configured with the budget provided and the timestamp of the
+kernel entry (see \code{refill\_new} in \cref{list:refill-init}).
+\item If the scheduling context is bound to a currently runnable thread, but that scheduling
+context is for a different processing core than the \schedcontrol capability, the fields are
+set and the thread is migrated to the new core.  
+\item Finally, if the scheduling context is bound to a currently running thread and the
+    \schedcontrol capability is for the same core, we update the replenishment list without
+    allowing the sliding window constraint to be violated. The function \code{refill\_update} shows the
+    algorithm used.
+\end{itemize}
 
-The algorithms for managing replenishments are taken from \citet{Danish_LW_11}, with adjustments to
-support periods of 0 (for round robin threads) and to implement a minimum budget.  Whenever the
-current scheduling context is changed, \code{check\_budget} (\cref{list:check-budget}) is called to bill the amount of time consumed since the last scheduling
-context change. If the budget is not completely consumed by \code{check\_budget},
-\texttt{split\_budget} (\cref{list:split-check}) is called to schedule the
-subsequent refill for the chunk of time just consumed.  If the replenishment buffer is full, or the
-amount consumed is less than the minimum budget, the amount used is merged into the next
-replenishment.  When a new scheduling context is switch to, \code{unblock\_check} 
-(\cref{list:unblock-check}) is used, which merges any replenishments that are already available,
-avoiding unnecessary preemptions.
-
-\begin{listing}[h]
+\begin{listing}[b!]
 \begin{minted}{c}
 uint_64_t check_budget(sched_context_t *sc, uint64_t usage) {
   while (REFILL_HEAD(sc).amount <= usage) {
@@ -328,13 +306,6 @@ uint_64_t check_budget(sched_context_t *sc, uint64_t usage) {
     }
   }
 }
-\end{minted}
-\caption[Check budget routine.]{Check budget routine used to implement sporadic servers.}
-\label{list:check-budget}
-\end{listing}
-
-\begin{listing}[h]
-\begin{minted}{c}
 void split_check(sched_context_t *sc, uint64_t usage) {
   uint64_t remnant = REFILL_HEAD(sc).amount - usage;
   if (remnant < MIN_BUDGET && refill_size(sc) == 1) {
@@ -357,12 +328,33 @@ void split_check(sched_context_t *sc, uint64_t usage) {
   add_tail(sc, split);
 }
 \end{minted}
-\caption[Split check routine.]{Split check routine used to implement sporadic servers.}
-\label{list:split-check}
+\caption[Check budget and unblock check routines.]{Check budget and unblock check routines used to implement sporadic servers.}
+\label{list:check}
 \end{listing}
+\subsubsection{Sporadic Servers}
+\label{sec:impl-sporadic}
 
+Recall that polling servers (\cref{p:polling-servers}) provide a specified bandwidth to a thread,
+but once a thread wakes, if it blocks or is preempted, the budget is abandoned until the next
+period. Sporadic servers(\cref{p:sporadic}) also limit threads to a specified execution bandwidth,
+but do so by tracking a buffer of replenishments, which is appended to each time a thread is
+preempted or blocks. Sporadic servers with only one replenishment act like polling servers.
+As a result, configured scheduling contexts with zero extra replenishments behave like polling servers,
+otherwise they behave as sporadic servers,  allowing application developers to
+tune the behaviour of threads depending on their preemption levels and execution durations.
 
-\begin{listing}[h]
+The algorithms for managing replenishments are taken from \citet{Danish_LW_11}, with adjustments to
+support periods of 0 (for round robin threads) and to implement a minimum budget.  Whenever the
+current scheduling context is changed, \code{check\_budget} (\cref{list:check}) is called to bill the amount of time consumed since the last scheduling
+context change. If the budget is not completely consumed by \code{check\_budget},
+\texttt{split\_budget} (\cref{list:check}) is called to schedule the
+subsequent refill for the chunk of time just consumed.  If the replenishment buffer is full, or the
+amount consumed is less than the minimum budget, the amount used is merged into the next
+replenishment.  When a new scheduling context is switch to, \code{unblock\_check} 
+(\cref{list:unblock-check}) is used, which merges any replenishments that are already available,
+avoiding unnecessary preemptions.
+
+\begin{listing}[t!]
 \begin{minted}{c}
 void unblock_check(sched_context_t *sc) {
   if (!REFILL_HEAD(sc).time > current_time)) {
@@ -388,6 +380,7 @@ void unblock_check(sched_context_t *sc) {
 \caption[Unblock check routine.]{Unblock check routine used to implement sporadic servers.}
 \label{list:unblock-check}
 \end{listing}
+\clearpage
 
 \subsection{Thread control blocks}
 
@@ -396,7 +389,7 @@ Recall from \cref{sec:sel4-tcb} that \glspl{TCB} are the abstraction of an execu
 that thread. We make several alterations to this structure, but do not impact the \gls{TCB} size, as
 there was enough space available. The altered fields are shown in \cref{t:tcb-fields}.
 
-\begin{table}[b] 
+\begin{table}[t] 
     \centering
     \rowcolors{2}{gray!25}{}
     \begin{tabularx}{\textwidth}{lX}\toprule
@@ -529,19 +522,19 @@ the thread is blocked until it is replenished.
     \centering
     \rowcolors{2}{gray!25}{}
     \begin{tabularx}{\textwidth}{lXlll}\toprule
-        \emph{System Call} & \emph{Class}              & \emph{Donation?} & \emph{New?} & \emph{Definition} \\\midrule
-        \call                  & sending, receiving & \yes & \no & \cref{api:call}\\
-        \send                 & sending            & \no      & \no & \cref{api:send} \\
-        \nbsend                & sending            & \no       & \no & \cref{api:nbsend} \\
-        \recv                  & waiting            & \yes & \no & \cref{api:recv} \\
-        \nbrecv                & waiting            & \yes & \no & \cref{api:nbrecv} \\
-        \wait                 & waiting            & \no & \yes & \cref{api:wait}\\
-        \nbwait                & waiting            & \no & \yes & \cref{api:nbwait} \\
-        \replyrecv             & sending, receiving & \yes & \no &  \cref{api:replyrecv} \\
-        \nbsendrecv            & sending, receiving & \yes & \yes & \cref{api:nbsendrecv} \\
-        \nbsendwait            & sending, waiting   & \no & \yes & \cref{api:nbsendwait} \\
-        \yield                 & scheduling                & \no & \no &  \cref{api:yield} \\
-        \sout{\reply}          & \sout{sending} & -  & - & Removed \\ 
+        \emph{System Call} & \emph{Class}       & \emph{Donation?} & \emph{New?} & \emph{Definition} \\\midrule
+        \call              & sending, receiving & \yes             & \no         & \cref{api:call}\\
+        \send              & sending            & \no              & \no         & \cref{api:send} \\
+        \nbsend            & sending            & \no              & \no         & \cref{api:nbsend} \\
+        \recv              & receiving          & \yes             & \no         & \cref{api:recv} \\
+        \nbrecv            & receiving          & \yes             & \no         & \cref{api:nbrecv} \\
+        \wait              & waiting            & \no              & \yes        & \cref{api:wait}\\
+        \nbwait            & waiting            & \no              & \yes        & \cref{api:nbwait} \\
+        \replyrecv         & sending, receiving & \yes             & \no         & \cref{api:replyrecv} \\
+        \nbsendrecv        & sending, receiving & \yes             & \yes        & \cref{api:nbsendrecv} \\
+        \nbsendwait        & sending, waiting   & \no              & \yes        & \cref{api:nbsendwait} \\
+        \yield             & scheduling         & \no              & \no         & \cref{api:yield} \\
+        \sout{\reply}      & \sout{sending}     & -                & -           & Removed \\
     \end{tabularx}
     \caption[New seL4 system call summary.]{New \selfour system call summary, indicating which system calls can trigger donation.
     and/or receiving messages. }
