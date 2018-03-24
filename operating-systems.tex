@@ -8,6 +8,7 @@ mixed-criticality systems. We evaluate
 the scheduling and resource sharing policies and mechanisms available, with a focus on temporal isolation,
 asymmetric protection, policy freedom, and resource sharing.  
 % TODO is asymmetric protection still a thing we want to support?
+
 First we present a number of industry standards, before examining
 Linux and other open source operating systems, in addition to
 commercial offerings, in order to establish current industry standards for temporal isolation.
@@ -320,6 +321,7 @@ Without a principled way to treat time as a first-class resource, the reliance o
 conflates the importance of a task and its scheduling priority, often based on rate, resulting in 
 low utilisation in these systems.
 
+% I don't think this table is referenced anywhere.
 \begin{table}[h]
 \centering
 \rowcolors{2}{}{gray!25}
@@ -615,7 +617,7 @@ the right to execute for the unit of time held by the meter, however as establis
 \cref{s:timeslices-and-meters}, meters are not a suitable mechanism for temporal isolation.
 
 EROS~\citep{Shapiro_SF_99} combined processor capacity reserves with capabilities rather than the
-meters of KeyKOS. Additionally, 
+meters of KeyKOS.
 However, processor capacity reserves were \emph{optional}: a two level scheduler first
 scheduled the reserves with available capacity, then threads without reserves,
 or with exhausted reserves, were scheduled.
@@ -660,10 +662,13 @@ Except in a pure research sense, kernels that provide
 \gls{EDF} do so in addition to \gls{FP}.  Resource reservations and \gls{EDF} are more common in
 research OSes, whilst commercial and open source products are heavily influenced by ARINC 653 and
 provide static partitioning. 
- 
+
+% The following paragraphs don't seem to be as related to the os chapter, but more of a link to the model chapter?
+% Could they go at the end of the seL4 chapter?
+% (I think this might be part of what you meant in the rewrite todo above)
 As we have seen, many existing systems conflate criticality and time sensitivity 
 in a single value: priority. A further assumption is that high criticality, time-sensitive tasks are
-always trusted, one the falls apart in the mixed criticality context. 
+always trusted, one that falls apart in the mixed criticality context.
 
 The \emph{criticality} of a component reflects its importance to the
 overall system mission.
