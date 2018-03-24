@@ -36,13 +36,13 @@ user-level thread started in the system---which can then allocate resources as a
 Capabilities exist in a \emph{capability space} that can be configured per thread or shared between
 threads. 
 
-Capability spaces (\cspace) are analogous to address spaces for virtual memory: where address spaces map
+Capability spaces (\cspaces) are analogous to address spaces for virtual memory: where address spaces map
 virtual addresses to physical addresses, capability spaces map object identifiers to access rights.
-Cspaces are formed of \emph{capability nodes} (\cnode)s which contain capabilities, analogous to page tables
-in virtual memory, and can contain capabilities to further \cnode s, which allows for multi-level
-cspace structure. A cspace address refers
-to an individual entry in some CNode in the capability space, and may be empty or contain a
-capability to a specific kernel resource. For brevity, a cspace address is referred to as
+\cspaces are formed of \emph{capability nodes} (\cnodes) which contain capabilities, analogous to page tables
+in virtual memory, and can contain capabilities to further \cnodes, which allows for multi-level
+\cspace structure. A \cspace address refers
+to an individual entry in some \cnode in the capability space, and may be empty or contain a
+capability to a specific kernel resource. For brevity, a \cspace address is referred to as
 a \emph{slot}. 
 
 % access rights
@@ -55,7 +55,7 @@ the next section.
     \rowcolors{2}{gray!25}{}
     \begin{tabularx}{\textwidth}{lX}\toprule
     \emph{Operation}    & \emph{Description}\\\midrule
-    \cnodecopy         & Create a new capability in a specified CNode slot, which is an exact copy
+    \cnodecopy         & Create a new capability in a specified \cnode slot, which is an exact copy
                          of the other capability and refers to the same resource. \\
     \cnodemint         & Like copy, except the new capability may have diminished rights and/or be
                           badged. \\
@@ -176,7 +176,7 @@ is platform specific, but is 500MiB on all 32-bit platforms.
 \subsection{Untyped}
 
 All memory starts as \emph{untyped} memory, and capabilities to all available untyped memory are placed in the
-cspace of the root task on boot. Each untyped consists of a start address, a size, and a flag
+\cspace of the root task on boot. Each untyped consists of a start address, a size, and a flag
 indicating whether the untyped is writeable by the kernel or not. Memory reserved for devices and
 memory outside the kernel window is not readable or writeable by the kernel: the rest is untyped
 memory, free for use by the system. 
@@ -184,7 +184,7 @@ memory, free for use by the system.
 Untyped objects have only one invocation: \emph{retype}, which allows for large untyped objects to
 split into smaller objects of a different size and type, including frames, page tables, cnodes, etc. 
 While the majority of objects in \selfour have a platform-dependent size fixed at compile time, some
-are sized dynamically at runtime, \eg untyped and CNodes, which can be any power of two size.
+are sized dynamically at runtime, \eg untyped and \cnodes, which can be any power of two size.
 
 Any capability to memory---untyped or not---is a capability to a specific object in memory,
 containing a pointer to that object. When retype is used to create sub-objects in from an untyped
@@ -343,7 +343,7 @@ resource capabilities in empty slots.
 	\label{t:initial_cnode}
 \end{table}
 
-\cref{t:initial_cnode} shows the root tasks initial cspace layout as set up by the kernel for the
+\cref{t:initial_cnode} shows the root tasks initial \cspace layout as set up by the kernel for the
 \textsc{Sabre} platform. Apart from capabilities to memory objects for the root task and the
 remaining untyped, the initial \cnode contains five control capabilities for managing
 interrupts, \glspl{ASID}, \IO Ports, \IO Spaces and domains.
@@ -482,7 +482,7 @@ when one thread blocks (\recv) on the endpoint and another thread sends on that 
 then the message is consumed by the receiver. This occurs for both one-way and two-way \gls{IPC}.
 Receivers can save
 the \emph{resume} capability into their \cspace to send a reply to later, but otherwise the resume capability is
-installed in the \gls{TCB} CNode. The \emph{reply} system call directly invokes the resume
+installed in the \gls{TCB} \cnode. The \emph{reply} system call directly invokes the resume
 capability in this slot. 
 
 Multiple senders and receivers can use the same endpoint, and which act as \gls{FIFO}
