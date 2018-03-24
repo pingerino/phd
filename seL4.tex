@@ -11,7 +11,7 @@ with one major caveat: time is not treated as a first-class resource, and as a r
 temporal isolation is deficient. Three main features of \selfour
 support this claim: it has been formally verified for correctness~\citep{Klein_EHACDEEKNSTW_09,
 Klein_AEMSKH_14}, integrity~\citep{Sewell_WGMAK_11}, confidentiality~\citep{Murray_MBGBSLGK_13}.
-; All memory management, including kernel memory, is at
+All memory management, including kernel memory, is at
 user-level~\citep{Elkaduwe_Derrin_06}; Finally it is the only \gls{OS} to date with full \gls{WCET}
 analysis~\citep{Sewell_KH_16}.  
 
@@ -138,7 +138,7 @@ slot.
 
 All kernel memory in \selfour is managed at user-level and accessed via capabilities,
 which is key to \selfour's isolation and security, but also essential for
-understanding the complexity of kernel design. Additionally, this allows for the ultimate in policy
+understanding the complexity and limitations of integrating new models into the kernel. Additionally, this allows for the ultimate in policy
 freedom: all resource allocation is done from user-level by those holding the appropriate
 capabilities. Capabilities to kernel memory contain a physical address and a type which indicates
 what type of memory is at that physical address. Options for different types are shown in
@@ -168,7 +168,7 @@ what type of memory is at that physical address. Options for different types are
 In the initial system state, capabilities to all resources are given to the first task started by
 the system, the \emph{root task}. Then according to system policy the root task can divide up and
 delegate system resources.  This includes capabilities to all memory, apart from the small section
-of static memory used by the kernel. The kernel itself has a large, static \emph{kernel window}
+of static state (\eg a pointer to the current thread) used by the kernel. The kernel itself has a large, static \emph{kernel window}
 initialised at boot time, which
 consists of memory mapped such that it is directly writeable by the kernel. The kernel window size
 is platform specific, but is 500MiB on all 32-bit platforms.  
@@ -410,7 +410,7 @@ threads.
     \label{t:endpoint-system-calls}
 \end{table}
 
-Table \cref{t:endpoint-system-calls} summarises \selfour system calls when used on endpoint
+\cref{t:endpoint-system-calls} summarises \selfour system calls when used on endpoint
 capabilities. Essentially, \send is used to send a message and \recv used to
 receive one, both having blocking and non-blocking variants. \call is of particular interest as it represents the caller side of an RPC
 operation critical to microkernel performance, distinguished from a basic pair of \send and
@@ -548,7 +548,7 @@ notification object and TCB interaction.
 invoked with relevant system calls. \cref{f:notification} depicts changes in the notification object
 state that occur when threads notify and block on notifications. 
 
-\begin{table} 
+\begin{table}[b] 
     \centering
     \rowcolors{2}{gray!25}{}
     \begin{tabularx}{\textwidth}{lX}\toprule
@@ -559,7 +559,7 @@ state that occur when threads notify and block on notifications.
         \nbrecv & Poll for a notification, do not block, receive the data word if available. \\
         \bottomrule
     \end{tabularx}
-    \caption{System calls and their effects when used on endpoints.}
+    \caption{System calls and their effects when used on notification objects.}
     \label{t:notification-system-calls}
 \end{table}
 
@@ -678,7 +678,7 @@ the endpoint queue into the scheduling queue and the scheduler called.
 
 % Citation?
 \emph{Benno} scheduling, named for its inventor Ben Leslie, removes the current thread from the 
-scheduler, changing the invariant that all runnable threads are in the scheduler, to all runnable
+scheduler, changing the invariant that all runnable threads are in the scheduler, so all runnable
 threads \emph{except the current thread} are in the scheduler. Consequently, we avoid manipulating the
 scheduling queues when doing a direct switch, reducing the cache footprint and resulting in a performance improvement.
 

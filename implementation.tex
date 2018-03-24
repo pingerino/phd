@@ -264,7 +264,9 @@ void refill_update(sched_context_t *sc, ticks_t new_period, ticks_t new_budget, 
     }
 }
 \end{minted}
-\caption[Refill update routine.]{Code to initialise a scheduling context that is not bound to a currently active thread.}
+\caption[Refill new and update routine.]{Code to initialise a scheduling context whether it is
+    (\code{refill\_update}) or is not (\code{refill\_new}, bound
+to a currently active thread.}
 \label{list:refill-init}
 \end{listing}
 
@@ -286,7 +288,7 @@ set and the thread is migrated to the new core.
 
 \begin{listing}[b!]
 \begin{minted}{c}
-uint_64_t check_budget(sched_context_t *sc, uint64_t usage) {
+void check_budget(sched_context_t *sc, uint64_t usage) {
   while (REFILL_HEAD(sc).amount <= usage) {
     // exhaust and schedule replenishment
     old_head = pop_head(sc);
@@ -349,7 +351,7 @@ context change. If the budget is not completely consumed by \code{check\_budget}
 \texttt{split\_budget} (\cref{list:check}) is called to schedule the
 subsequent refill for the chunk of time just consumed.  If the replenishment buffer is full, or the
 amount consumed is less than the minimum budget, the amount used is merged into the next
-replenishment.  When a new scheduling context is switch to, \code{unblock\_check} 
+replenishment.  When a new scheduling context is switched to, \code{unblock\_check} 
 (\cref{list:unblock-check}) is used, which merges any replenishments that are already available,
 avoiding unnecessary preemptions.
 
@@ -480,7 +482,7 @@ the server replied to the client, it would invoke the saved reply capability wit
 for new messages with \recv, avoiding the IPC fastpath for \replyrecv. No system call to move the 
 resume capability back to the \gls{TCB} \cnode was provided, however this would require yet another
 system call. Resume objects avoid the save
-fastpath, should the conditions detailed in \cref{sec:sel4-fastpath} be satisfied.
+slowpath, and increase the probability of using the fastpath, should the conditions detailed in \cref{sec:sel4-fastpath} be satisfied.
 
 \subsection{IPC Forwarding}
 \label{s:ipc-forwarding}
@@ -638,7 +640,8 @@ access processing time. As discussed in \cref{s:locking},
 the caller in an RPC-style operation must trust the callee: regardless of the scheduling context
 being executed upon, the callee can always choose to not reply, blocking the caller indefinitely. 
 
-Lent scheduling contexts are returned, either when the resume object is invoked. Resume objects 
+Lent scheduling contexts are returned when the resume object is invoked, or the head resume object
+is deleted. Resume objects 
 can be invoked directly by the send phase of a system call, or indirectly, by using the
 resume object in the receive phase of a system call, thereby clearing it for another client to block
 on, or deleting the resume object.
@@ -779,7 +782,7 @@ avoiding excessive checks in other paths.
 We alter the IPC fastpath conditions introduced in \cref{sec:sel4-fastpath} to include one
 more condition to have a very low overhead on fastpath performance:
 \begin{itemize}
-    \item The receiver must be passive. For \call, this means the caller must be passive, and
+    \item The receiver must be passive. For \call, this means the callee must be passive, and
           for \replyrecv, the TCB blocked on the resume object must be passive.
 \end{itemize}
 This is because

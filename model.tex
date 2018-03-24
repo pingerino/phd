@@ -161,8 +161,8 @@ the enforcement and accounting mechanisms in our model.
 A \gls{SC} is a representation
 of a reservation in the object-capability system, which means that 
 they are first-class objects, like threads, address spaces, or
-communication endpoints (ports). An SC is represented by a capability to a
-scheduling context object (scCap).
+\gls{IPC} endpoints. An SC is represented by a capability to a
+scheduling context object.
 
 In order to run, a thread needs an \gls{SC}, which represents the
 maximum CPU bandwidth the thread can consume. Threads obtain \glspl{SC} through \emph{binding}, and
@@ -191,12 +191,12 @@ make it non-runnable if it has exhausted its budget.
 
 \glspl{SC} can be gracefully integrated into the 
 existing model used in \selfour,
-logically replacing the time slice attribute with the scCap. 
+logically replacing the time slice attribute with the scheduling context object.
 
 Unlike \fiascooc's scheduling contexts~\citep{Lackorzynski_WVH_12}, which
 are superficially similar to ours, we retain priorities as a thread
-attribute rather than making them part of \glspl{SC}.\footnote{\fiascooc's scheduling
-contexts are not integrated in to the capability system.} The advantage of keeping the two
+attribute rather than making them part of \glspl{SC}\footnote{\fiascooc's scheduling
+contexts are not integrated in to the capability system.}. The advantage of keeping the two
 orthogonal will become evident in \cref{s:locking}.
 
 \subsection{Accounting}
@@ -228,7 +228,7 @@ Unlike any previous kernel that supports reservations, our model delegates admis
 level, as it is deeply tied to policy, which a microkernel should not limit. A consequence of this
 choice is the design naturally supports over-commitment, as this is part of the admission test.
 
-The mechanisms for admission control is two part: scheduling contexts are created without
+The mechanisms for admission control consist of two parts: scheduling contexts are created without
 any budget at all, and a new control capability must be invoked to populate scheduling context
 parameters.
 \schedcontrol is the new control capability, one of which is provided per processing core,
@@ -238,7 +238,7 @@ to receive interrupts, which is controlled by the IRQ\_control
 capability as introduced in \cref{s:control-capabilities}. Like time, IRQ sources are non-fungible.
 
 Unlike the reservations in resource kernels, the scheduling context does not 
-act as a lower-bound on CPU bandwidth that a thread can consume. This, combined with the
+act as a lower-bound on CPU bandwidth that a thread can consume. This, combined with
 user-level admission control, is also key to allowing system designers to over-commit the system. 
 
 By designating admission tests as user-level policy, we allow system designers complete freedom
@@ -350,18 +350,12 @@ Clearly, the handling of overrun is a system-specific policy, and the
 kernel should only provide appropriate
 mechanisms for implementing the desired policy. Our core mechanism is
 the \emph{timeout exception}, which is raised when a thread is
-preempted. To allow the system to handle the exceptions, each thread
+preempted due to budget expiry. To allow the system to handle the exceptions, each thread
 is optionally associated with a timeout exception handler, which is
 the temporal equivalent to a (spatial) protection exception. When a
 thread is preempted, the kernel notifies its handler via an IPC message. The
 exception is ignored when the thread has no timeout exception handler, and the thread
 can continue to run once its budget is replenished.
-
-Our model offers a single mechanism for enforcement: threads can have an optional timeout fault
-endpoint.
-If a timeout fault endpoint is provided, a fault message is sent to that endpoint should that thread
-exhaust its budget, allowing the system to enact an enforcement policy.
-Threads without a timeout fault endpoint are not schedulable until their budget is replenished. 
 
 The timeout fault
 endpoint is separate from the existing thread fault endpoint, as the semantics are different,
@@ -461,8 +455,8 @@ in \cref{sec:resource-kernels}.
 
 In this section we consider only resources shared by resource servers in an \gls{RPC} style where
 servers are scheduled directly as a result of the \gls{RPC}. Other forms of resource sharing, such
-as the asynchronous multicast provided by ARINC 653 (\cref{s:arinc}), are possible but not relevant
-time is not directly exchanged, and we have already shown how temporal partitioning is possible with
+as the asynchronous multicast provided by ARINC 653 (\cref{s:arinc}), are possible, but not
+relevant, as time is not directly exchanged, and we have already shown how temporal partitioning is possible with
 reservations. 
 
 RPC-style shared servers are fundamentally a trusted entity: the client does not resume until the
@@ -649,7 +643,7 @@ for such cases.
     \includegraphics[width=0.8\textwidth]{timeout}
     \caption[Example of a timeout exception handler.]{Example of a timeout exception handler. The passive server $S$ performs a request on
     client $A$'s scheduling context, $SC_{A}$. A timeout fault is generated when $SC_{A}$ is
-exhausted and send to the server's timeout fault endpoint $E_{2}$, and the timeout handler receives
+exhausted and sent to the server's timeout fault endpoint $E_{2}$, and the timeout handler receives
 it. See legend \cref{f:legend-2}}
     \label{f:timeout}
 \end{figure}
@@ -760,7 +754,7 @@ threads.
 \label{sec:model-policies}
 
 We now describe how different policies can be implemented by user-level systems using the 
-existing mechanisms in the seL4, combined with the new mechanisms of scheduling contexts,
+existing mechanisms in seL4, combined with the new mechanisms of scheduling contexts,
 scheduling context donation, directed yield, IPC forwarding, and flexible resume capabilities.
 First, we explain how different best-effort, rate-based and real-time tasks are compatible
 with our model and describe their implementation. We subsequently explain how various different 
@@ -770,12 +764,14 @@ resource sharing policies and servers, with and without temporal isolation, can 
 
 \subsubsection{Best-effort threads}
 
-Best-effort threads, scheduled round-robin, are compatible with our model, which maintains compatibility
-with the previous, baseline \selfour scheduler. 
-Full scheduling contexts are the mechanism to support best-effort threads, and by setting the budget and period to equal system designers can set a timeslice which determines how long a specific scheduling context
-can be executed upon before preemption.
+Best-effort threads, scheduled round-robin, are compatible with our model, which maintains
+compatibility with the previous, baseline \selfour scheduler.  Full scheduling contexts are the
+mechanism to support best-effort threads, and by setting the budget and period to equal, system
+designers can set a timeslice, which determines how long a specific scheduling context can be
+executed upon before preemption.
 
-More complicated, time-sharing schedulers can be built by a user level scheduler, using the directed yield and ability to request the amount of time that a specific scheduling context.
+More complicated, time-sharing schedulers can be built by a user level scheduler, using the directed
+yield and ability to request the amount of time consumed by a specific scheduling context.
 
 \subsubsection{Rate-limited threads}
 
@@ -786,13 +782,13 @@ rate-limited thread does not block, it will be runnable at the rate expressed
 in the scheduling context.  Otherwise, the thread will be capped at the rate
 specified, but cannot be guaranteed to get the entire rate allocation if there
 are higher priority threads in the system, or if the priority of the
-rate-limited thread is overloaded .
+rate-limited thread is overloaded.
 
 \subsubsection{Periodic, polling threads}
 
 Threads that need to wake, poll for an event, and sleep again can be
-implemented using the sporadic server mechanism, by providing the 
-and setting their scheduling parameters appropriately. As long as the budget is
+implemented using the sporadic server mechanism, by  
+setting threads' scheduling parameters appropriately. As long as the budget is
 not full ($C\neq T$), the \yield system call can be used to block until the next replenishment
 is available, as shown in \cref{list:polling}. However, this approach will only work if the amount of thread preemptions 
 is known and the amount of extra sporadic replenishments is set correctly, as \yield sleeps until
@@ -872,7 +868,7 @@ $E_{1}$, on which to make requests on the resource server. $S_{1}$ receives requ
 the client via the badge, and manipulates $S_{2}$'s priority before forwarding the request to
 $S_{2}$ over endpoint $E_{2}$. $S_{1}$ returns to wait on $E_{1}$, while $S_{2}$ processes the
 request. If while $S_{2}$ is processing a request from $A$, and a higher priority thread $B$
-pre-empts it and sends a request on $E_{1}$, $S_{2}$ can bump $S_{1}$'s priority again, and forward
+preempts it and sends a request on $E_{1}$, $S_{2}$ can bump $S_{1}$'s priority again, and forward
 $B$'s request to $S_{2}$, once again returning to wait on $E_{1}$ for further messages. When $A$'s
 request is complete, $S_{2}$ enqueues a request on $E_{1}$, such that $S_{1}$ can readjust the
 priority of $S_{2}$ according to the protocol, and reply to the original caller. Note that for this
@@ -899,7 +895,7 @@ clients are starved.
 
 While our resource sharing mechanisms do not rule out this policy, it is only suitable for
 systems where all clients are trusted and the amount of requests each client makes is known \emph{a
-priori}, or systems that have lax temporal requirements.
+priori}, or systems that have low temporal sensitivity.
 
 \subsubsection{Migrating threads}
 
