@@ -7,7 +7,7 @@ In this chapter we provide a survey of existing operating systems and mechanisms
 mixed-criticality systems. We evaluate
 the scheduling and resource sharing policies and mechanisms available, with a focus on temporal isolation,
 asymmetric protection, policy freedom, and resource sharing.  
-% TODO is asymmetric protection still a thing we want to support?
+
 First we present a number of industry standards, before examining
 Linux and other open source operating systems, in addition to
 commercial offerings, in order to establish current industry standards for temporal isolation.
@@ -334,13 +334,14 @@ PikeOS      & \gls{FP}             & ARINC 653    \\
 Deos    & \gls{FP}             & ARINC 653\\
 \bottomrule
 \end{tabular}
-\label{t:os-summary}
 \caption[Scheduling and isolation in OSes.]{Summary of scheduling and temporal isolation mechanisms
 in surveyed open-source and commercial \glspl{OS}.}
+\label{t:os-summary}
 \end{table}
 
+\cref{t:os-summary} summarises the commercial and open-source \glspl{OS} surveyed.
 Although temporal isolation is sometimes provided with the possibility of bounded bandwidth via
-\gls{CBS} and or \gls{SS}, support for temporal isolation in 
+\gls{CBS} or \gls{SS}, support for temporal isolation in 
 shared resources is non-existent beyond the strict partitioning of ARINC 653.
 Although many of
 these \glspl{RTOS} are deployed in safety critical systems, their support for mixed-criticality
