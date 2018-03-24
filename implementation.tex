@@ -462,13 +462,14 @@ RPC (\call, \replyrecv).
 
 Our implementation alters the meaning of a receiving system call, and adds a new class of system
 call: \emph{waiting} system calls. The difference is simple: receiving system calls are expected to
-provide a capability to a resume object to block threads on if a \call is received over
+provide a capability to a resume object, which can be used if a \call is received over
 the endpoint being blocked on. Waiting system calls do not, and cannot be paired with a \call
 successfully. Only receiving system calls can be used with scheduling context donation, as the reply
-object is used to track the call stack.
+object is used to track the call stack. Such a distinction existed in the original L4 model, where
+and were referred to as open and closed receive.
 
-Additionally, because the TCB reply capability slot is dropped, we remove the \reply system
-call as its only purpose was to invoke the capability in the reply slot, which no longer exists.
+Additionally, because the TCB reply capability slot is dropped the \gls{TCB} \cnode, we remove the \reply 
+system call, as its only purpose was to invoke the capability in the reply slot, which no longer exists.
 \replyrecv remains, and invokes the resume capability, sending the reply, before using the
 reply in the \recv phase. 
 
@@ -477,18 +478,23 @@ fastpath. In baseline \selfour, any server that served multiple clients and did 
 immediately---because it needed to block on I/O, for example---would save the reply
 capability, moving it from the special TCB slot to a standard slot in the \cspace. Later, when
 the server replied to the client, it would invoke the saved reply capability with \send, then block
-for new messages with \recv, avoiding the IPC fastpath for \replyrecv. Resume objects avoid the save
+for new messages with \recv, avoiding the IPC fastpath for \replyrecv. No system call to move the 
+resume capability back to the \gls{TCB} \cnode was provided, however this would require yet another
+system call. Resume objects avoid the save
 fastpath, should the conditions detailed in \cref{sec:sel4-fastpath} be satisfied.
 
 \subsection{IPC Forwarding}
 
-For sending system calls, only the system calls that combine a send-phase and a receive-phase can donate
+For sending system calls, only the system calls that combine a send- and receive-phase can donate
 a scheduling context, as a thread must be blocked in order to receive a scheduling context. Both
 \call and \replyrecv combine a \send and \recv phase, although with slightly different semantics
-with respect to resume objects. However, in both of these cases the \send and \recv are on the same
-capability. IPC forwarding allows a \nbsend followed by a \recv on two distinct capabilities, with a
-new system call \nbsendrecv. We additionally provide a waiting variant, \nbsendwait, which combines
-an \nbsend and \wait. Both variants allow for IPC forwarding, and can donate a scheduling context
+with respect to resume objects. However, \call conducts both phases on the same capability, while
+the send phase of \replyrecv can only act on a resume object. We introduce a new combined system
+call, \nbsendrecv, which is the mechanism for IPC forwarding (\cref{sec:ipc-forwarding}). 
+IPC forwarding allows a \nbsend followed by a \recv on two distinct capabilities, without the
+restriction that the send-phase must act on a resume capability. 
+Additionally, we provide a variant which combines a send- and a waiting-phase, \nbsendwait.
+Both variants allow for IPC forwarding, and can donate a scheduling context
 along with the IPC, by-passing the call chain. 
 
 The first phase of \nbsendrecv and \nbsendwait must use an \nbsend rather than a \send
@@ -496,18 +502,25 @@ to avoid introducing a long-running operation in the kernel in the form of a cha
 triggered by a single thread blocking. We demonstrate by example why the send-phase must be
 non-blocking.
 
-Consider a set of endpoints, $E_{1}, E_{2},\ldots,E_{n}$ which are all idle, with no messages
-pending. If thread $T_{1}$ attempts to \sendrecv,
-on ($E_{1},E_{2})$ respectively, the blocking send will block on $E_{1}$. Now if another thread
-does the same on ($E_{2},E_{3})$ it will also block, waiting on $E_{2}$. This continues until
-$T_{n}$ attempts to \sendrecv on ($E_{n-1},E_{n}$), such that all threads $T_{x}$ are blocked on
-endpoints $E_{x}$. Finally, another thread, $T_{z}$ calls receive on $E_{1}$, which triggers $T_{1}$ to then
-block on $E_{2}$, allowing $T_{2}$'s send on $E_{2}$ to succeed, causing $T_{2}$ to block on
-$E_{3}$ and so on, until each $T_{n}$ is blocked on $E_{n+1}$. This chain reaction is a relatively
-unbounded long-running operation, and can only be limited by not providing threads with access to
-memory, endpoints, threads and scheduling contexts. To keep the kernel \gls{WCET} small, these
-operations are not permitted in \selfour. By making the send-phase non-blocking, the send-phase fails, and
-each \gls{TCB} only blocks on the second endpoint, preventing the possibility of a chain-reaction. 
+\begin{figure}
+    \includegraphics[width=\textwidth]{nbsendwait}
+    \caption{The problem with \sendrecv.}
+    \label{fig:send-wait}
+\end{figure}
+
+To illustrate the problem, we refer to \cref{fig:send-wait}, which shows four threads, $T_{z}$ and
+$T_{1},T_{2},T_{3}$ and four endpoints, $E_{1},\dots,E_{4}$. Black arrows have already
+occurred, blocking each thread on an endpoint, and grey are pending once each. $T_{1}$ has used \sendrecv on
+$E_{1}$ and $E_{2}$, $T_{2}$ has used \sendrecv on $E_{2}$ and $E_{3}$,  
+$T_{3}$ has used \sendrecv on $E_{3}$ and $E_{4}$. 
+Because the send-phase is blocking, each thread $T_{n}$ is blocked waiting for the send to proceed 
+on $E_{n}$. $T_{z}$ then uses \recv on $E_{1}$ (the red arrow), which triggers an unbounded chain of message
+sending: $T_{1}$ finishes its send phase and begins the receive phase on $E_{2}$, which allows
+$T_{2}$ to finish its send phase and being the receive phase on $E_{3}$, which allows $T_{3}$ to
+finish its send phase and start the receive phase on $E_{4}$. This chain reaction is an
+unbounded, long-running operation. By making the send-phase non-blocking such a chain reaction is not
+possible: the send-phase is aborted as the endpoint has no threads waiting for a message on it, and
+the receive phase then proceeds. 
 
 \subsubsection{Yield}
 
@@ -646,7 +659,7 @@ provided in \cref{list:passive-server}.
 
 \begin{listing}[t]
 \begin{minted}{c}
-    void initialiser(seL4_CPtr server_tcb, seL4_CPtr init_sc, seL4_CPtr init_endpoint) 
+void initialiser(seL4_CPtr server_tcb, seL4_CPtr init_sc, seL4_CPtr init_endpoint) 
 {
     /* start server */
     seL4_TCB_Resume(server_tcb);

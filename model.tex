@@ -699,6 +699,7 @@ yield to threads of higher priorities than their own, as they are by definition,
 running.
 
 \subsection{IPC Forwarding}
+\label{sec:ipc-forwarding}
 
 We introduce another concept called \emph{forwarding}, which allows callers to
 invoke one capability and block on another capability in the same system call, via
@@ -760,7 +761,7 @@ threads.
 
 We now describe how different policies can be implemented by user-level systems using the 
 existing mechanisms in the seL4, combined with the new mechanisms of scheduling contexts,
-scheduling context donation, directed yield, IPC forward, and flexible resume capabilities.
+scheduling context donation, directed yield, IPC forwarding, and flexible resume capabilities.
 First, we explain how different best-effort, rate-based and real-time tasks are compatible
 with our model and describe their implementation. We subsequently explain how various different 
 resource sharing policies and servers, with and without temporal isolation, can be constructed. 
