@@ -298,7 +298,7 @@ systems practical.
 MC$^2$~\citep{Herman_KMAJ_12} is a mixed-criticality two-level hierarchical scheduler 
 for multiprocessors with low core counts (2--8) which defines levels of task, which are scheduled differently.
 \emph{Level-A} tasks are high-criticality tasks which are scheduled with a cyclic executive (recall
-\label{s:cyclic-executive}), with parameters computed offline. If no level-A tasks are eligible to
+\cref{s:cyclic-executive}), with parameters computed offline. If no level-A tasks are eligible to
 run, including in slack left in cyclic, level-A frames, \emph{level-B} tasks are considered. Level-B
 tasks are trusted, \gls{HRT} tasks scheduled with partitioned \gls{EDF}, where one \gls{EDF}
 scheduler exists per processor.
