@@ -708,6 +708,7 @@ If threads at higher priority levels never block, lower priority threads in the 
 As a result, a single thread running at the highest priority has access to 100\% of processing time.
 
 \subsection{Domain scheduler}
+\label{sec:sel4-domain-scheduler}
 
 In order to provide confidentiality~\citep{Murray_MBGBSLGK_13} \selfour provides a top-level hierarchical scheduler
 which provides static, cyclical scheduling of scheduling partitions known as \emph{domains}. 

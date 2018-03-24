@@ -5,7 +5,7 @@ In the previous chapter we presented our mechanisms for temporal isolation and s
 in a high-assurance microkernel. 
 Now we delve into the implementation details of scheduling contexts, scheduling context donation,
 passive servers, timeout fault handlers, and IPC forwarding in \selfour. First we explore new kernel
-objects, followed by new and altered API methods, and finally look at structural changes.
+objects, followed by new and altered API system calls and invocations, and finally look at structural changes.
 
 \section{Objects}
 
@@ -105,7 +105,6 @@ we provide the following deletion semantics for resume objects:
         caller, it is simply removed. The \gls{SCO} cannot return to the initial caller by means of a reply
         message.
 \end{itemize}
-\clearpage
 
 \begin{table}[t]
     \centering
@@ -380,14 +379,14 @@ void unblock_check(sched_context_t *sc) {
 \caption[Unblock check routine.]{Unblock check routine used to implement sporadic servers.}
 \label{list:unblock-check}
 \end{listing}
-\clearpage
 
 \subsection{Thread control blocks}
 
 Recall from \cref{sec:sel4-tcb} that \glspl{TCB} are the abstraction of an execution context in
-\selfour, which are formed from a TCB data structure and a \cnode containing capabilities specific to
-that thread. We make several alterations to this structure, but do not impact the \gls{TCB} size, as
-there was enough space available. The altered fields are shown in \cref{t:tcb-fields}.
+\selfour, which are formed from a TCB data structure and a special \cnode containing capabilities
+specific to that thread, which is only accessible to the kernel. We make several alterations to this
+structure, but do not impact the \gls{TCB} size, as there was enough space available. The altered
+fields are shown in \cref{t:tcb-fields}.
 
 \begin{table}[t] 
     \centering
@@ -484,6 +483,7 @@ system call. Resume objects avoid the save
 fastpath, should the conditions detailed in \cref{sec:sel4-fastpath} be satisfied.
 
 \subsection{IPC Forwarding}
+\label{s:ipc-forwarding}
 
 For sending system calls, only the system calls that combine a send- and receive-phase can donate
 a scheduling context, as a thread must be blocked in order to receive a scheduling context. Both
@@ -524,12 +524,11 @@ the receive phase then proceeds.
 
 \subsubsection{Yield}
 
-We alter the semantics of \yield: it now causes the head replenishment of the currently running
-thread to expire immediately, in addition to placing the thread at the end of the scheduling queue
-for its priority. 
-For full scheduling contexts, this is the entire timeslice and is compatible with the previous
-behaviour of \yield. For partial scheduling contexts, if the next replenishment is not yet ready,
-the thread is blocked until it is replenished.
+In baseline \selfour, \yield triggers a reschedule, and appends the calling thread to the end of the
+appropriate scheduling queue. We retain these semantics for full scheduling contexts, however 
+for partial, sporadic scheduling contexts \yield depletes the head sporadic replenishment immediately. The
+caller is then blocked until the next replenishment becomes available, and then placed at the end of
+the appropriate scheduling queue.
 
 \begin{table}[t]
     \centering
@@ -560,15 +559,15 @@ descriptions of each system call can be found in \cref{appendix:api}.
 \subsection{Invocations}
 
 Scheduling contexts have five invocations, listed in \cref{tab:sched_context_api}. Three of those
-methods are for binding \glspl{SCO} to \gls{TCB} and notification objects, while \scyieldto and 
+invocations are for binding \glspl{SCO} to \gls{TCB} and notification objects, while \scyieldto and 
 \scconsumed facilitate user-level scheduling, allowing the user to manipulate
 the kernel scheduling queues and to query the amount of time consumed by a specific \gls{SCO}.
-Both functions return the amount of CPU time the scheduling context has executed for since it was last
+Both functions return the amount of CPU time the scheduling context has consumed since it was last
 cleared: reading the consumed value by either system call clears it, as does a timeout
 exception.
 
 The new control
-capability, \schedcontrol, has only one invocation \schedcontrolconfigure for setting the parameters of a
+capability, \schedcontrol, has only one invocation, \schedcontrolconfigure, for setting the parameters of a
 scheduling context (the function definition can be found in \cref{api:schedcontrol_configure}). 
     
 \begin{table}
@@ -589,12 +588,14 @@ scheduling context (the function definition can be found in \cref{api:schedcontr
     \label{tab:sched_context_api}
 \end{table}
 
-Because \selfour only supports sending three capabilities in a single message (including to the
+As baseline \selfour only supports sending three capabilities in a single message (including to the
 kernel), we add a second method for configuring multiple fields on a TCB in one system call
-(\tcbsetschedparams) in addition to the existing method (\tcbconfigure), as full configuration
-of a TCB requires up to six capabilities to be set. Timeout handlers are left as a setter only, as 
-this is a less common operation. In total, we alter two methods on TCB objects
-and add three new methods, shown in \cref{tab:tcb_api}. 
+(\tcbsetschedparams), in addition to the existing method (\tcbconfigure). We avoid altering the
+existing limit to avoid extensive re-verification of a non-critical path. Full configuration
+of a TCB requires up to six capabilities to be set, not including timeout handlers, which are not
+included in a combined configuration call as this is a less common operation. 
+In total, we alter two invocations on TCB objects
+and add three new invocations, shown in \cref{tab:tcb_api}. 
 
 \begin{table}
     \centering
@@ -628,23 +629,28 @@ Lending a scheduling context occurs between caller and callee on a \call, and
 the semantics are simple: if a thread 
 blocked on an endpoint does not have a scheduling context, the scheduling context is transferred
 from sender (caller) to receiver (the callee), and the resume object is pushed
-onto the call-stack, such that the \gls{SCO} can be returned. If the caller already has a scheduling
+onto the call-stack, such that the \gls{SCO} can be returned. If the callee already has a scheduling
 context, scheduling context donation does not occur. Note that lending also works for
-handling faults, so thread fault handlers can be passive.
+handling faults, so thread fault handlers can be passive. Unlike previous versions of timeslice
+donation in L4 kernels, there is no explicit flag for permitting donation: if the callee does not
+have a scheduling context, the caller would block indefinitely, as the callee has no other way to
+access processing time. As discussed in \cref{s:locking},
+the caller in an RPC-style operation must trust the callee: regardless of the scheduling context
+being executed upon, the callee can always choose to not reply, blocking the caller indefinitely. 
 
 Lent scheduling contexts are returned, either when the resume object is invoked. Resume objects 
-can be invoked directly by the send-phase of a system call, or indirectly, by using the
-resume object in the receive-phase of a system call, thereby clearing it for another client to block
+can be invoked directly by the send phase of a system call, or indirectly, by using the
+resume object in the receive phase of a system call, thereby clearing it for another client to block
 on, or deleting the resume object.
-No matter the state of the callee the \gls{SCO} is returned, which if done
-incorrectly (via a \send), can leave the callee runnable but not blocked on an endpoint, such that 
-the callee cannot receive further scheduling contexts. Correct usage by a passive thread is with \replyrecv,
+Regardless of the state of the callee, the \gls{SCO} is returned, which if done
+incorrectly (via a \send), can leave the callee not blocked on an endpoint, and consequently 
+unable to receive further scheduling contexts via donation or lending. Correct usage by a passive thread is with \replyrecv,
 \nbsendrecv, blocking the passive thread such that it is ready to receive another scheduling
 context. Like lending, scheduling contexts can also be returned by a fault handler replying to a fault message.
 
 Forwarding a scheduling context does not establish a call-chain relationship, and allows
 for scheduling contexts to be transferred between threads in non-RPC patterns. The semantics are
-as follows: if a \nbsendrecv is used, and the receiver does not have a scheduling context,
+as follows: if \gls{IPC} forwarding is used via \nbsendrecv (\cref{s:ipc-forwarding}) is used, and the receiver does not have a scheduling context,
 the scheduling context is forwarded. 
 
 Scheduling contexts can only be donated and received on specific system calls, indicated in
@@ -704,11 +710,9 @@ rendered passive again.
 
 \section{Data Structures and Algorithms}
 
-Now we discuss changes to the data structures and algorithms in the kernel in order to provide
-accounting and enforcement mechanisms. We convert the scheduler to tickless, and add another
-invariant: any thread in the kernel, even if blocked, must have twice the kernel's WCET available,
-otherwise they must be in the release queue of threads waiting for budget replenishment. Finally, we
-add the new timeout fault type.
+Now we discuss changes to the data structures and algorithms in the kernel to provide
+accounting, which charges CPU time to the correct \gls{SCO}, enforcement mechanisms, which requires
+a new scheduling data structure and fault type.
 
 \subsection{Accounting}
 
@@ -726,110 +730,135 @@ Using ticks, timer interrupts are set for a periodic tick and are
 handled even if no kernel operation is required, incurring a preemption overhead.
 This approach has the advantage of simplicity: the timer implementation in the kernel is 
 stateless and the timer driver can be set once, periodically, never requiring reprogramming. 
-In older-generation hardware, reprogramming the timer device incurred a significant cost, enough to
-ameliorate the preemption overhead. However, this design is not without limitations:
+In older-generation hardware, especially x86, reprogramming the timer device incurred a 
+significant cost, enough to ameliorate the preemption overhead. 
+However, this design is not without limitations:
 the precision of the scheduler is reduced to the length of the tick. Precision must be traded for
 preemption overhead: reducing the tick length increases precision, but also increases 
 preemption overhead. Preemption overhead is particularly problematic for real-time systems, as
 the \gls{WCET} each real-time task is inflated by the \gls{WCET} of the kernel for every preemption.
 
 Tickless kernels remove this trade-off by setting timer interrupts for the exact time of the next
-event. As we show in \cref{s:eval-timer}, the cost of reprogramming the timer device on modern
-hardware is minimal, making the tickless design feasible. Consequently, we convert \selfour
-to a tickless kernel, a non-trivial change due to the fact that the kernel is non-preemptible (save for
-explicit preemption points in a few long-running operations). 
+event. As we will show in \cref{s:eval-timer}, the cost of reprogramming the timer device on modern
+hardware is smaller, rendering the tickless design feasible. Consequently, we convert \selfour
+to a tickless kernel, a non-trivial change due to the fact that the kernel is
+non-preemptible\footnote{Save for
+explicit preemption points in a few long-running operations.}, which means timer interrupts for the
+scheduler can only be serviced when the kernel is not running. Allowing a thread to complete an
+operation in the kernel when it does not have sufficient time to do so would violate temporal
+isolation, as the bandwidth allocated to the scheduling context could then be exceeded. As a result,  
+on kernel entry, the calling thread must have sufficient budget to complete the operation. Without
+further decoding a pending system call, the kernel cannot tell which operation a thread is
+attempting, so sufficient budget becomes the \gls{WCET} of the kernel.
 
-\cref{figure:tickless} illustrates the new control flow of the tickless kernel, and shows
-how and when processing time is charged to scheduling contexts.
+Threads are not permitted in the scheduler if they have insufficient budget, as if the scheduling
+algorithm must iterate until a thread with sufficient budget is discovered, the complexity of the
+algorithm becomes $O(n)$ in the number of threads. The same condition holds for IPC endpoint queues:
+we take the time on kernel entry in order to charge a preempting thread, and any time from kernel
+entry is accounted to the scheduling context active at kernel exit. Because a passive scheduling context
+then must be able to be charged not only for the entry path into the kernel, but the exit path, the
+sufficient budget is actually \emph{twice} the \gls{WCET} of the kernel.
 
-We alter the IPC fastpath conditions introduced in \cref{sec:sel4-fastpath} to include one
-more condition, which allows us to avoid accessing the timer device on the fastpath:
-\begin{itemize}
-    \item The receiver must be passive. For \call, this means the caller must be passive, and
-          for \replyrecv, the TCB blocked on the resume object must be passive.
-\end{itemize}
-
-\label{p:impl-fastpath}
-On kernel entries other than the IPC fastpath, the kernel updates the current
-timestamp and stores the time since the last entry. This is required as when preemption occurs, the
-preempting thread is charged for the time since the kernel entry. Without knowing if the kernel entry will
-trigger a thread switch in advance, the kernel must record the time for each entry. However, if the
-recorded timestamp is not acted upon, the time is rolled back to the previously recorded value,
-thus avoiding reprogramming the timer unnecessarily.
-
-We add a new invariant over the kernel scheduler: any thread in the 
-scheduling queues must have enough budget to exit the kernel. The budget required is twice the
-kernel's WCET, enough to get into the kernel and block, and enough to get out of the kernel 
-when woken. 
-Consequently, the scheduler precision becomes twice the kernel's WCET.
-
-This invariant is required as it simplifies the kernel design and actually minimises the WCET: when
-a
-thread runs out of time it may need to raise a timeout exception resulting in delivering an IPC to a
-timeout handler. By requiring that anything in the scheduler queue, or any endpoint queue, must have
-enough budget to wake up we avoid needing to potentially raise timeout exceptions on many wakeup
-paths in the kernel.
-
-If the available budget is insufficient, the kernel pretends the timer has already fired,
-resets the budget and adds the thread to the release queue. If the entry was due to a system call,
-the thread will retry that call once it wakes with further budget.
-Once the thread is awoken, it will retry the system call.
-
-Threads are only charged when the scheduling context changes or expires, in order to avoid
-reprogramming the timer which can be expensive on many platforms. 
-If there is no \gls{SCO} change, the timestamp update is rolled back by subtracting the
-stored consumed value from the timestamp.
+We check budget sufficiency on kernel entry, by reading the current timestamp and storing 
+the amount of time consumed since the last kernel entry, allowing us to detect budget expiry in a single 
+point, and carry on other kernel operations with this assumption intact. This means that timeout 
+faults can only be raised at once point in the kernel, greatly simplifying the implementation by
+avoiding excessive checks in other paths. 
 
 \begin{figure}
     \centering 
-    \includegraphics[width=0.8\textwidth]{tickless}
+    \includegraphics[width=0.7\textwidth]{tickless}
     \caption{New tickless kernel structure.}
     \label{figure:tickless}
 \end{figure}
 
+
+\subsubsection{Fastpath}
+\label{p:impl-fastpath}
+
+We alter the IPC fastpath conditions introduced in \cref{sec:sel4-fastpath} to include one
+more condition to have a very low overhead on fastpath performance:
+\begin{itemize}
+    \item The receiver must be passive. For \call, this means the caller must be passive, and
+          for \replyrecv, the TCB blocked on the resume object must be passive.
+\end{itemize}
+This is because
+although timer device access is cheaper on modern hardware, it remains free. It also allows us to
+avoid checking budgets and modifying sporadic replenishments on the fastpath, operations which have
+many conditional branches, which would also increase overheads. Note that we expect most servers in
+real systems to use passive servers for \gls{RPC}, even for non real-time systems, to assure
+fairness of resource access between round-robin threads.  
+
+Even on the slowpath, we avoid reprogramming the timer unless it is required. Like reading the time, 
+reprogramming the timer is cheaper, but not free. Consequently although we update the current time
+on every entry, we only charge threads at specific points:
+\begin{itemize}
+\item when the timer interrupt has fired, so clearly the timer needs reprogramming,
+\item when the current scheduling context changes, so a different interrupt is required,
+\item when the kernel timestamp has been acted upon: for instance, the used to schedule a
+    replenishment.
+\end{itemize}
+If the recorded timestamp is not acted upon, the time is rolled back to the previously recorded value,
+thus avoiding reprogramming the timer unnecessarily.
+
+\cref{figure:tickless} illustrates the new control flow of the tickless kernel, and shows
+how and when processing time is charged to scheduling contexts.
+On kernel entry, if the available budget is insufficient, the kernel pretends the timer has already fired,
+resets the budget and adds the thread to the release queue. If the entry was due to a system call,
+the thread will retry that call once it wakes with further budget.
+Once the thread is awoken, it will retry the system call.
+
 \subsubsection{Domain scheduler}
 
-We retain the domain scheduler, as the proof of confidentiality currently requires
-it~\citep{Murray_MBGBSLGK_13}, but convert the implementation to tickless, such that domains are
-configured with CPU cycles to execute, rather than kernel ticks.
+We retain the domain scheduler which, as discussed in \cref{sec:sel4-domain-scheduler}, is required
+for the proof of confidentiality~\citep{Murray_MBGBSLGK_13}. However, we convert the 
+implementation to tickless, such that domains are
+configured with CPU cycles to execute, rather than fixed ticks, which no longer exist.
 
 \subsection{Enforcement}
 
 % timeout exceptions, release queue, sporadic servers
 The enforcement mechanisms require the most significant changes to the kernel, which we now detail.
-
 The main change required to the existing scheduler is the addition of a \emph{release queue} per
-processing core. If a
+processing core which contains all runnable threads waiting for a replenishment. If a
 preempted thread does not have any available replenishments, the kernel removes the thread from the
-ready queue to the release queue, retaining the invariant for the ready queue, which the release
-queue is characterised as holding all threads that would be runnable but are presently out of
-budget. The queue is ordered by the time the next replenishment is available.
+ready queue.
 
 \subsubsection{Priority queues}
 
-In addition to the release queue, we also change endpoint and notification object queues
+In addition to the release queue, we also change endpoint- and notification-object queues
 to priority queues, ordered by \gls{TCB} priority. All queues are implemented as ordered, doubly-linked
 lists, where all operations complete in $O(1)$ except for insertion, which is $O(n)$, where $n$ 
 is the number of threads in the queue. 
 We chose the list data structure over a heap for increased performance and reduced verification
 burden.
 
-A list-based priority queue out performs a heap-based priority queue for small $n$ (in our
+A list-based priority queue out-performs a heap-based priority queue for small $n$ (in our
 implementation up to around $n = 100$).  This $n$ is larger than one would expect in a traditional
 \gls{OS}, where heap implementations are array-based in contiguous memory with layouts optimised for
 cache usage.  However, because \selfour kernel memory is
 managed at user-level (as discussed in \cref{sec:sel4-memory}), data structures must be dynamic, 
 resulting in much higher code complexity, and poorer performance than a static heap. 
-We do not expect systems to run a large amount of tasks, however if scalability becomes a problem in
+For endpoint queues, it is reasonable to expect low amounts of threads, as many threads queuing on
+an endpoint at once indicates a poor system design. For the release queue, the restriction
+becomes a function of the user-level admission test: only scheduling contexts with 
+partial budgets are placed into the release queue, which limits the size of the queue.
+Consequently we do not expect any of the priority queues to contain amounts of tasks,
+however if scalability becomes a problem in
 practice this implementation could be reconsidered. \citet{Brandenburg:phd} used
 binomial heaps for schedulers in \litmus, however Linux does not provide the guarantees, or
 implementation requirements of \selfour.
+
+One security concern is sub-systems with access to a single scheduling context and a large amount
+of memory can increase the kernel's run-time by queuing up a large amount of passive threads on 
+an endpoint. To prevent this, system designers must not hand out large untyped capabilities to
+untrusted sub-systems. 
 
 \subsubsection{Timeout Exception Handlers}
 
 Timeout exceptions are only triggered for threads with non-empty timeout handling slots in the
 \gls{TCB} \cnode, configured with \tcbsettimeoutep. The implementation is the same as for
-fault handlers with one exception: while fault \gls{IPC} messages can trigger scheduling context
+fault handlers, with one exception: while fault \gls{IPC} messages can trigger scheduling context
 donation, allowing fault-handling threads to be passive, timeout messages cannot. The timeout
 message contains the badge of the scheduling context which triggered the fault, and the amount of
 time consumed by that scheduling context since the last reset.
