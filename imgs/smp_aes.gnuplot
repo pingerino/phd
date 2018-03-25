@@ -15,15 +15,6 @@ set xrange [1:4]
 set xtics 1
 set yrange[0:650]
 
-set style line 1  lw LW lt 1 pt 8  lc rgb "black"
-set style line 2  lw LW lt 2 pt 9  lc rgb "black"
-set style line 3  lw LW lt 1 pt 6  lc rgb "red"
-set style line 4  lw LW lt 2 pt 7  lc rgb "red"
-set style line 5  lw LW lt 1 pt 13  lc rgb "orange"
-set style line 6  lw LW lt 2 pt 14 lc rgb "orange"
-set style line 7  lw LW lt 1 pt 4  lc rgb "blue"
-set style line 8  lw LW lt 2 pt 5  lc rgb "blue"
-
 div=1
 
 set multiplot

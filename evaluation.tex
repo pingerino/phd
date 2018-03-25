@@ -71,9 +71,10 @@ benchmarks that require a network.
 
 We first present a suite of microbenchmarks to evaluate any performance overheads against baseline
 \selfour.
-For each benchmark we ensure \gls{FPU} context switching is off by performing the required number of 
-system calls 
-without activating it such that the kernel will cease switching the FPU context. We present
+Because the kernel uses \emph{lazy switching} for the \gls{FPU}, where the \gls{FPU} context is only
+switched if it is actively being used, we ensure \gls{FPU} context switching
+is off. This is achieved by performing the required number of system calls 
+without activating the \gls{FPU}. We present
 overheads on IPC operations, signalling and interrupts, and finally scheduling. 
 
 For each of the benchmarks in this section, we measure the cost of measurement, which is reading the
@@ -117,9 +118,9 @@ platform requiring timer overflow interrupts, which are not measured as \textsc{
 platform provided for comparison with modern ARM versions.
 
 \textsc{KZM} and \textsc{Sabre} both use memory-mapped timers, the 32-bit general purpose timer for
-the former and 64-bit ARM global timer for the latter. \textsc{Sabre} has four cores and the timer
-registers are banked, making access fast for each core. Timer access on \textsc{Sabre} is
-significantly faster than the \textsc{KZM}. 
+the former and 64-bit ARM global timer for the latter. \textsc{Sabre} has four cores and while the
+timer device is shared, the timer registers are per-core, making access fast. 
+Timer access on \textsc{Sabre} is significantly faster than the \textsc{KZM}. 
 
 For all other ARM platforms, the ARM generic timers are available, which are accessed via the
 coprocessor. The majority of new ARM platforms support the ARM generic timers. 
@@ -136,7 +137,7 @@ reduces the overhead.
 Results on both architectures show that the overhead of a tickless kernel, which requires the timers
 to be frequently read and reprogrammed, is tolerable on modern hardware. On ARM, timer costs have
 reduced by an order of magnitude from ARMv6 through to ARMv8. 
-
+\clearpage
 \subsection{IPC performance}
 
 \Gls{IPC} performance is a critical measure of the practicality and efficiency of a
@@ -152,7 +153,7 @@ value. Results presented are for performing this a total of 16 times. Additional
 overhead of system calls stubs in the same way and subtract this from the measurement, to obtain
 only the kernel cost of the operation\footnote{The \gls{IPC} benchmarks already existed for
  \selfour, but we modify them to support the \gls{MCS} kernel as part of this thesis}.
-   The message sent is zero length, so neither the caller nor callee's \gls{IPC} buffer accessed.
+   The message sent is zero length, so neither the caller nor callee's \gls{IPC} buffer is accessed.
 
 \begin{table}[t]\centering
 \begin{tabular}{ll r@{~}l r@{~}l r@{~}r}\toprule
@@ -207,16 +208,36 @@ The fastpath for \replyrecv has a higher impact, for two reasons: first, we add 
 lookup, being the resume object provided to receive, which must be looked up by the \replyrecv
 fastpath. Although we remove of reply capability from the \gls{TCB}
 \cnode, that \cnode is still accessed to validate the caller's root \cnode capability
-and top-level page directory capability, so that cache line is still read. Additionally, because
-\gls{IPC} is now ordered, the fastpath must check if the callee's \gls{TCB} will be appended to the
+and top-level page directory capability, so the cache-foot print is not reduced. Additionally, because
+\gls{IPC} is now priority ordered, the fastpath must check if the callee's \gls{TCB} will be appended to the
 endpoint queue. Otherwise, the fastpath is aborted for an ordered insert. 
 
 As a result, the overheads shown in \cref{t:fastpath-ipc-micro} for \replyrecv are generally higher
 than \call, except for \textsc{Sabre}, which already suffered some \gls{TLB} misses on
 the baseline kernel, again due to low \gls{TLB} associativity.
+\clearpage
 
 \subsubsection{Slowpath}
 \label{eval:slowpath}
+
+\begin{table}[t]\centering
+\begin{tabular}{ll r@{~}l r@{~}l r@{~}r}\toprule
+\emph{Platform}           & \multicolumn{1}{c}{\emph{Operation}}
+                                & \multicolumn{2}{c}{\emph{Base}}
+                                & \multicolumn{2}{c}{\emph{MCS}}
+                                & \multicolumn{2}{c}{\emph{Overhead}}\\
+    \ipcmicro{KZM}{kzm}{slowpath}
+    \ipcmicro{Sabre}{sabre}{slowpath}
+    \ipcmicro{Hikey32}{hikey32}{slowpath}
+    \ipcmicro{Hikey64}{hikey64}{slowpath}
+    \ipcmicro{TX1}{tx1}{slowpath}
+    \ipcmicro{x64}{haswell}{slowpath}
+    \ipcmicro{ia32}{ia32}{slowpath}
+    \bottomrule
+\end{tabular}
+\caption[Slowpath IPC overhead.]{Slowpath IPC overhead in cycles, baseline \selfour versus MCS.
+Standard deviations shown in brackets.} \label{t:slowpath-ipc-micro}
+\end{table}
 
 Now we evaluate the \gls{IPC} slowpath, for both active and passive threads. Unlike the fastpath, the slowpath
 generally doesn't fit into the cache and shows erratic results with high standard deviations on our
@@ -240,26 +261,27 @@ slowpath frequently: if a medium priority thread has woken, and is higher priori
 Additionally, many improvements can be made to the \gls{IPC} slowpath to improve
 performance, but it has not been examined extensively.
 
+\subsection{Faults}
+
 \begin{table}[t]\centering
-\begin{tabular}{ll r@{~}l r@{~}l r@{~}r}\toprule
+\begin{tabular}{cl r@{~}l  r@{~}l r@{~}r}\toprule
 \emph{Platform}           & \multicolumn{1}{c}{\emph{Operation}}
-                                & \multicolumn{2}{c}{\emph{Base}}
+                                & \multicolumn{2}{c}{\emph{Baseline}}
                                 & \multicolumn{2}{c}{\emph{MCS}}
-                                & \multicolumn{2}{c}{\emph{Overhead}}\\
-    \ipcmicro{KZM}{kzm}{slowpath}
-    \ipcmicro{Sabre}{sabre}{slowpath}
-    \ipcmicro{Hikey32}{hikey32}{slowpath}
-    \ipcmicro{Hikey64}{hikey64}{slowpath}
-    \ipcmicro{TX1}{tx1}{slowpath}
-    \ipcmicro{x64}{haswell}{slowpath}
-    \ipcmicro{ia32}{ia32}{slowpath}
+                                & \multicolumn{2}{c}{\emph{Overhead}} \\ 
+    % no kzm, fault benchmark doesn't work
+    \faultmicro{Sabre}{sabre}
+    \faultmicro{Hikey32}{hikey32}
+    \faultmicro{Hikey64}{hikey64}
+    \faultmicro{TX1}{tx1}
+    \faultmicro{x64}{haswell}
+    \faultmicro{ia32}{ia32}
     \bottomrule
 \end{tabular}
-\caption[Slowpath IPC overhead.]{Slowpath IPC overhead in cycles, baseline \selfour versus MCS.
-Standard deviations shown in brackets.} \label{t:slowpath-ipc-micro}
+\caption[Fault handler overhead.]{Fault IPC slowpath overhead in cycles, baseline \selfour versus
+MCS. Standard deviations shown in brackets.}
+\label{t:slowpath-fault-micro}
 \end{table}
-
-\subsection{Faults}
 
 Recall that fault handling in \selfour occurs via an \gls{IPC}, simulated by the kernel, to a fault
 endpoint, which a fault handling-thread can wait upon for messages (\cref{api:faults}). 
@@ -282,49 +304,7 @@ unit, including the cycle counter, cannot be read from user mode. As a result we
 undefined instruction to read the cycle counter efficiently on this platform, 
 so the fault benchmark does not work.
 
-\begin{table}[t]\centering
-\begin{tabular}{cl r@{~}l  r@{~}l r@{~}r}\toprule
-\emph{Platform}           & \multicolumn{1}{c}{\emph{Operation}}
-                                & \multicolumn{2}{c}{\emph{Baseline}}
-                                & \multicolumn{2}{c}{\emph{MCS}}
-                                & \multicolumn{2}{c}{\emph{Overhead}} \\ 
-    % no kzm, fault benchmark doesn't work
-    \faultmicro{Sabre}{sabre}
-    \faultmicro{Hikey32}{hikey32}
-    \faultmicro{Hikey64}{hikey64}
-    \faultmicro{TX1}{tx1}
-    \faultmicro{x64}{haswell}
-    \faultmicro{ia32}{ia32}
-    \bottomrule
-\end{tabular}
-\caption[Fault handler overhead.]{Fault IPC slowpath overhead in cycles, baseline \selfour versus
-MCS. Standard deviations shown in brackets.}
-\label{t:slowpath-fault-micro}
-\end{table}
-
 \subsection{Signalling and interrupts}
-
-As noted in the previous section, mainly engineering effort is required to add new fastpaths. For
-this reason, we add two new (non-verified) experimental fastpaths to the baseline and MCS kernels: one for interrupt
-delivery, and the other for signalling a low-priority thread, which we now examine.
-
-We measure interrupt latency using two threads, one spinning in a loop
-updating a volatile cycle counter, the other, higher priority thread
-waiting for an interrupt. On delivery, the handler thread determines the
-interrupt latency by subtracting the
-looped timestamp from the current time. The overhead is higher here as we must switch scheduling
-contexts, which requires reprogramming the timer, however the scheduler is by-passed as the switch
-is to a higher priority thread. \textsc{KZM} shows the  highest overhead, where once again we
-exceed the small cache. The \textsc{Hikey} pays for its in-order execution pipeline, which could be
-improved with further profiling of the fastpath. The \textsc{TX1} shows the least impact, with only
-a 5\% increase on the interrupt fastpath, as shown in \cref{t:micro-irq}. 
-
-\code{signal()}, on the other hand shows little overhead as it does not alter the
-scheduling context or access to the timer device.  In this benchmark, a high priority thread signals
-a low priority thread, a common operation for interrupt service routines. As \cref{t:micro-irq}
-shows, in 
-cases where slowpath performance is a issue, further fastpaths can be added to avoid accessing the
-timer, in the case where older hardware is required.
 
 \begin{table}[t]\centering
 \begin{tabular}{cl r@{~}l r@{~}l r@{~}r}\toprule
@@ -345,6 +325,29 @@ timer, in the case where older hardware is required.
     \selfour versus MCS. Standard deviations shown in brackets.}
 \label{t:micro-irq}
 \end{table}
+
+As noted in the previous section, mainly engineering effort is required to add new fastpaths. For
+this reason, we add two new (non-verified) experimental fastpaths to the baseline and MCS kernels: one for interrupt
+delivery, and the other for signalling a low-priority thread, which we now examine.
+
+We measure interrupt latency using two threads, one spinning in a loop
+updating a volatile cycle counter, the other, higher priority thread
+waiting for an interrupt. On delivery, the handler thread determines the
+interrupt latency by subtracting the
+looped timestamp from the current time. \cref{t:micro-irq} shows the results. 
+The overhead is higher here as we must switch scheduling
+contexts, which requires reprogramming the timer, however the scheduler is by-passed as the switch
+is to a higher priority thread. \textsc{KZM} shows the  highest overhead, where once again we
+exceed the small cache. The \textsc{Hikey} pays for its in-order execution pipeline, which could be
+improved with further profiling of the fastpath. The \textsc{TX1} shows the least impact, with only
+a 5\% increase on the interrupt fastpath.
+
+\code{signal()}, on the other hand shows little overhead as it does not alter the
+scheduling context or access to the timer device.  In this benchmark, a high priority thread signals
+a low priority thread, a common operation for interrupt service routines. As \cref{t:micro-irq}
+shows, in 
+cases where slowpath performance is a issue, further fastpaths can be added to avoid accessing the
+timer, in the case where older hardware is required.
 
 \subsection{Scheduling}
 
@@ -384,8 +387,8 @@ undisciplined timeslice donation), is designed to minimise the need for
 invoking the scheduler, therefore this increase is unlikely to have
 a noticeable effect in practice. 
 
-We also measure the average cost for the current thread to \yield to itself. This is not so much an
-overhead as a completely different system call: previously \yield was incomplete, and would simply
+We also measure the average cost for the current thread to \yield to itself. The overhead is large 
+as \yield is nearly a completely different system call: previously \yield was incomplete, and would simply
 dequeue and enqueue the current thread from the scheduling queues, before returning to user level.
 \yield in the new model charges the remaining budget in the head replenishment to the thread, and
 triggers a timer reprogram. Although semantically similar for round robin threads, \yield does a lot
@@ -398,10 +401,12 @@ To demonstrate the impact of the overheads in a real system scenario,
 we measure the performance of the Redis key value store~\citep{redis:url} using 
 \gls{YCSB}~\citep{Cooper_STRS_10} on baseline and MCS \selfour, and compare this
 against Linux, the Rump unikernel~\citep{Kantee_Cormack_14} and 
-NetBSD~\citep{NetBSD:url} all on the \textsc{x64} machine.
+NetBSD~\citep*{NetBSD:url} all on the \textsc{x64} machine. Note that the Rump unikernel only
+currently supports x86 platforms, consequently experiments requiring Rump are only carried out on
+the \textsc{x64} platform. 
 
 For \selfour, we use a single-core Rump library OS~\citep{Kantee_Cormack_14} to provide 
-NetBSD~\citep{NetBSD:url} network drivers at user level, by leveraging an existing port of this infrastructure
+NetBSD network drivers at user level, by leveraging an existing port of this infrastructure
 to \selfour~\citep{McLeod:be}.
 The system consists of Redis/Rump running on three active \selfour threads: 
 two for servicing interrupts (network, timer) and one for Rump, as shown in
@@ -465,10 +470,7 @@ techniques to restore server state after a timeout exception.
 \subsection{Process isolation} 
 
 We evaluate process isolation, where processes do not share resources, indirectly via network
-throughput and network latency in two separate benchmarks. Note that the Rump unikernel only
-currently supports x86 platforms, consequently these experiments are only carried out on
-the \textsc{x64} platform. 
-
+throughput and network latency in two separate benchmarks. 
 \subsubsection{Network throughput}
 
 First, we demonstrate our isolation properties with the Redis architecture described in
@@ -552,7 +554,7 @@ benchmarks on both \textsc{x86} and \textsc{Sabre}.
 
 \Cref{f:aes-arch} shows the architecture of the case study. Both clients $A$ and $B$ are single
  threaded and exist in separate address spaces to the server. The server has two threads, a passive
- thread for serving request on the clients scheduling context and an active thread which handles
+ thread for serving requests on the client's scheduling context and an active thread which handles
  timeout exceptions for the server. The server and timeout exception handler share the same virtual
  memory and capability spaces.
 
@@ -568,39 +570,41 @@ fault \gls{IPC} messages on endpoint $E_{2}$.}
 The server itself runs the AES-256 algorithm with a block size of 16~bytes. The server alternates between two
 buffers, using an atomic swap, of which one always contains consistent state, the other is
 dirty during processing. When a timeout fault occurs, only the dirty buffer is lost due to
-inconsistency. Both clients request 4\,MiB of data to be encrypted, and have a budget insufficient to
-complete the request. When the server is running on the clients scheduling context and the budget
+inconsistency. Both clients request 4\,MiB of data to be encrypted, provided by a shared buffer
+between client and server, and have a budget insufficient to
+complete the request. When the server is running on the client's scheduling context and the budget
 expires, a timeout exception, which is a fault IPC message from the kernel, is delivered to the timeout
 handler. 
 
 \subsection{Timeout handling techniques}
 
-If client scheduling context is depleted while the server is servicing the request, a timeout fault
+If a client's scheduling context is depleted while the server is servicing the request, a timeout fault
 is raised and sent to the timeout handler.  The appropriate protocol for handling such faults
 depends ultimately on the requirements of the system.  Consequently, we implement and evaluate four
-different timeout fault handling techniques: rollback, error, emergency and extend. 
+different timeout fault handling techniques: \emph{rollback}, \emph{error}, \emph{emergency} and
+\emph{extend}. 
 
 While each technique is evaluated separately, combinations of such techniques could be used for
-different clients depending on their requirements. For example, trusted clients may get special
+different clients, depending on their requirements. For example, trusted clients may get special
 treatment. Note that in all cases of blocking IPC, clients must trust the server as discussed in
-\cref{s:locking}. Additionally, although out experiment places 
+\cref{s:locking}. Additionally, although our experiment places 
 the timeout fault handler in the server's address
 space, this is not necessary: for approaches that require access to scheduling contexts and
-scheduling control capabilities, the timeout handler may be placed in a scheduling servers address
+scheduling control capabilities, the timeout handler may be placed in a scheduling server's address
 space, separate from the server itself.
 
 \subsubsection{Rollback}
 
 Rollback restores the server to the last known consistent state recorded. In the case of non-thread
 safe servers, this may require rolling back an entire request. However, algorithms like \gls{AES}
-which can easily be batched can make progress. The process for rollback involves is as follows:
+which can easily be batched can make progress. The process for rollback is as follows:
 
 \begin{enumerate}\label{e:rollback}
     \item A timeout fault is received by timeout handler, $T$ over $E_{2}$.
     \item $T$ constructs a reply message to the client from the last clean state, and sends this 
         message to the client by invoking the resume capability that the server has used for that client. 
         Because the resume object tracks the donation, the client's scheduling context is returned.
-    \item $T$ then restores the server, $S$ to a known state by the timeout handler (restoring registers,
+    \item $T$ then restores the server, $S$, to a known state (restoring registers,
         stack frames and any global state). $S$ is restored to the point before it made its
         last system call, usually an \nbsendrecv, which it used to indicate to the initialiser that
         $S$ should be made passive, as part of the passive server initialisation protocol presented
@@ -614,13 +618,14 @@ which can easily be batched can make progress. The process for rollback involves
 \end{enumerate}
 
 The rollback technique requires the server and timeout handler to both have access to the reply
-object that the server is using, and the servers \gls{TCB}, meaning the timeout handler must be
+object that the server is using, and the server's \gls{TCB}, meaning the timeout handler must be
 trusted by the server. In our example the server and timeout handler run at the same priority, in
-all cases both must run at higher priorities than the clients. 
+all cases both must run at higher priorities than the clients, to allow the timeout handler to
+reinitialise the server in the correct order, and to implement the \gls{IPCP}. 
 
 Once the budget of the faulting client is replenished, it can then continue the request based on the
 content of the reply message sent by the timeout handler. Clients are guaranteed progress as long as
-their budget is sufficient to complete a single batch of progress.
+their budget is sufficient to complete a single batch of data.
 
 If rollback is not suitable, the server can be similarly reset to the initial state and an error
 returned to the client. However, this does not guarantee progress for clients with insufficient
@@ -649,7 +654,7 @@ An example emergency protocol follows:
 \begin{enumerate}\label{e:emergency}
     \item A timeout fault is received by timeout handler, $T$ over $E_{2}$.
     \item $T$ unbinds the client scheduling context from $S$.
-    \item $T$ binds a new scheduling context to the $S$, which acts as an emergency budget.
+    \item $T$ binds a new scheduling context to $S$, which acts as an emergency budget.
     \item $T$ then replies to the timeout fault, resuming $S$.
     \item Now $T$ enqueues itself on $E_{1}$, such that when the server finishes the blocked request,
         $T$, being a higher priority, is served next.
@@ -659,13 +664,13 @@ An example emergency protocol follows:
     \item Finally $T$ blocks on $E_{2}$, ready for further timeout faults.
 \end{enumerate}
 
-This case requires the timeout handler to have access to client scheduling contexts in order to
+This case requires the timeout handler to have access to clients' scheduling contexts, in order to
 unbind them from the server. 
 
 \subsubsection{Extend}
 
-The final technique is to simply increase the clients budget on each timeout, which requires the
-timeout fault handler to have access to the clients scheduling contexts.
+The final technique is to simply increase the client's budget on each timeout, which requires the
+timeout fault handler to have access to the client's scheduling contexts.
 This could be deployed in \gls{SRT} systems or for specific threads with unknown budgets up to a limit. 
 
 \begin{enumerate}\label{e:extend}
@@ -674,27 +679,8 @@ This could be deployed in \gls{SRT} systems or for specific threads with unknown
     \item $T$ replies to the fault message, which resumes $S$.
 \end{enumerate}
 
-\subsection{Results}
-
-We measure the pure handling overhead in each case, from when the timeout handler wakes up to when
-it blocks again.  Given the small amount of rollback state, this measures the baseline overhead. For
-schedulability analysis, the actual cost of the rollback would have to be added, in addition to the
-duration of the timeout fault IPC. 
- 
-We run each benchmark with hot caches (primed by some warm-up
-iterations)  as well as cold (flushed) caches and measure the 
-latency of timeout handling, from the time the handler wakes up
-until it replies to the server.
-
-\autoref{t:rollback} shows the results. The maximum
-colD-cache cost, which is relevant for schedulability analysis, differs by a factor of 3--4 between
-the different recovery scenarios, indicating that all are about equally feasible.  Approaches that
-restart the server and send \glspl{IPC} messages on its behalf (rollback, reply) are the most
-expensive as they must restore the server state from a checkpoint and follow the passive server
-initialisation protocol (recall \cref{sec:impl-passive-servers}). 
-
-\newpage
-\begin{table}[h]\centering
+%\newpage
+\begin{table}[t!]\centering
 \begin{tabular}{cllrrrr}\toprule
 \emph{Platform} & \emph{Operation} & \emph{Cache} & \emph{Min} &
                           \emph{Max} & \emph{Mean} &
@@ -716,8 +702,38 @@ initialisation protocol (recall \cref{sec:impl-passive-servers}).
   by timeout exception handler. \(\sigma\) is the standard deviation.}
 \label{t:rollback}
 \end{table}
-\clearpage
+
+
+\subsection{Results}
+
+We measure the pure handling overhead in each case, from when the timeout handler wakes up to when
+it blocks again.  Given the small amount of rollback state, this measures the baseline overhead. For
+schedulability analysis, the actual cost of the rollback would have to be added, in addition to the
+duration of the timeout fault IPC. 
+ 
+We run each benchmark with hot caches (primed by some warm-up
+iterations)  as well as cold (flushed) caches and measure the 
+latency of timeout handling, from the time the handler wakes up
+until it replies to the server.
+
+\autoref{t:rollback} shows the results. The maximum
+colD-cache cost, which is relevant for schedulability analysis, differs by a factor of 3--4 between
+the different recovery scenarios, indicating that all are about equally feasible.  Approaches that
+restart the server and send \glspl{IPC} messages on its behalf (rollback, reply) are the most
+expensive as they must restore the server state from a checkpoint and follow the passive server
+initialisation protocol (recall \cref{sec:impl-passive-servers}). 
+
 \subsection{Rollback isolation}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics{aes-shared}
+  \caption[Results of AES server isolation benchmark.]{Throughput for clients A and B of a passive AES server processing 10 requests of 4\,MiB of data with
+      limited budgets on the \textsc{x64} (top row) and \textsc{Sabre} (bottom row) platforms. The two clients' budgets
+      add up to the period, which is varied between graphs (10, 100, 1000\,ms). Clients sleep when
+      they process each 4\,MiB, until the next period, except when their budgets are full. Each data point is the average of 10 runs, error bars show the standard deviation.}
+  \label{f:aes}
+\end{figure}
 
 We next demonstrate temporal isolation in the server by using the rollback
 technique and measuring the time taken to encrypt 10 requests of 4\,MiB of
@@ -729,17 +745,6 @@ budget and keeps invoking the server without ever getting rolled back,
 thus monopolising the processor. In all other cases, each client
 processes at most 4\,MiB of data per period, and either succeeds (if
 the budget is sufficient) or is rolled back after processing less than 4\,MiB.
-
-\begin{figure*}[t]
-  \centering
-  \includegraphics{aes-shared}
-  \caption[Results of AES server isolation benchmark.]{Throughput for clients A and B of a passive AES server processing 10 requests of 4\,MiB of data with
-      limited budgets on the \textsc{x64} (top row) and \textsc{Sabre} (bottom row) platforms. The two clients' budgets
-      add up to the period, which is varied between graphs (10, 100, 1000\,ms). Clients sleep when
-      they process each 4\,MiB, until the next period, except when their budgets are full. Each data point is the average of 10 runs, error bars show the standard deviation.}
-  \label{f:aes}
-\end{figure*}
-
 
 The results show that in the CPU-limited cases (left graphs)
 we have the expected near perfect proportionality between throughput and
@@ -757,21 +762,11 @@ demonstrate that the model is general enough to support the efficient
 implementation of alternate policies at user level. Specifically, we
 implement two user-level schedulers: first, a static mixed criticality
 scheduler~\citep{Baruah_BD_11}, which we also compare to an in-kernel
-implementation and secondly an \gls{EDF} scheduler, which we compare to \litmus.
+implementation, and an \gls{EDF} scheduler, which we compare to \litmus.
 
 \subsection{Criticality}
 
-Static, mixed-criticality, fixed-priority schedulers are based on \emph{mode
-switches}, which effectively mean altering the priority of threads in bulk:
-critical threads that may be of low rate are bumped higher than their
-low-criticality counter parts, to ensure deadlines are met in exceptional
-circumstances. 
-
-We implement a kernel mechanism for changing priorities in bulk of threads 
-and compare with a user-level approach which simply changes the priority of threads
-one at a time. In our prototype implementation, the kernel tracks all threads of specific criticalities and boosts their priority on a made switch. However, given threads are kept in per-priority queues, each thread must be removed and reinserted into a new queue, so either way the complexity of the mode-switch is $O(n)$. 
-
-\begin{figure}
+\begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{mode-switch-all}
   \caption[Kernel vs. user-level criticality switch.]{Cost of switching the priority of $n$ threads in kernel and user level, with hot
@@ -780,6 +775,34 @@ one at a time. In our prototype implementation, the kernel tracks all threads of
                   with very small standard deviations.}
   \label{f:mode-switch}
 \end{figure}
+
+
+Static, mixed-criticality, fixed-priority schedulers are based on \emph{mode
+switches}, which effectively mean altering the priority of threads in bulk:
+critical threads that may be of low rate are bumped to higher than their
+low-criticality counter parts, to ensure deadlines are met in exceptional
+circumstances. 
+
+We implement a kernel mechanism for changing thread priorities in bulk,
+and compare with a user-level approach which simply changes the priority of threads
+one at a time. In our prototype implementation, the kernel tracks all threads of specific
+criticalities and boosts their priority on a criticality mode switch. However, given threads are kept in per-priority queues, each thread must be removed and reinserted into a new queue, so either way the complexity of the mode-switch is $O(n)$. 
+
+\begin{table}[t]\centering
+    \rowcolors{2}{gray!25}{}
+    \begin{tabular}{lrrr}\toprule
+        \emph{Platform}     & \emph{Kernel cold ($\mu$s)} & \emph{User-level cold ($\mu$s)} & \emph{Diff $\mu$s} \\\midrule
+        \textsc{x64}    & $\leq2$ & $\leq4$ & \textasciitilde2 \\
+        \textsc{TX1}    & $\leq4$ & $\leq8$ & \textasciitilde4 \\
+        \textsc{Hikey64}    & $\leq18$ & $\leq30$ & \textasciitilde12 \\
+        \textsc{Sabre}    & $\leq12$ & $\leq22$ & \textasciitilde10 \\
+        \bottomrule
+\end{tabular}
+\caption[Comparison of kernel and user-level priority switches]{Comparison of cold, in-kernel
+priority switch to cold, user-level priority switch.}
+\label{t:cold-prio-switch}
+\end{table}
+
 
 \autoref{f:mode-switch} shows the results measured with a primed cache (hot) and flushed cache (cold).
 As the graph shows, switching is linear in the number of threads being boosted, in both kernel and
@@ -797,22 +820,6 @@ switches between kernel and user mode, and the repeated
 thread-capability look-ups. It could be significantly reduced if seL4
 had a way to batch system calls, but to date we have seen no compelling use cases for this.
 
-\begin{table}[t]\centering
-    \rowcolors{2}{gray!25}{}
-    \begin{tabular}{lrrr}\toprule
-        \emph{Platform}     & \emph{Kernel cold ($\mu$s)} & \emph{User-level cold ($\mu$s)} & \emph{Diff $\mu$s} \\\midrule
-        \textsc{x64}    & $\leq2$ & $\leq4$ & $\tilde2$ \\
-        \textsc{TX1}    & $\leq4$ & $\leq8$ & $\tilde4$ \\
-        \textsc{Hikey64}    & $\leq18$ & $\leq30$ & $\tilde12$ \\
-        \textsc{Sabre}    & $\leq12$ & $\leq22$ & $\tilde10$ \\
-        \bottomrule
-\end{tabular}
-\caption[Comparison of kernel and user-level priority switches]{Comparison of cold, in-kernel
-priority switch to cold, user-level priority switch.}
-\label{t:cold-prio-switch}
-\end{table}
-
-
 As a second criticality-switch benchmark, we ported three processor intensive 
 benchmarks from the MiBench~\citep{Guthaus_REAMB_01} to act as workloads. 
 We use \textsc{susan}, which performs image recognition, \textsc{jpeg}, which does image
@@ -820,46 +827,18 @@ encoding/decoding, and \textsc{mad}, which plays an MP3 file.
 Each benchmark runs in its own Rump process
 with an in-memory file system, and shares a timer and serial server.
  We chose these specific
-benchmarks as they were the easiest to adapt as described below,
+benchmarks as they were the easiest to adapt as described below, and use them as workloads,
 rather than for comparing systems, so there is no issue of bias from sub-setting.
 
-We altered the benchmarks to run periodically in multiple stages. To obtain
+We alter the benchmarks to run periodically in multiple stages. To obtain
 execution times long enough, some benchmarks iterate a fixed number of times per
 stage. Each benchmark process executes its workload and then waits for the next period to start.
-Deadlines are implicit: if a periodic job finishes before the start of the next period it is
+Deadlines are implicit: if a periodic job finishes before the start of the next period, it is
 considered successful, otherwise the deadline is missed.
 
 We run the benchmarks on both the user-level and in-kernel implementations of static mixed criticality, with 10 runs of each.
 
-\Cref{t:modeswitch} lists the benchmarks with periods and criticalities.
-\textit{susan}, the most critical, has three stages: edge detection, smoothing, and corners. The
-next critical task, \textit{jpeg}, has two stages: encode, and decode. The least
-critical task, \textit{mad} has only one stage. We run the benchmark
-for 20\,s for each of the stages (repeating the last phase where
-threads have no new phase), and
-increment the system criticality level at stage transition. The parameters are arranged such that
-rate-monotonic priorities are inverse to the criticalities.
-
-\textsc{susan}, the most critical, has three stages: edge detection, smoothing, and corners. The
-next critical task, \textsc{jpeg}, has two stages: encode, and decode. The least
-critical task, \textsc{mad} has only one stage. We run the benchmark
-for 20\,s for each of the stages (repeating the last phase where
-threads have no new phase), and
-increment the system criticality level at stage transition. The parameters are arranged such that rate-monotonic priorities are inverse to the criticalities.
-
-Results are shown in \autoref{t:modeswitch}.
-Only the lowest-priority thread is affected by the criticality switch, with an additional missed deadline due to
-perturbations in run time due to the user-level versus kernel scheduler.
-For stage one, the entire workload is schedulable and
-there are no deadline misses. For stage two, the workload is not
-schedulable, and the criticality switch boosts the priorities of
-\textsc{susan} and \textsc{jpeg}, such that they meet
-their deadlines, but
-\textsc{mad} does not. In the final stage, only the most critical task
-meets all deadlines.
-This shows that it is sufficient to implement criticality at user-level, and our mechanisms operate as intended.
-
-\begin{table}[h]
+\begin{table}[t]
     \centering
     \begin{tabular}{lcccccclcl}\toprule
         \emph{Application} & \emph{T} & \emph{L} & \emph{\(L_S\)} & \emph{C} & \emph{U} & \emph{j} &
@@ -871,11 +850,26 @@ This shows that it is sufficient to implement criticality at user-level, and our
         stage, where the  criticality \(L_S\) is raised each stage. \(T\) =
         period, \textit{C} = worst observed execution time (ms),
       \textit{U} = allowed utilisation (budget/period),
-      \textit{m} = deadline misses, \textit{j} = jobs completed. We recorded 52 (0.1), 86 (15.2)
+      \textit{m} = deadline misses, \textit{j} = jobs completed. We record 52 (0.1), 86 (15.2)
       and 100 (0.0)\% CPU
-utilisation for each stage respectively. Standard deviations are shown in parentheses.}
+utilisation for each stage respectively. Standard deviations are shown in parentheses. Bold values
+show the difference between the user-level scheduler and kernel. }
     \label{t:modeswitch}
 \end{table}
+
+
+Results are shown in \autoref{t:modeswitch}. For both schedulers (kernel versus user-level), 
+the results are nearly exactly the same. Bold numbers indicate a difference between the kernel and
+user-level scheduler, with only the lowest-criticality thread affected by the criticality switch, with an additional missed deadline due to
+perturbations in run time due to the slightly slower user-level scheduler.
+For stage one, the entire workload is schedulable and
+there are no deadline misses. For stage two, the workload is not
+schedulable, and the criticality switch boosts the priorities of
+\textsc{susan} and \textsc{jpeg}, such that they meet
+their deadlines, but
+\textsc{mad} does not. In the final stage, only the most critical task
+meets all deadlines.
+This shows that it is sufficient to implement criticality at user-level, and our mechanisms operate as intended.
 
 \subsection{User-level EDF}\label{s:edf-impl}
 
@@ -889,6 +883,15 @@ either notify the scheduler of completion by an IPC
 message, or else create a timeout exception on preemption, which is also received by the
 scheduler. Either is an indication that the next thread should be scheduled.
 
+\begin{figure}[t]
+\centering
+\includegraphics{edf}
+\caption[Results of \selfour user-level EDF versus \litmus.]{Execution time of \selfour user-mode EDF scheduler compared to
+         kernel scheduler in \textsc{x64} \litmus.}
+\label{f:edf}
+\end{figure}
+
+
 We use the \emph{randfixedsum}~\citep{Emberson_SD_10} algorithm to
 generate deadlines between 10 and 1000\,ms for a certain number of threads.
 A set of threads runs until 100
@@ -899,7 +902,7 @@ We measure the scheduler latency by recording the timestamp when each client thr
 thread, detects a
 context switch and processing the difference in timestamp pairs offline. We run two schedulers:
 \emph{pre}-empt where threads never yield and must incur a timeout exception, and \emph{coop}, where
-threads use IPC to yield to the scheduler. The latter invokes the user level timer
+threads use IPC to yield to the scheduler. The latter invokes the user-level timer
 driver more often as the release queue is nearly always full, which involves more kernel invocations
 to acknowledge the IRQ, in addition to reprogramming the timer.
 
@@ -919,15 +922,7 @@ actually faster than the in-kernel EDF scheduler from LITMUS$^{RT}$, and
 that the cost of implementing scheduling policy at user level is of
 the same order as the in-kernel default scheduler. In other words,
 implementing different policies on top of the base scheduler is quite feasible.
-
-\begin{figure}[t]
-    \centering
-    \includegraphics{edf}
-    \caption[Results of \selfour user-level EDF versus \litmus.]{Execution time of \selfour user-mode EDF scheduler compared to
-             kernel scheduler in \textsc{x64} \litmus.}
-    \label{f:edf}
-\end{figure}
-
+\clearpage
 \section{Multiprocessor benchmarks}
 
 We run two multicore benchmarks, the first evaluating multicore throughput of the MCS kernel versus the
@@ -936,6 +931,16 @@ multicore model.
 
 We run multiprocessor benchmarks on two of our platforms, \textsc{Sabre} and \textsc{x64}. Both 
 are symmetric multiprocessors with four cores. 
+
+\begin{figure}[t] 
+    \centering
+    \includegraphics{smp}
+    \caption[Results of the multicore IPC throughput benchmark.]{Results of the multicore IPC throughput benchmark, baseline \selfour vs MCS. 
+        Each series is named \textit{name-N}, where \textit{name} is \textit{base} and \textit{mcs} for 
+        the baseline and MCS kernel respectively, and \textit{N} is the upper
+        bound on the number of cycles between each IPC for that series.}
+    \label{f:evaluation-smp}
+\end{figure}
 
 \subsubsection{Throughput}
 
@@ -947,7 +952,7 @@ At time of writing, only \textsc{x64} and \textsc{sabre} have \selfour multiproc
 consequently these are the platforms used for the benchmark.
 
 The existing multicore benchmark measures IPC throughput of a client and server, both 
-pinned to the same processor, sending fastpath, 0 length IPC messages of via \call
+pinned to the same processor, sending fastpath, 0-length IPC messages via \call
 and \replyrecv. One pair of client and server is set up per core. Both threads are
 the same priority and the messages are 0 length. Each thread spins for a random amount
 with an upper bound \textit{N} between each subsequent IPC. As \textit{N} increases so does
@@ -955,22 +960,22 @@ IPC throughput, as fewer calls are made.
 
 We modify the benchmark such that each server thread is passive on the MCS kernel.
 Results are displayed in \Cref{f:evaluation-smp} and show a minor impact on IPC throughput
-for high values of \textit{N}. Scalability is not impacted on \textsc{sabre}, but is on \textsc{x64},
+for low values of \textit{N}. Scalability is not impacted on \textsc{sabre}, but is on \textsc{x64},
 with the curve flattening slightly more aggressively on the MCS kernel
-due to the fastpath overhead. This is expected as the MCS model only introduces extra 
-per-core state, with no extra shared state between cores.
-
-\begin{figure}[ht] 
-    \centering
-    \includegraphics{smp}
-    \caption[Results of the multicore IPC throughput benchmark.]{Results of the multicore IPC throughput benchmark, baseline \selfour vs MCS. 
-        Each series is named \textit{name-N}, where \textit{name} is \textit{base} and \textit{mcs} for 
-        the baseline and MCS kernel respectively, and \textit{N} is the upper
-        bound on the number of cycles between each IPC for that series.}
-    \label{f:evaluation-smp}
-\end{figure}
-
+due to the fastpath overhead. The low overhead is expected as the MCS model only introduces extra 
+per-core state, with no extra shared state between cores. The slight scalability impact is
+due to a higher cache-footprint of the IPC fastpath. 
 \subsubsection{Shared server}
+
+\begin{figure}[b] 
+    \centering
+    \includegraphics{smp_aes}
+    \caption[Results of the AES shared server multicore case study.]{Results of the AES shared server multicore case study. \emph{Single} shows results for a 
+        passive server thread migrating between cores to service clients, while \emph{Multiple} has one
+        passive server thread per core. For both series, the number of clients is equal to the number of
+        cores and each client requests 1MiB of data encrypted. }
+    \label{f:evaluation-smp-aes}
+\end{figure}
 
 We adapt our \gls{AES} case study (\cref{s:server-isolation}) to demonstrate how our MCS model 
 applies to multiprocessors. The AES server is configured without a timeout fault handler, and
@@ -986,16 +991,6 @@ we run two variants.
         AES server, this results in near perfect scalability.
 \end{description}
 
-\begin{figure}[ht] 
-    \centering
-    \includegraphics{smp_aes}
-    \caption[Results of the AES shared server multicore case study.]{Results of the AES shared server multicore case study. \emph{Single} shows results for a 
-        passive server thread migrating between cores to service clients, while \emph{Multiple} has one
-        passive server thread per core. For both series, the number of clients is equal to the number of
-        cores and each client requests 1MiB of data encrypted. }
-    \label{f:evaluation-smp-aes}
-\end{figure}
-
 \section{Summary}
 
 All in all, we have demonstrated via micro- and macro- benchmarks that our overheads are
@@ -1005,14 +1000,15 @@ functionality.
 Through two system benchmarks and one shared-server benchmark, we have shown
 that our approach guarantees processor isolation and that threads cannot exceed
 their budget allocation via their scheduling context. Additionally, we have
-shown that isolation can be achieved in a shared server via a timeout fault
-handler and implemented several alternatives for handling such faults,
+shown that isolation can be achieved in a shared server via a timeout-fault
+handler, and implemented several alternatives for handling such faults,
 demonstrating the feasibility of the model. 
 
-Policy freedom is maintained although we provide a fixed-priority scheduling in the kernel, the primitives are provided are sufficient to implement user-level schedulers, 
+Policy freedom is maintained despite providing fixed-priority scheduling in the kernel, as the
+mechanisms are sufficient to implement low-overhead, user-level schedulers, 
 as demonstrated through the static, mixed-criticality and EDF scheduler
 implementations. 
 
 Finally, we have demonstrated that the model works for multiprocessors,
 incurring no great scalability penalty over baseline \selfour, 
-and showing how passive servers which migrate across cores on \gls{IPC}
+and show how passive servers migrate across cores on \gls{IPC}.

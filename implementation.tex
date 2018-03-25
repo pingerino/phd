@@ -662,8 +662,13 @@ Scheduling contexts can only be donated and received on specific system calls, i
 \subsubsection{Passive servers}
 \label{sec:impl-passive-servers}
 
-Forwarding is required to initialise passive servers, as passive servers must first initialise any 
-server state before blocking and being rendered passive. Example user-level code for this process is 
+Passive servers do not have scheduling contexts, yet they must be waiting on an endpoint in order to
+receive \glspl{SCO} over \gls{IPC}, and possibly initialise some server-specific state first.
+The protocol for initialising passive servers is to start them as
+active, then wait for the server to signal to the initialising thread that they are ready to be
+converted to passive. IPC forwarding can be used to do this, so the passive server can send a
+message on one endpoint or notification object, then wait on another to receive \glspl{SCO} over
+IPC. Example user-level code for this process is 
 provided in \cref{list:passive-server}. 
 
 \begin{listing}[t]
@@ -713,8 +718,8 @@ rendered passive again.
 
 \section{Data Structures and Algorithms}
 
-Now we discuss changes to the data structures and algorithms in the kernel to provide
-accounting, which charges CPU time to the correct \gls{SCO}, enforcement mechanisms, which requires
+Now we discuss changes to the data structures and algorithms added and changed in the kernel to provide
+accounting, which charges CPU time to the correct \gls{SCO}, and the enforcement mechanisms, which requires
 a new scheduling data structure and fault type.
 
 \subsection{Accounting}
