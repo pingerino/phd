@@ -31,7 +31,7 @@ how resource server threads can migrate between processing cores.
 % describe benchmark setup, details of each hardware platform
 We run microbenchmarks on a variety of hardware to show the overheads of the model compared to
 baseline \selfour. \Cref{t:evaluation-hardware} summarises the hardware platforms. \textsc{Sabre} is
-the verified platform for \selfour, although at the time of writing verification for \textsc{x64} is
+the verified platform for \selfour, in addition to \text{x64}, which at the time of writing verification is
 ongoing. Currently, the only platforms that support more than one core are \textsc{Sabre},
 and \textsc{x64}.
 
@@ -152,7 +152,7 @@ the difference. This is done 16 times for each result value to prime the cache, 
 value. Results presented are for performing this a total of 16 times. Additionally, we measure the
 overhead of system calls stubs in the same way and subtract this from the measurement, to obtain
 only the kernel cost of the operation\footnote{The \gls{IPC} benchmarks already existed for
- \selfour, but we modify them to support the \gls{MCS} kernel as part of this thesis}.
+ \selfour, but we modify them to support the \gls{MCS} kernel as part of this thesis.}.
    The message sent is zero length, so neither the caller nor callee's \gls{IPC} buffer is accessed.
 
 \begin{table}[t]\centering
@@ -786,7 +786,7 @@ circumstances.
 We implement a kernel mechanism for changing thread priorities in bulk,
 and compare with a user-level approach which simply changes the priority of threads
 one at a time. In our prototype implementation, the kernel tracks all threads of specific
-criticalities and boosts their priority on a criticality mode switch. However, given threads are kept in per-priority queues, each thread must be removed and reinserted into a new queue, so either way the complexity of the mode-switch is $O(n)$. 
+criticalities and boosts their priority on a criticality switch. However, given threads are kept in per-priority queues, each thread must be removed and reinserted into a new queue, so either way the complexity of the mode-switch is $O(n)$. 
 
 \begin{table}[t]\centering
     \rowcolors{2}{gray!25}{}

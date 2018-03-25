@@ -427,7 +427,7 @@ temporally contain a task. The majority of these algorithms can be used to imple
 reservations.
 
 We also examined several mixed-criticality schedulers, however all incorporated a great deal of
-policy: schedulers that provide a criticality mode switch assume multiple \gls{WCET} estimates, and
+policy: schedulers that provide a criticality switch assume multiple \gls{WCET} estimates, and
 that low-criticality tasks can be de-prioritised or dropped. MC$^2$ defines four levels of
 scheduling and assumes that the highest criticality task are also hard real time, and that
 best-effort tasks are less critical than \gls{SRT} tasks, while \gls{ZS}-scheduling is optimised for
