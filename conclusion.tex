@@ -1,116 +1,83 @@
 \chapter{Conclusion}
 \label{chap:conclusion}
-\TODO{Have not finished conclusion yet}
 
+Emerging cyber-physical systems represent an opportunity for greater safety, security and 
+automation, as they can replace systems where human error prevail. While humans are excellent at
+innovation and creativity, they cannot compete with machines that do not get tired, drunk or
+distracted when completing
+monotonous, repetitive tasks. Car accidents are overwhelmingly 
+caused by human error, measured at 94\% in the US~\citep{Singh_15}, something that self-driving cars can overcome. Autonomous aircraft and other fleet vehicles, smart cities and smart factories hold similar promise. 
 
-\section{Contributions}
+As established in \cref{sec:motivation}, in order to practically develop such systems,
+they must be mixed-criticality, as certification of all parts of such a system to high-assurance
+levels is not feasible. Consequently, require strong temporal isolation, asymmetric protection, 
+and mechanisms to support sharing resources between sub-systems of different criticality levels. 
 
-Specifically, we make the following contributions:
-\begin{itemize}
-\item A capability system for time that has low overhead and does not
-  limit the system to a particular scheduling policy, including
-  implementation of arbitrary scheduling policies at user level;
-\item a notion of CPU reservations that is compatible with
-  fast IPC implementations traditionally used in high-performance
-  microkernels, and is compatible with established real-time resource-sharing policies;
-\item the first OS kernel supporting an explicit notion of
-  criticality, orthogonal to priority, in addition to the above;
-\item an exploration of implementation in the non-preemptible \selfour
-  microkernel and its interaction with the kernel's model of
-  user-level management of kernel memory, which is a critical enabler
-  of strong spatial isolation.
-\end{itemize}
+This thesis has drawn on real-time theory and systems practice to develop core-mechanisms required
+in a high-assurance, trusted computing base for mixed criticality systems. Importantly, the
+mechanisms we have developed do not violate other requirements, like policy-freedom, integrity,
+confidentiality, spatial isolation, and security. 
 
-The implementation is complete, and the functional correctness proof is already underway, with the
-verification engineering team at Data61, CSIRO. The maximum controlled
-priority feature has already been merged to the master kernel, while the rest of the features have
-specifications written and first-level refinement proofs are currently in progress. Verification is
-beyond the scope of this PhD, although we continue to work closely with the team to assist in
-verification. 
-
-
-\section{Future work}
-
-This thesis has covered treating time as a first-class resource, and defined a minimal set of
+In \cref{chap:model}, we introduced our model for treating time as a first-class resource, and 
+defined a minimal set of
 mechanisms that can be leveraged to implement temporal isolation between threads, even within shared
 servers. Our primitives also allow for more complex, application specific user-level schedulers to
 be constructed efficiently, as we showed in the evaluation. Although many attempts at integrating a
 capability system with the non-fungible resource that is time have existed before, we believe this is
 the first complete implementation which provides permission to time while not imposing policy
-restrictions. 
+restrictions. Unlike many models before it, we do not impose hierarchical scheduling, and our model
+does not conflate criticality, temporal sensitivity and trust.
+\clearpage
 
-We have not considered how frequency scaling should integrate with our model, and not experimented
-with multicore scheduling and locking protocols, which we expect can be implemented at user-level.
-Both of these topics are promising areas of future research.
+\section{Contributions}
 
-\TODO{Frequency scaling}
-\TODO{multicore locking and scheduling}
+Specifically, we make the following contributions:
 
-
-This chapter outlines what this PhD project has accomplished so far and what I plan to achieve in the future.
-
-\section{Progress}
-
-This research will investigate the scheduling and resource sharing problems of running application software at different criticality levels with different scheduling requirements in the context of the verified microkernel, \selfour.
-This research will attempt to break new ground by developing a real-time operating system kernel with full system schedulability analysis, including that of the kernel code and scheduler.
-
-The goals of this project are to provide (reproduced from the introduction):
-
-\begin{enumerate}[label=\textbf{G\arabic*}]
-  \item \label{G1-c} A principled approach to processor management, treating time as a fundamental kernel resource, while allowing it to be overbooked, a key requirement of mixed-criticality systems;
-  \item \label{G2-c} safe resource sharing between applications of different criticalities and different temporal requirements.
-\end{enumerate}
-
-This research is motivated by the rise in demand for mixed-criticality systems.
-It is clear from \Cref{chap:background} that although much work has been conducted on scheduling algorithms for mixed-criticality systems, little work has considered the implications for operating systems.
-In addition, mixed-criticality systems require more strict access control to time than has typically been required from standard real-time systems.
-This motivates \ref{G1-c}, which investigates how trusted applications can control the use of time as a resource, such that all timing requirements are met and low criticality tasks cannot compromise the timing requirements of higher criticality tasks.
-\ref{G2-c} covers how time flows through shared resources, which may be shared between tasks of
-different criticalities and different temporal strictness (\gls{HRT}, \gls{SRT}, best-effort) without violating the real-time requirements.
-
-This research is split into several clear phases: background research (year 1), design and implementation (year 2) and evaluation (year 3).
-We are currently at the middle of the evaluation phase, having completed the following:
-:
 \begin{itemize}
-	\item developed primitives in \selfour to allow a diverse range of scheduling options at user-level;
-	\item extended the \selfour capability model to apply to time, such that it can be enforced by the kernel;
-	\item evolved the current \selfour \gls{IPC} mechanisms to allow for analysable blocking of real-time tasks, as required for mixed-criticality resource sharing.
-        \item extended the model to cover and run on \gls{SMP} systems.
-        \item built a set of microbenchmarks for evaluating \selfour master against the real-time version.
-        \item built several examples including an AES encryption server, and built a variety of timeout exception handling 
+    \item Mechanisms for principled management of time through capabilities to scheduling contexts,
+        which is compatible with the fast IPC implementations traditional used in high-performance
+        microkernels, and is compatible with established real-time resource-sharing policies;
+    \item An implementation of those mechanisms in the non-preemptible \selfour microkernel, and an
+        exploration of how the implementation interacts with the existing kernel model;
+    \item An evaluation of the overheads and isolation properties of the implementation, to the
+        point of showing isolation in a shared server through timeout-fault handling;
+    \item Design and implementation of many different, user-level timeout-fault handling policies;
+    \item An implementation of a user-level \gls{EDF} scheduler which is competitive with the
+        \litmus, in-kernel EDF scheduler, which shows that despite the fixed-priority scheduler
+        present in the kernel, other schedulers remain practical;
+    \item and a design and implementation of a criticality switch at user-level, which shows that
+        criticality is not required to be a kernel provided property;
 \end{itemize}
 
-\subsection{Ongoing Evaluation}
+The implementation is complete, and the verification of this model is currently in-progress.
+Specifications have already been developed by the verification engineering team at Data61, CSIRO,
+who are now completing the first-level refinement of the functional correctness proof.
+The maximum controlled priority feature has already been merged to the master kernel. 
+Verification is beyond the scope of this PhD, although we continue to work closely with
+the team to assist in verification. 
 
-Our design and will be evaluated according to the following qualities over the next 12 months:
+During the development of this thesis we have contributed an extended benchmarking suite and
+user-level libraries for running experiments and building systems on \selfour. This work was part of
+the HACMS project \TODO{how to cite this project}. 
 
-\subsubsection{Policy-Mechanism Separation}
+\section{Future work}
 
-The aim of the project is to be as true to the microkernel minimality principle as possible---this means that kernel features should avoid influencing user policy decisions as much as possible.
-The motivation for using the microkernel minimality policy is to provide widely-applicable, trustworthy scheduling.
-Our case studies should allow us to evaluate how successful our design is in keeping policy and mechanism separate.
+Modern \glspl{CPU} have dynamic frequency scaling and low-power modes in order to save power, which
+is of high concern in many embedded systems. The implementation as it stands assumes a constant
+\gls{CPU} frequency, and all kernel operations are calculated in \gls{CPU} cycles. Frequency scaling
+can have undesirable effects on real-time processes: if the period is specified in microseconds, then
+converted to cycles and the CPU frequency changes, does the period remain correct? This is a
+limitation of our model and promising area for future work.
 
-\subsubsection{Schedulability analysis}
+Although we provide a mechanism for cross-core IPC, where passive threads migrate between processing
+cores and active threads remain fixed, there is much more to consider in terms of multicore
+scheduling and resource sharing. Our model provides a partitioned, fixed priority scheduler, and 
+load-balancing is up to user level. Further experiments to evaluate the mechanisms for higher-level
+multicore scheduling and resource sharing protocols is required. 
+                
+\section{Summary}
 
-Designs must be conscious of minimising actual and estimated \gls{WCET} as in order to provide a kernel that allows for schedulability analysis, a full profile of \gls{WCET} must be available.
-At the end of the project it should be possible to take a full description of a closed system and irrefutably show that the system is always schedulable.
-Similarly, for a mixed-criticality system, it must be possible to show that the critical parts of the system are always schedulable.
-
-\section{Conclusion}
-
-Mixed-criticality real-time systems that provide isolation and hard guarantees at the operating
-system level are desirable, due to the unscalable nature of hardware isolation.  Much research has
-been conducted into how to schedule workloads for real-time, mixed-criticality systems, however the
-implications for operating systems are yet to be examined, with most implementations falling short
-of what is required in a highly critical environment.
-
-As a result, this ongoing research investigates the implications of mixed-criticality, real-time
-scheduling in the context of a high-assurance operating system, driven by the rise of
-mixed-criticality systems in safety-critical environments.  The research investigates the trade-offs
-between verification potential, performance and policy-mechanism separation with respect to
-mixed-criticality scheduling and resource sharing.  In addition to a real-time iteration of seL4
-that offers full-system schedulability analysis including the kernel and scheduler, the
-contributions are expected to provide a model for future L4 real-time scheduling primitives and a
-novel approach to applying fine-grained permissions to time without sacrificing performance.
-
-
+Cyber-physical systems are the future, and our work has focused on principled mechanisms for
+managing time in such systems, which are critical in more ways than the impact of failure. The work
+we have done is one step of thousands towards of future of trustworthy, safe and secure
+autonomous systems. 

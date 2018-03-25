@@ -99,11 +99,12 @@ Concisely, the goals of this research are to provide:
     \item\label{G1} A principled approach to
     processor management, treating time as a fundamental kernel resource, while
     providing mechanisms for asymmetric protection, a key requirement of mixed-criticality systems;
-    \item Safe resource sharing between applications of different criticalities, assurance levels and
+\item\label{G2} Safe resource sharing between applications of different criticalities, assurance levels and
     temporal requirements.  
 \end{enumerate}
 
 \section{Motivation}
+\label{sec:motivation}
 
 % expand on notion of criticality with more detail and examples. Give enough background to justify contributions.
 As noted in the introduction, the \emph{criticality} of a system reflects the
@@ -320,20 +321,19 @@ resources, and showing how resource overbooking and asymmetric protection can be
 
 \section{Contributions}
 
+We make the following specific contributions:
+
 \begin{itemize}
-\item A capability system for processing time that imposes low overhead and allows for overbooking and isolation within shared resources;
-\item a notion of CPU-time budgets that is compatible with
-  fast IPC implementations traditionally used in high-performance
-  microkernels, and is compatible with established real-time resource-sharing policies;
-\item an exploration of the implementation in the non-preemptible, high-performance seL4
-  microkernel and its interaction with the kernel's model of
-  user-level management of kernel memory, which is a critical enabler
-  of strong spatial isolation;
-\item an implementation of a dynamic-priority system in a user-level
-  scheduler on top of the kernel's static priorities, demonstrating
-  that arbitrary scheduling policies can be implemented at low overhead;
-\item a demonstration that, without further kernel mechanisms, a
-  notion of criticality and asymmetric protection can be efficiently implemented at user level.
+    \item We develop a design and model for fine-grained access control to processing time, without
+        imposing strict limitations on system policy or introducing performance overheads, and
+        without requiring sacrifices to integrity or confidentiality;
+    \item an implementation of model in the high-assurance, non-preemptible \selfour microkernel,
+        and an exploration of the simplicity of the model and its integration with the existing
+        model which provides strong isolation properties;
+    \item an evaluation of the implementation, demonstrating low-overheads and temporal isolation
+        between systems sharing a processor and other resources;
+    \item user-level implementations of dynamic schedulers and resource sharing servers which
+        demonstrate that a variety of policies are not only possible to implement, but low-overhead.
 \end{itemize}
 
 \section{Scope}

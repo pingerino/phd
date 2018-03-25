@@ -181,7 +181,6 @@ is frequently used for low-criticality applications with \gls{SRT} demands, and 
 provide low-criticality services in a mixed-criticality setting, as long as it is sufficiently
 isolated. Additionally, Linux is often used as a platform for conducting real-time systems research. 
 
-% TODO cite completely fair scheduler
 Linux has a fixed-priority preemptive scheduler which is split into scheduling classes.  Real-time
 threads can be scheduled with \gls{POSIX} \schedfifo and \schedsporadic. Best-effort threads are
 scheduled with the time-sharing \gls{CFS}, and real-time threads are scheduled either \gls{FIFO} or round-robin, and
@@ -266,7 +265,7 @@ resources.
 
 
 \subsection{Commercial RTOSes}
-%TODO add details on resource sharing to this section
+
 Several widely deployed \glspl{RTOS} are used commercially, the majority providing support for part or
 all of \gls{POSIX}.  
 
@@ -649,7 +648,7 @@ makes the design incomplete for a production system, especially as revoke is gen
 implement in a capability system. 
 
 \section{Summary}
-% TODO rewrite to reflect update
+
 In this chapter we have reviewed standards and specifications for real-time operating systems,
 commercial and open-source real-time operating systems, and finally, surveyed the state-of-the-art
 research into mechanisms for temporal isolation, resource sharing, and access control to processing
