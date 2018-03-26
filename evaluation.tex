@@ -875,10 +875,16 @@ This shows that it is sufficient to implement criticality at user-level, and our
 
 \subsection{User-level EDF}\label{s:edf-impl}
 
+\begin{listing}
+\inputminted{c}{code/edf.c}
+\caption{Pseudocode for the EDF scheduler.}
+\label{list:edf}
+\end{listing}
+
 We implement the EDF scheduler as an active server with active
 clients which run at an \selfour priority below the user-level scheduler.
 The scheduler waits on an endpoint on which it receives messages from
-its clients and the timer.
+its clients and the timer, as shown in \cref{list:edf}.
 
 Each client has a period, representing its relative deadline, and a full reservation (equal to the period). Clients
 either notify the scheduler of completion by an IPC
@@ -924,7 +930,6 @@ actually faster than the in-kernel EDF scheduler from LITMUS$^{RT}$, and
 that the cost of implementing scheduling policy at user level is of
 the same order as the in-kernel default scheduler. In other words,
 implementing different policies on top of the base scheduler is quite feasible.
-\clearpage
 \section{Multiprocessor benchmarks}
 
 We run two multicore benchmarks, the first evaluating multicore throughput of the MCS kernel versus the
@@ -944,7 +949,7 @@ are symmetric multiprocessors with four cores.
     \label{f:evaluation-smp}
 \end{figure}
 
-\subsubsection{Throughput}
+\subsection{Throughput}
 
 We run a multicore throughput benchmark to show that our MCS model
 avoids introducing scalability problems on multiple cores compared to the baseline kernel.
@@ -967,9 +972,10 @@ with the curve flattening slightly more aggressively on the MCS kernel
 due to the fastpath overhead. The low overhead is expected as the MCS model only introduces extra 
 per-core state, with no extra shared state between cores. The slight scalability impact is
 due to a higher cache-footprint of the IPC fastpath. 
-\subsubsection{Shared server}
+\clearpage
+\subsection{Shared server}
 
-\begin{figure}[b] 
+\begin{figure}[t] 
     \centering
     \includegraphics{smp_aes}
     \caption[Results of the AES shared server multicore case study.]{Results of the AES shared server multicore case study. \emph{Single} shows results for a 
