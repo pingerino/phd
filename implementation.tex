@@ -214,124 +214,48 @@ all set to zero. To configure a scheduling context, the new \schedcontrol capabi
 invoked, which allows the period, initial sporadic replenishment, maximum number of refills, and
 badge fields to be set. The processing core is derived from the \schedcontrol capability
 that is invoked: only one exists per core. 
-
 The \schedcontrolconfigure operation behaves differently depending on the state of the target scheduling
 context, and can be used not only to configure \glspl{SCO} but also to migrate threads across cores, and
-change the available bandwidth of a currently runnable thread. Semantics are as follows:
+change the available bandwidth of a currently runnable thread. 
+\clearpage
+Semantics are as follows:
 
 \begin{listing}[t]
-\begin{minted}{c}
-/* Shorthand for accessing refill queue items */
-#define REFILL_INDEX(sc, index) (((refill_t *) ((word_t) (sc) + sizeof(sched_context_t)))[index])
-#define REFILL_HEAD(sc) REFILL_INDEX((sc), (sc)->head)
-#define REFILL_TAIL(sc) REFILL_INDEX((sc), (sc)->tail)
-
-void refill_new(sched_context_t *sc, word_t max_refills, ticks_t budget, ticks_t period)
-{
-    sc->period = period;
-    sc->head = 0;
-    sc->tail = 0;
-    sc->max = max_refills;
-    /* full budget available */
-    REFILL_HEAD(sc).amount = budget;
-    /* budget can be used from now */
-    REFILL_HEAD(sc).time = current_time;
-}
-
-void refill_update(sched_context_t *sc, ticks_t new_period, ticks_t new_budget, word_t new_max_refills)
-{
-    /* move the head refill to the start of the list */
-    REFILL_INDEX(sc, 0) = REFILL_HEAD(sc);
-    sc->head = 0;
-    /* truncate refill list to size 1 */
-    sc->tail = sc->head;
-    sc->max = new_max_refills;
-    sc->period = new_period;
-
-    if (REFILL_HEAD(sc).time < current_time) {
-        REFILL_HEAD(sc).time = current_time;
-    }
-
-    if (REFILL_HEAD(sc).amount >= new_budget) {
-        /* if the heads budget exceeds the new budget just trim it */
-        REFILL_HEAD(sc).amount = new_budget;
-    } else {
-        /* otherwise schedule the rest for the next period */
-        refill_t new = { .amount = (new_budget - REFILL_HEAD(sc).amount),
-                         .time = REFILL_HEAD(sc).time + new_period
-                       };
-        refill_add_tail(sc, new);
-    }
-}
-\end{minted}
-\caption[Refill new and update routine.]{Code to initialise a scheduling context whether it is
-    (\code{refill\_update}) or is not (\code{refill\_new}, bound
-to a currently active thread.}
-\label{list:refill-init}
+    \inputminted{c}{code/refill_new.c}
+    \caption[Refill new routine.]{\code{refill\_new} routine to initialise a scheduling context that is not active or is
+    migrating cores. \code{HEAD} is short-hand for access the head of the circular buffer of
+    replenishments.}
+    \label{list:refill-new}
+    \inputminted{c}{code/refill_update.c}
+    \caption[Refill update routine.]{\code{refill\_update} routine to change the parameters of an
+            active scheduling context. \code{INDEX}, \code{TAIL}, and \code{NEXT} are operations on 
+            the circular buffer.}
+\label{list:refill-update}
 \end{listing}
-
 
 \begin{itemize}
 \item If the scheduling context is not bound
 to a currently runnable thread, or is empty---in that the parameters are set to 0---the operation is 
 a basic configure: the fields are
 simply set and the first replenishment is configured with the budget provided and the timestamp of the
-kernel entry (see \code{refill\_new} in \cref{list:refill-init}).
+kernel entry (see \cref{list:refill-new}).
 \item If the scheduling context is bound to a currently runnable thread, but that scheduling
 context is for a different processing core than the \schedcontrol capability, the fields are
 set and the thread is migrated to the new core.  
 \item Finally, if the scheduling context is bound to a currently running thread and the
     \schedcontrol capability is for the same core, we update the replenishment list without
-    allowing the sliding window constraint to be violated. The function \code{refill\_update} shows the
+    allowing the sliding window constraint to be violated. \cref{list:refill-update} shows the
     algorithm used.
 \end{itemize}
 
-\begin{listing}[b!]
-\begin{minted}{c}
-void check_budget(sched_context_t *sc, uint64_t usage) {
-  while (REFILL_HEAD(sc).amount <= usage) {
-    // exhaust and schedule replenishment
-    old_head = pop_head(sc);
-    usage -= old_head.amount;
-    old_head.time += sc->period;
-    add_tail(sc, old_head)
-  }
-  // handle budget overrun
-  if (usage > 0 && sc->period > 0) {
-    // delay refill by overrun
-    REFILL_HEAD(sc).time += usage;
-    // merge replenishments if time overlaps
-    if (refill_size(sc) > 1 && REFILL_HEAD(sc).time + REFILL_HEAD(sc).amount >= refill_next(sc).time) {
-      refill_t old_head = pop_head(sc);
-      REFILL_HEAD(sc).amount += old_head.amount;
-    }
-  }
-}
-void split_check(sched_context_t *sc, uint64_t usage) {
-  uint64_t remnant = REFILL_HEAD(sc).amount - usage;
-  if (remnant < MIN_BUDGET && refill_size(sc) == 1) {
-    // delay entire replenishment refill too small to use and nothing to merge with
-    REFILL_HEAD(sc).time += sc->period;
-    return;
-  }
-  if (refill_size(sc) == sc->refill_max || remnant < MIN_BUDGET) {
-    // merge remnant - out of space or its too small
-    pop_head(sc);
-    REFILL_HEAD(sc).amount += remant;
-  } else {
-    // split the head refill
-    REFILL_HEAD(sc).amount = remnant;
-  }
-  // schedule the used amount
-  refill_t split;
-  split.amount = usage;
-  split.time = REFILL_HEAD(sc).time + sc->period;
-  add_tail(sc, split);
-}
-\end{minted}
-\caption[Check budget and unblock check routines.]{Check budget and unblock check routines used to implement sporadic servers.}
+\begin{listing}
+\inputminted{c}{code/refill_used.c}
+\caption[Schedule used routine.]{\code{schedule\_used} routine, used below.}
+\inputminted{c}{code/refill_check.c}
+\caption[Check budget routine.]{\code{check\_budget} routine used to implement sporadic servers.}
 \label{list:check}
 \end{listing}
+
 \subsubsection{Sporadic Servers}
 \label{sec:impl-sporadic}
 
@@ -344,11 +268,17 @@ As a result, configured scheduling contexts with zero extra replenishments behav
 otherwise they behave as sporadic servers,  allowing application developers to
 tune the behaviour of threads depending on their preemption levels and execution durations.
 
+\begin{listing}
+\inputminted{c}{code/split_check.c}
+\caption[Split check routine.]{\code{split\_check} routine used to implement sporadic servers.}
+\label{list:split}
+\end{listing}
+
 The algorithms for managing replenishments are taken from \citet{Danish_LW_11}, with adjustments to
 support periods of 0 (for round robin threads) and to implement a minimum budget.  Whenever the
 current scheduling context is changed, \code{check\_budget} (\cref{list:check}) is called to bill the amount of time consumed since the last scheduling
 context change. If the budget is not completely consumed by \code{check\_budget},
-\texttt{split\_budget} (\cref{list:check}) is called to schedule the
+\texttt{split\_budget} (\cref{list:split}) is called to schedule the
 subsequent refill for the chunk of time just consumed.  If the replenishment buffer is full, or the
 amount consumed is less than the minimum budget, the amount used is merged into the next
 replenishment.  When a new scheduling context is switched to, \code{unblock\_check} 
@@ -356,31 +286,13 @@ replenishment.  When a new scheduling context is switched to, \code{unblock\_che
 avoiding unnecessary preemptions.
 
 \begin{listing}[t!]
-\begin{minted}{c}
-void unblock_check(sched_context_t *sc) {
-  if (!REFILL_HEAD(sc).time > current_time)) {
-    return;
-  }
-  REFILL_HEAD(sc).time = current_time;
-  // merge available replenishments
-  while (refill_size(sc) > 1) {
-    if (refill_next(sc).time < current_time + REFILL_HEAD(sc).amount) {
-      refill_t old_head = pop_head(sc);
-      REFILL_HEAD(sc).amount += old_head.amount;
-      REFILL_HEAD(sc).time = current_time;
-    } else {
-      break;
-    }
-    if (REFILL_HEAD(sc).amount < MIN_BUDGET) {
-      // second part of split_check can leave refills with less than MIN_BUDGET amount, detect them here and merge.
-      refill_t old_head = pop_head(sc);
-      REFILL_HEAD(sc).amount += old_head.amount;
-    }
-}
-\end{minted}
-\caption[Unblock check routine.]{Unblock check routine used to implement sporadic servers.}
+\inputminted{c}{code/split_check.c}
+\caption[Unblock check routine.]{\code{unblock\_check} routine used to implement sporadic servers.}
 \label{list:unblock-check}
 \end{listing}
+
+The full code for sporadic servers, with less brevity than the simplified samples included here, is
+available in \cref{sporadic-code}.
 
 \subsection{Thread control blocks}
 
