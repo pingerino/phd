@@ -8,9 +8,9 @@ passive servers, timeout fault handlers, and IPC forwarding in \selfour. First w
 objects, followed by new and altered API system calls and invocations, and finally look at structural changes.
 
 \section{Objects}
-
+%  Is there a difference between scheduling contexts and scheduling context objects?  You use them interchangably.
 We add two new objects to the kernel, \emph{\glspl{SCO}} and \emph{resume objects}. Additionally, we modify
-the \gls{TCB} object although do not increase its total size. Finally, we modify the notification
+the \gls{TCB} object, although do not increase its total size. Finally, we modify the notification
 object to allow single-threaded, passive servers to receive signals in
 addition to IPC messages.
 
@@ -18,7 +18,7 @@ addition to IPC messages.
 \label{s:resume}
 
 Resume objects, modelled after KeyKOS~\citep{Bomberger_FFHLS_92}, are a new object type that
-generalise ``reply capabilities'' of baseline \selfour introduced in \cref{p:sel4_ipc}.  Recall that in
+generalises ``reply capabilities'' of baseline \selfour introduced in \cref{p:sel4_ipc}.  Recall that in
 baseline \selfour, the receiver of the message (i.e.\ the server) receives the reply capability in a
 magic ``reply slot'' in its capability space. The server replies by invoking that capability. Resume
 objects remove the magic by explicitly representing the reply channel, and servers with multiple
@@ -41,7 +41,7 @@ A resume object can be in the following three states:
     \item \emph{waiting} meaning it is being used by a thread blocked and waiting for a message, 
     \item or \emph{active}, which means the resume object currently has a thread blocked waiting for a reply associated with it.
 \end{itemize}
-Valid state transitions are shown in \cref{f:resume-state-diagram}. Resume objects are provided to
+Valid state transitions are shown in \cref{f:resume-state-diagram}. Resume objects are now required as arguments to
 receiving system calls along with endpoint capabilities, which transitions them from idle to
 waiting.
 If the endpoint is invoked with \call, the caller is blocked on the resume capability, and
@@ -61,11 +61,11 @@ triggers a
 pop, removing the top of the stack.  The call stack allows us to track the path of a donated
 scheduling context, from caller to callee, so that it can be returned to the previous caller,
 regardless of which thread sends the reply message. This is a direct consequence of flexible resume
-capabilities: resume capability can be moved between threads, and \emph{any} thread can execute the
+capabilities: a resume capability can be moved between threads, and \emph{any} thread can execute the
 reply: usually the server, but occasionally a timeout fault handler, or a nested server which
 received the resume capability via \gls{IPC} forwarding. It is therefore impossible to derive the
 original callee from the thread which sent the reply message. When a reply message is sent via an 
-active resume object at the head of the call stack, that resume object is popped, and the SCO is
+active resume object at the head of the call stack, that resume object is popped, and the \gls{SCO} is
 linked to the thread that the resume object pointed to, overriding the previous \gls{SCO} to
 \gls{TCB} link.
 
@@ -76,7 +76,7 @@ stack, going back to the original caller at the base. The \gls{SCO} remains the 
 until the \gls{SCO} returns to the initial caller and the stack is fully dismantled.  When a reply
 message is sent, the scheduling context travels back along the call stack and the head resume object
 is popped.  Reply objects also point to the thread which donated the \gls{SCO} along the stack,
-allowing the SCO to be returned to that thread when a reply message is sent.  This process is
+allowing the \gls{SCO} to be returned to that thread when a reply message is sent.  This process is
 illustrated in \cref{f:reply-stack}, where $A$ has called $S_{1}$ which has called  $S_{2}$.
 
 \begin{figure}[t]
@@ -87,15 +87,15 @@ performing a request on behalf of an initial server $S_{1}$ for client $A$.}
     \label{f:reply-stack}
 \end{figure}
 
-In a capability system, one of the biggest challenges is that capabilities can revoked, and the
-object they grant to deleted, at any time, regardless of the state of the system. Therefore
+In a capability system, one of the biggest challenges is that capabilities can be revoked, and the
+object they grant access to deleted, at any time, regardless of the state of the system. Therefore
 we provide the following deletion semantics for resume objects:
 
 \begin{itemize}
     \item If the \gls{SCO} is deleted, the head of the call stack becomes the first resume object. To avoid
         a long-running operation, the call stack of resume objects remains linked, and is dismantled
         as each resume object is deleted.
-    \item If the head resume object (the object that points to the SC) is deleted, the \gls{SCO} is
+    \item If the head resume object (the object that points to the \gls{SCO}) is deleted, the \gls{SCO} is
         returned along the stack to the caller. 
     \item If a resume object in the middle of the stack is deleted, we use the standard operation 
         for removing
@@ -131,14 +131,14 @@ contain the fields shown in \cref{tab:reply_object}.
 \label{s:sco}
 
 We introduce a new kernel object type, \glspl{SCO}, which all processing time is accounted against, 
-and a new scheduler invariant: any thread in the scheduler queues must have an \gls{SCO}. 
+and a new scheduler invariant: any thread in the scheduler queues must have a \gls{SCO}.
 \glspl{SCO} are variable-sized objects that represent access to a certain amount of time and
 consist of a core amount of fields, and a circular buffer to track the consumption of time.
 Scheduling contexts encapsulate processor time reservations,
 derived from sporadic task parameters: minimum inter-arrival time ($T$) and a set of replenishments which is
 populated from an original execution budget ($C$), representing the reserved rate
 ($U$ = $\frac{C}{T}$).
-Fields in an \glspl{SCO} are shown in \cref{t:sc-fields}.
+Fields in a \glspl{SCO} are shown in \cref{t:sc-fields}.
 
 \begin{table}[b] 
     \centering
@@ -352,7 +352,7 @@ confused deputy problem~\citep{Hardy_88}.
 
 \subsection{Notification objects}
 
-A scheduling context object can be associated with notification object, which allows a passive
+A scheduling context object can be associated with a notification object, which allows a passive
 server with bound notifications to receive signals and run on the notification's
 scheduling context to process those signals.
 We add a pointer to the scheduling context from the notification context, as well as vice-versa, to 
@@ -438,6 +438,7 @@ the receive phase then proceeds.
 
 \subsubsection{Yield}
 
+% Maybe mention that additional yield functionality is provided in the sc invocation api with yieldto?
 In baseline \selfour, \yield triggers a reschedule, and appends the calling thread to the end of the
 appropriate scheduling queue. We retain these semantics for full scheduling contexts, however 
 for partial, sporadic scheduling contexts \yield depletes the head sporadic replenishment immediately. The
@@ -489,9 +490,9 @@ scheduling context (the function definition can be found in \cref{api:schedcontr
     \rowcolors{2}{gray!25}{}
     \begin{tabularx}{\textwidth}{lXl} \toprule
         \emph{Invocation} & \emph{Description} & \emph{Definition} \\\midrule
-        \scbind    & Bind an object (TCB or Notification) to an SC. & \cref{api:schedcontext_bind} \\
-        \scunbind  & Unbind all objects from an SC. & \cref{api:schedcontext_unbind} \\
-        \scunbindobject & Unbind a specific object from an SC. & \cref{api:schedcontext_unbind_object}\\
+        \scbind    & Bind an object (TCB or Notification) to a \gls{SCO}. & \cref{api:schedcontext_bind} \\
+        \scunbind  & Unbind all objects from a \gls{SCO}. & \cref{api:schedcontext_unbind} \\
+        \scunbindobject & Unbind a specific object from a \gls{SCO}. & \cref{api:schedcontext_unbind_object}\\
         \scconsumed & Return the amount of time since the last timeout fault, \scconsumed or
         \scyieldto was called. & \cref{api:schedcontext_consumed}\\ 
         \scyieldto  & Place the thread bound to this \gls{SCO} at the front of its priority queue and return
@@ -522,7 +523,7 @@ and add three new invocations, shown in \cref{tab:tcb_api}.
         \tcbsetschedparams & Set \gls{SCO}, \gls{MCP}, priority and fault endpoint. & \yes &
         \cref{api:tcb_setschedparams} \\
         \tcbsettimeoutep & Set the timeout endpoint. & \yes & \cref{api:tcb_settimeoutep} \\
-        \sout{\tcbsetaffinity}                 & Removed, now derived from SCO.  & \no & N/A \\
+        \sout{\tcbsetaffinity}                 & Removed, now derived from \gls{SCO}.  & \no & N/A \\
         \bottomrule
     \end{tabularx}
     \caption{New and altered \gls{TCB} capability invocations.}
@@ -701,7 +702,7 @@ more condition to have a very low overhead on fastpath performance:
           for \replyrecv, the TCB blocked on the resume object must be passive.
 \end{itemize}
 This is because
-although timer device access is cheaper on modern hardware, it remains free. It also allows us to
+although timer device access is cheaper on modern hardware, it is not free. It also allows us to
 avoid checking budgets and modifying sporadic replenishments on the fastpath, operations which have
 many conditional branches, which would also increase overheads. Note that we expect most servers in
 real systems to use passive servers for \gls{RPC}, even for non real-time systems, to assure
@@ -761,7 +762,7 @@ For endpoint queues, it is reasonable to expect low amounts of threads, as many 
 an endpoint at once indicates a poor system design. For the release queue, the restriction
 becomes a function of the user-level admission test: only scheduling contexts with 
 partial budgets are placed into the release queue, which limits the size of the queue.
-Consequently we do not expect any of the priority queues to contain amounts of tasks,
+Consequently we do not expect any of the priority queues to contain large amounts of tasks,
 however if scalability becomes a problem in
 practice this implementation could be reconsidered. \citet{Brandenburg:phd} used
 binomial heaps for schedulers in \litmus, however Linux does not provide the guarantees, or
