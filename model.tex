@@ -149,8 +149,7 @@ analyse. In contrast, with fixed priority the result is easy to
 understand: If the sum of utilisations of threads at priority \(\geq
 P\) is below the utilisation bound, then all those threads will meet
 their deadlines, while any thread with priority \(<P\) may miss. This
-allows easy analysis of schedulability, including when the system
-criticality changes.
+allows easy analysis of schedulability.
 
 \subsection{Scheduling contexts}
 \label{sec:model-scheduling-contexts}
@@ -166,9 +165,9 @@ scheduling context object.
 
 In order to run, a thread needs an \gls{SC}, which represents the
 maximum CPU bandwidth the thread can consume. Threads obtain \glspl{SC} through \emph{binding}, and
-only one thread can be bound to an \gls{SC} at a time, to avoid hierarchical scheduling.
+only one thread can be bound to an \gls{SC} at a time to avoid hierarchical scheduling.
 In a multicore system, an SC represents the right to access a
-particular core. Core migration, e.g.\ for load balancing, is policy
+particular core. Core migration, \eg for load balancing, is policy
 that should not be imposed by the kernel but implemented at user
 level. A thread is migrated by replacing its SC with one tied to a
 different core. This renders the kernel scheduler a partitioned scheduler, 
@@ -326,6 +325,7 @@ case of frequent preemption \citep{Li_WCM_14}; an arbitrarily high
 threshold makes little sense. The optimal value depends on
 implementation details of the system, as well as the characteristics
 of the underlying hardware.
+
 We therefore make the threshold an attribute of the SC. \glspl{SC} are variably sized,
 such that system designers can set this bound per SC. This is a generalisation of the approach used
 in Quest-V~\citep{Danish_LW_11}, where \IO reservations are polling servers and other reservations 
@@ -344,7 +344,7 @@ to suspend the thread or restart its subsystem. Finally, an overrun by
 a critical thread can indicate an emergency situation; for example,
 critical threads may be scheduled with an optimistic budget to provide
 better service to less critical threads, and overrun may require
-provision of an emergency budget or a system-criticality change.
+provision of an emergency budget or specific exception handler.
 
 Clearly, the handling of overrun is a system-specific policy, and the
 kernel should only provide appropriate
@@ -372,9 +372,8 @@ dynamically as may be required for an \gls{SRT} system, or raise an error.
 The handler has a choice of a range of overrun policies, including:
 \begin{itemize}
       \item providing a one-off (emergency) budget to the thread and letting it continue,
-       \item permanently increasing the budget in the thread's SC,
-       \item killing/suspending the thread, and
-       \item changing the system criticality level.
+       \item permanently increasing the budget in the thread's SC, and
+       \item killing/suspending the thread.
        \end{itemize}
 Obviously, these are all subject to the handler having sufficient
 authority (\eg \schedcontrol).
@@ -385,7 +384,7 @@ for its priority, meaning that within a priority, scheduling of
 runnable threads is round-robin.
 
 The timeout fault handler is similar to the original KeyKOS~\citep{Bomberger_FFHLS_92} concept of
-meters, which was carried through to earlier version of L4 as a \emph{preempter}. The preempter was
+meters, which was carried through to earlier L4 microkernels as a \emph{preempter}. The preempter was
 invoked every time the timeslice/meter expired to make a scheduling decision. This was abandoned due
 to performance reasons. Our approach differs in that timeout fault handlers are optional, so that
 they can be used in exceptional scenarios only. However, timeout fault handlers can also be used to
@@ -416,12 +415,12 @@ user-lever schedulers to specific  priorities, for instance an EDF scheduler.
 
 Recall that in a mixed-criticality system, asymmetric protection means that tasks with higher
 criticality can cause deadline misses in lower criticality tasks.  Two approaches to mixed
-criticality scheduling that provide asymmetric are slack scheduling and
+criticality scheduling that provide asymmetric protection are slack scheduling and
 \gls{RTA}~\citep{Burns_Davis_17}.
 
 Under slack scheduling, low-criticality tasks run in slack time of high-criticality tasks.  Our
 model supports this easily: high-criticality tasks are given reservations to all processing time at
-high priorities, and low-criticality tasks given reservations at a lower priority band.
+high priorities, and low-criticality tasks are given reservations at a lower priority band.
 
 \gls{RTA} relies on suspending or de-prioritising low-criticality tasks if a high-criticality
 task runs for longer than expected.  Simple \gls{RTA} schemes involve two system modes:
@@ -430,10 +429,10 @@ more~\citep{Fleming_Burns_13}.  In \crit{LO} mode, high-criticality tasks run wi
 reservations, and the remaining
 CPU time is used for low-criticality tasks.  If a high-criticality task does not complete before its
 \crit{LO}-mode reservation is exhausted, the system switches to \crit{HI} mode: all low criticality
-tasks are suspended.  This is also supported by our model: a high-priority scheduling thread can be
+tasks are suspended.  Such a criticality switch is also supported by our model, at user-level: a high-priority scheduling thread can be
 set up to receive temporal faults when a task does not complete before its budget expires.  On a
-temporal fault, the scheduling thread can extend the reservation of the high-priority task and
-suspend all low priority tasks.
+temporal fault, the scheduling thread can modify the scheduling parameters of tasks appropriately,
+for example by boosting the high-criticality task's priority and budget.
 
 \subsection{Summary}
 
@@ -542,7 +541,7 @@ required to implement the \gls{OPCP}, and both would violate confidentiality by 
 across partitioned resources.  This is the same reason we exclude
 priority-exchange and slack-stealing servers, as discussed in \cref{sec:model-sporadic}.
 
-Although not provided by the kernel, \gls{PIP} and \gls{OPCP} can be implemented a user-level if
+Although not provided by the kernel, \gls{PIP} and \gls{OPCP} can be implemented at user-level if
 required, by proxying requests to shared resources via an endpoint and thread which manipulates the priorities
 appropriately, before forwarding on the request. For \gls{PIP}, only one extra thread per resource would 
 be required and could exist in the same address space as the resource.
@@ -813,9 +812,11 @@ ameliorated by checking the time on wakeup, or using a different task model.
 
 \subsubsection{Sporadic threads}
 
-For sporadic threads, which wake due to an event, process and sleep again and may be subject to a
-maximum CPU bandwidth, notifications combined
-with scheduling contexts can be used, as displayed in \cref{list:model-sporadic}. In this case, if the
+Recall that sporadic threads wake due to an event such as an interrupt, then process the event and
+go back to sleep. To constrain sporadic thread's execution times, they are given a maximum
+inter-arrival time.
+To build sporadic threads notifications can be used
+with scheduling contexts, as displayed in \cref{list:model-sporadic}. In this case, if the
 number of sporadic replenishments is not sufficient, the processing bandwidth may be artificially
 limited by excessive preemptions, otherwise it will be $\frac{C}{T}$. 
 
@@ -935,7 +936,7 @@ For our example consider a server shared between clients of different criticalit
 and trust, which provides an encryption service via \gls{AES}. 
 Such a server processes data in blocks, and the \gls{WCET} of a request is a function of the 
 amount of data to be encrypted. Such a server can be constructed transactionally in order
-to render it preemptable: each block processes is considered a transaction. The server atomically
+to render it preemptable: each block processed is considered a transaction. The server atomically
 switches between two states each time it completes a block, effectively finishing one transaction
 and starting another. The state the server is working on is always dirty, the previous is clean. 
 
@@ -966,7 +967,7 @@ servers with untrusted clients.
 Our model supports best-effort, migrating threads, or temporal isolation policies for resource sharing.
 
 Timeout exceptions are provided which allow for user-defined enforcement policies, while the default
-mechanism maintains isolation by preventing threads from executing for than the share of processing
+mechanism maintains isolation by preventing threads from executing for more than the share of processing
 time represented by the scheduling contexts.
 
 In the next section we will outline the implementation of our model in \selfour. 
