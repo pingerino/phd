@@ -26,7 +26,7 @@ degrade gracefully in the face of failure.  For example, an \gls{AAV} has multip
 flight-control algorithm: object detection, to avoid flying into obstacles, and navigation, to get
 to the desired destination.  Clearly the object detection is more critical than navigation, as
 failure of the former can be catastrophic, while the latter would only result in a non-ideal route.
-Yet the two subsystems must cooperate, accessing and modifying shared data thus cannot be fully
+Yet the two subsystems must cooperate; accessing and modifying shared data thus cannot be fully
 isolated.
 
 The \gls{AAV} is an example of a mixed-criticality system, a notion that originates in avionics and its
@@ -53,15 +53,14 @@ classes of cyber-physical systems, such as smart factories, will experience simi
 
 % let's use the WCET
 % finally, overcommitting
-One could reduce the number of separate processors without mixed-criticality by simply consolidating 
+One could reduce the number of separate processors without mixing criticalities by simply consolidating 
 systems of the same criticality level, however, this is does not lead to efficient use of resources. 
 High-criticality systems that are subject to high levels of assurance have very high \gls{WCET} estimates,
 which are often orders of magnitude beyond the average execution time due to the limitations in analysis,
 and the complexity of modern hardware~\citep{Wilhelm_EEHTWBFHMMPPSS_08}. However, in current systems the full \gls{WCET} must be
 statically reserved for the high criticality tasks. By building mixed-criticality systems, where
-low-criticality tasks, where temporal interference can lead only to degradation in service,  can
-leverage the unused capacity from high-criticality tasks, this excess
-processing power can be leveraged. 
+low-criticality tasks---for which temporal interference can lead only to degradation in service---we can
+leverage the unused capacity from high-criticality tasks. 
 
 Fundamental to building mixed-criticality systems is the concept of \emph{asymmetric protection},
 which differs from strict temporal isolation in that only the highest criticality systems are
@@ -78,8 +77,8 @@ internet-connected
 service providing alternate route information. All of these systems \emph{must} provide input to the
 shared driving software, which actually makes decisions about what commands to issue to the car.
 Clearly, the object detection is more critical than the \gls{GPS}, which in turn is more critical than the
-route information service. In fact, the route information service, being connected to the internet,
-is not even a trusted service: it is subject to attacks, such as denial-of-service. 
+route information service. In fact, the route information service---being connected to the
+internet---is not even a trusted service: it is subject to attacks, such as denial-of-service. 
 
 Allowing untrusted, less critical components to
 share hardware and communicate with more critical components, far more complex software can be
@@ -134,8 +133,8 @@ software for commercial aircraft in the United States.
      \label{tab:criticality_table}
  \end{table}
 
-As the criticality level rises, so to do the assurance levels: higher engineering and safety standards are required for higher criticality levels, up to
-certification by independent \glspl{CA} at the highest levels, which is a timely,
+As the criticality level rises, so too do the assurance levels: higher engineering and safety standards are required for higher criticality levels, up to
+certification by independent \glspl{CA} at the highest level, which is a timely,
 expensive and restrictive process. Additionally, requirements specified by \glspl{CA} are highly
 cautious, and pessimistic, which when combined with safety strategies like redundant resources,
 leads to large amounts of excess capacity in processing power. 
@@ -150,7 +149,7 @@ air gaps between physical components. However, given the increased amount of
 computing in every part of our daily lives, the practice of physical isolation
 has resulted in unscalable growth in the amount of computing hardware in
 embedded systems, with some modern cars containing over 100
-processors~\citep{Hergenhan_Heiser_08}. The practise of physical separation is no 
+processors~\citep{Hergenhan_Heiser_08}. The practice of physical separation is no 
 longer viable for three reasons: \gls{SWaP}, efficiency, and resource sharing.
 
 \subsection{SWaP}
@@ -168,7 +167,7 @@ triple-redundant.
 However, \gls{SWaP} alone could be reduced by consolidating systems of the same
 criticality. Ignoring the fact that this also consolidates points of failure (redundant systems by
 definition, cannot be consolidated), this alone is insufficient to completely address \gls{SWaP}
-challenges. The higher assurance required of a system, the more over-provisions the hardware is: not only in
+challenges. The higher assurance required of a system, the more over-provisioned the hardware is: not only in
 redundancy but in excess capacity. For example, \gls{WCET}
 estimates may be orders of magnitude larger than the typical execution time, and
 computation of safe \gls{WCET} bounds for non-trivial software tends to be highly pessimistic
@@ -180,8 +179,8 @@ systems only ameliorates the problem slightly: the pessimism inherent in high-as
 also consolidated, leaving unused, excess hardware resources.
 
 High-utilisation of hardware to address SWaP challenges is therefore only possible with the advent
-of mixed-criticality systems, which can leverage the excess capacity for less-critical, less-time
-sensitive software.
+of mixed-criticality systems, which can leverage the excess capacity for less critical, less time-sensitive
+software.
 
 \subsection{Resource Sharing}
 
@@ -217,7 +216,7 @@ most critical system in our example, with failure leading to potentially disastr
 
 However, a GPS navigation service is also required to determine the route to take, and finally a
 traffic service which allows cars to avoid congestion. Although the same criticality, the GPS
-service is likely more highly assured than the traffic service: the traffic service is connected to
+service is likely more highly-assured than the traffic service: the traffic service is connected to
 the internet, requiring complex network drivers, and subject to attacks from remote attackers. 
 In fact, the fastest way to integrate a traffic service is to run a large, open source code base
 with existing network drivers like Linux, which has no assurance level. 
@@ -295,7 +294,9 @@ access to time as a first class resource.
 
 In \Cref{chap:scheduling} we examine in detail the theoretical models and methods for achieving temporal
 isolation and safe resource sharing in traditional, real-time systems and show that sufficient
-theory exists for resource-overbooking and asymmetric protection. \Cref{chap:operating-systems}
+theory exists for resource-overbooking and asymmetric protection.
+
+\Cref{chap:operating-systems}
 investigates systems support for the same concepts; by surveying existing commercial, open-source
 and research operating systems we show that in the current state of the art, support for resource
 overbooking and asymmetric protection is insufficient for modern, cyber-physical systems
@@ -327,13 +328,13 @@ We make the following specific contributions:
     \item We develop a design and model for fine-grained access control to processing time, without
         imposing strict limitations on system policy or introducing performance overheads, and
         without requiring sacrifices to integrity or confidentiality;
-    \item an implementation of model in the high-assurance, non-preemptible \selfour microkernel,
+    \item an implementation of the model in the high-assurance, non-preemptible \selfour microkernel,
         and an exploration of the simplicity of the model and its integration with the existing
         model which provides strong isolation properties;
-    \item an evaluation of the implementation, demonstrating low-overheads and temporal isolation
+    \item an evaluation of the implementation, demonstrating low overheads and temporal isolation
         between systems sharing a processor and other resources;
     \item user-level implementations of dynamic schedulers and resource sharing servers which
-        demonstrate that a variety of policies are not only possible to implement, but low-overhead.
+        demonstrate that a variety of policies are not only possible to implement, but low overhead.
 \end{itemize}
 
 \section{Scope}
