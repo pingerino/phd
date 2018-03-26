@@ -34,7 +34,7 @@ Our design goals are as follows:
         resource-sharing models, such as locking protocols.
     \item[Efficient:] The model should add minimal overhead over the best
                       existing implementations. In particular, it should be compatible
-                        with fast IPC implementations in high-performance microkernels.
+                        with fast \gls{IPC} implementations in high-performance microkernels.
 
     \item[Temporal isolation:] The model must allow system designers to create systems where a
         temporal failure in one component cannot cause a temporal failure in another part of the
@@ -158,7 +158,7 @@ criticality changes.
 At the core of the model is the \emph{\gls{SC}} as the
 fundamental abstraction for time allocation, and the basis of 
 the enforcement and accounting mechanisms in our model.
-A \gls{SC} is a representation
+An \gls{SC} is a representation
 of a reservation in the object-capability system, which means that 
 they are first-class objects, like threads, address spaces, or
 \gls{IPC} endpoints. An SC is represented by a capability to a
@@ -353,7 +353,7 @@ the \emph{timeout exception}, which is raised when a thread is
 preempted due to budget expiry. To allow the system to handle the exceptions, each thread
 is optionally associated with a timeout exception handler, which is
 the temporal equivalent to a (spatial) protection exception. When a
-thread is preempted, the kernel notifies its handler via an IPC message. The
+thread is preempted, the kernel notifies its handler via an \gls{IPC} message. The
 exception is ignored when the thread has no timeout exception handler, and the thread
 can continue to run once its budget is replenished.
 
@@ -367,7 +367,8 @@ the thread must simply wait until budget replenishment.
 Timeout fault handling threads should have their own \gls{SC} to run on, with enough budget to handle
 the fault, otherwise they will not be eligible for selection by the kernel scheduler.
 
-Similar to a page fault handler, timeout fault handlers can be used to adjust thread parameters dynamically as may be required for a \gls{SRT} system, or raise an error.
+Similar to a page fault handler, timeout fault handlers can be used to adjust thread parameters
+dynamically as may be required for an \gls{SRT} system, or raise an error.
 The handler has a choice of a range of overrun policies, including:
 \begin{itemize}
       \item providing a one-off (emergency) budget to the thread and letting it continue,
@@ -453,7 +454,7 @@ present how the scheduling context mechanism facilitates resource sharing polici
 in terms of the three core mechanisms ---prioritisation, charging and enforcement---presented 
 in \cref{sec:resource-kernels}.
 
-In this section we consider only resources shared by resource servers in an \gls{RPC} style where
+In this section we consider only resources shared by resource servers in a \gls{RPC} style where
 servers are scheduled directly as a result of the \gls{RPC}. Other forms of resource sharing, such
 as the asynchronous multicast provided by ARINC 653 (\cref{s:arinc}), are possible, but not
 relevant, as time is not directly exchanged, and we have already shown how temporal partitioning is possible with
@@ -524,7 +525,7 @@ requirements.
 
 There is an additional, practical concern, in that the \gls{PIP} does not map well to the existing
 capability system. Recall from \cref{p:sel4_ipc} that endpoints have very minimal state\footnote{Which
-again contributes to high performance.}, and once an IPC rendezvous has occurred, the caller is
+again contributes to high performance.}, and once an \gls{IPC} rendezvous has occurred, the caller is
 blocked on the resume capability. Consequently, there is \emph{no way to reach the caller} after an 
 \gls{IPC} message has been sent. 
 Significant changes would be required to the \gls{IPC} model to ensure threads
@@ -573,7 +574,7 @@ in \cref{sec:model-policies}.
         \caption{Phase 2}
         \label{f:passive2}
     \end{subfigure}
-    \caption[IPC phases between an active client and passive server.]{IPC phases between an active client and passive server: (a) shows the initial IPC rendezvous, (b) shows the
+    \caption[IPC phases between an active client and passive server.]{IPC phases between an active client and passive server: (a) shows the initial \gls{IPC} rendezvous, (b) shows the
     reply phase. The client's $SC_{A}$ is donated between client and server. See \Cref{f:legend-2} for the legend.}
     \label{f:passive}
 \end{figure}
@@ -591,7 +592,7 @@ in \cref{sec:model-policies}.
     \caption{Phase 2}
     \label{f:active2}
 \end{subfigure}
-\caption[IPC phases between active client and active server.]{IPC phases between an active client and active server: (a) shows the initial IPC rendezvous, (b) shows the
+\caption[IPC phases between active client and active server.]{IPC phases between an active client and active server: (a) shows the initial \gls{IPC} rendezvous, (b) shows the
 reply phase. Both client and server have their own SC. See \Cref{f:legend-2} for the legend.}
 \label{f:active}
 \end{figure}
@@ -603,7 +604,7 @@ previous implementations of donation like semantics, our model does not mandate
 scheduling context donation. Resource servers are free to run on their own scheduling context, 
 according to the policy of the system.
 
-Whether donation occurs or not is inferred at the time of the IPC rendezvous: we test if the
+Whether donation occurs or not is inferred at the time of the \gls{IPC} rendezvous: we test if the
 server is passive or active. 
 \emph{Passive} servers do not have a scheduling context 
 and receive them over \gls{IPC} whereas \emph{active} servers have their own scheduling context. 
@@ -698,7 +699,7 @@ running.
 We introduce another concept called \emph{forwarding}, which allows callers to
 invoke one capability and block on another capability in the same system call, via
 a new system call \nbsendrecv. This is required to
-facilitate a forwarding IPC, and allows passive proxies to seamlessly forward messages,
+facilitate a forwarding \gls{IPC}, and allows passive proxies to seamlessly forward messages,
 capabilities and scheduling contexts, as shown in \cref{f:model-forward}. 
 
 \begin{figure}
@@ -745,7 +746,7 @@ copied.
 \subsection{Notification Binding}
 
 Recall from \cref{s:notification-binding} that notification objects can be bound to threads such that single-threaded servers can be 
-constructed which receive IPC messages and signals. We extend this mechanism with passive server
+constructed which receive \gls{IPC} messages and signals. We extend this mechanism with passive server
 support by allowing scheduling contexts to be bound to notifications, such that the passive server
 execute using the notification's scheduling context when processing interrupts or signals from other
 threads. 
@@ -755,7 +756,7 @@ threads.
 
 We now describe how different policies can be implemented by user-level systems using the 
 existing mechanisms in seL4, combined with the new mechanisms of scheduling contexts,
-scheduling context donation, directed yield, IPC forwarding, and flexible resume capabilities.
+scheduling context donation, directed yield, \gls{IPC} forwarding, and flexible resume capabilities.
 First, we explain how different best-effort, rate-based and real-time tasks are compatible
 with our model and describe their implementation. We subsequently explain how various different 
 resource sharing policies and servers, with and without temporal isolation, can be constructed. 
@@ -853,7 +854,7 @@ receive periodic notifications from a timer service.
     \label{f:model-pip}
 \end{figure}
  
-\cref{f:model-pip} shows an example of a resource server ($S_{2}$) which proxies IPC messages via
+\cref{f:model-pip} shows an example of a resource server ($S_{2}$) which proxies \gls{IPC} messages via
 another server ($S_{1}$) to manipulate priorities according to some protocol before and after
 requests. The policy works as follows: clients are given a badged capability to an endpoint,
 $E_{1}$, on which to make requests on the resource server. $S_{1}$ receives requests, identifies 
@@ -892,8 +893,8 @@ priori}, or systems that have low temporal sensitivity.
 \subsubsection{Migrating threads}
 
 \composite~\citep{Parmer_10} solves the resource sharing model by using migrating 
-threads (also termed stack-migrating IPC).
-On every IPC, client execution contexts (and CPU reservation) transfer to a new stack running in the
+threads (also termed stack-migrating \gls{IPC}).
+On every \gls{IPC}, client execution contexts (and CPU reservation) transfer to a new stack running in the
 server's protection domain, resulting in multi-threaded servers.
 
 To implement migrating threads, \composite requires that every server have a mechanism for allocating stacks.
