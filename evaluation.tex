@@ -38,7 +38,8 @@ and \textsc{x64}.
 Two of our platforms, \textsc{x64} and \textsc{Hikey} support both 32- and 64-bit execution modes.
 We use both, referring to them as \textsc{ia32} and \textsc{Hikey32} when in 32-bit mode and
 \textsc{x64} and \textsc{Hikey64} otherwise. All platforms have out-of-order execution, except
-\textsc{Hikey}, which is in-order.
+\textsc{Hikey}, which is in-order, and \textsc{KZM}, which has in order execution and out-of-order
+from some operations (\eg stores).
 
 Additionally, we use several load generators running Linux on an isolated network for 
 benchmarks that require a network.
