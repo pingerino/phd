@@ -93,15 +93,15 @@ One practical model in common use is the \emph{sporadic task model}~\citep{Sprun
 model both \emph{periodic} and \emph{aperiodic} tasks and maps well onto typical control systems. 
 
 \begin{listing}
-    \begin{minted}{c}
+\begin{minted}{c}
 for (;;) {
-    // job arrives
-    doJob();
-    // job completes before deadline
-    // sleep until next job is ready
-    sleep();
+  // job arrives
+  doJob();
+  // job completes before deadline
+  // sleep until next job is ready
+  sleep();
 }
-    \end{minted}
+\end{minted}
 \caption{Example of a basic sporadic real-time task.}
 \label{list:sporadic}
 \end{listing}

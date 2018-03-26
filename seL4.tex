@@ -630,17 +630,17 @@ uint32_t top_level_bitmap = 0;
 uint32_t bottom_level_bitmap[256 / (1u << 5u)];
 
 void addToBitmap(word_t prio) {
-    uint32_t l1index = prio >> 5u;
-    top_level_bitmap |= (1u << l1index);
-    bottom_level_bitmap[l1index] |= (prio & ((1u << 5) - 1u));
+  uint32_t l1index = prio >> 5u;
+  top_level_bitmap |= (1u << l1index);
+  bottom_level_bitmap[l1index] |= (prio & ((1u << 5) - 1u));
 }
 
 word_t getHighestPrio(void) {
-    uint32_t l1index = 31 - CLZ(top_level_bitmap);
-    l2index = 31 - CLZ(bottom_level_bitmap[l1index]));
-    return (l1index << 5 | l2index);
+  uint32_t l1index = 31 - CLZ(top_level_bitmap);
+  l2index = 31 - CLZ(bottom_level_bitmap[l1index]));
+  return (l1index << 5 | l2index);
 }
-    \end{minted}
+\end{minted}
     \caption[Scheduler bitmap algorithm.]{Example algorithms for adding a priority to the scheduler bitmap and extracting the highest
         active priority, on a 32-bit system. Both operations are $O(1)$ and involve two memory
         accesses. 

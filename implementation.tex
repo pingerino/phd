@@ -585,34 +585,32 @@ provided in \cref{list:passive-server}.
 
 \begin{listing}[t]
 \begin{minted}{c}
-void initialiser(seL4_CPtr server_tcb, seL4_CPtr init_sc, seL4_CPtr init_endpoint) 
-{
-    /* start server */
-    seL4_TCB_Resume(server_tcb);
-    /* wait for the server to tell us it is initialised */
-    seL4_Wait(init_endpoint, NULL);
-    /* convert the server to passive */
-    seL4_SchedContext_Unbind(init_sc);
+void initialiser(seL4_CPtr server_tcb, seL4_CPtr init_sc, seL4_CPtr init_endpoint) {
+  /* start server */
+  seL4_TCB_Resume(server_tcb);
+  /* wait for the server to tell us it is initialised */
+  seL4_Wait(init_endpoint, NULL);
+  /* convert the server to passive */
+  seL4_SchedContext_Unbind(init_sc);
 }
 
-void passive_server(seL4_CPtr init_endpoint, seL4_CPtr endpoint, seL4_CPtr reply) 
-{    
-    seL4_MessageInfo_t info = init_server_state();
-    seL4_Word badge;
+void passive_server(seL4_CPtr init_endpoint, seL4_CPtr endpoint, seL4_CPtr reply) {  
+  seL4_MessageInfo_t info = init_server_state();
+  seL4_Word badge;
 
-    /* signal to the initialiser that this server is ready to be converted to passive, and block on the endpoint with resume object reply */
-    info = seL4_NBSendRecv(init_endpoint, info, endpoint, &badge, reply);
-    while (true) {
-        /* when the server wakes, it is running on a client scheduling context */
-        info = process_request(sender);
-        /* reply to the client and block on endpoint, with resume object reply */
-        seL4_ReplyRecv(endpoint, info, &badge, reply);
-    }
+  /* signal to the initialiser that this server is ready to be converted to passive, and block on the endpoint with resume object reply */
+  info = seL4_NBSendRecv(init_endpoint, info, endpoint, &badge, reply);
+  while (true) {
+    /* when the server wakes, it is running on a client scheduling context */
+    info = process_request(sender);
+    /* reply to the client and block on endpoint, with resume object reply */
+    seL4_ReplyRecv(endpoint, info, &badge, reply);
+  }
 }
 
 void client(seL4_CPtr endpoint, seL4_MessageInfo_t message) {
-    /* send a message to the passive server */
-    seL4_Call(endpoint, message);
+  /* send a message to the passive server */
+  seL4_Call(endpoint, message);
 }
 \end{minted}
 \caption{Example initialiser, passive server, and client.}
