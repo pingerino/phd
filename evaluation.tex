@@ -812,6 +812,7 @@ user-level implementations.
 absolute terms. \textsc{Hikey64} is the slowest at 30\,\(\mu\)s with eight threads to switch,
 due to the smaller L2 cache and
 in-order execution, however all platforms show roughly the same factor of two increase when
+comparing kernel and user-level cold-cache results.
 However, most systems will not have more than a few high-criticality threads, and deadlines for critical control loops in
 cyber-physical systems tend to be in the tens of milliseconds, we
 conclude that criticality can be implemented at user-level, in line with standard microkernel philosophy.
