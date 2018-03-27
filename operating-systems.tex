@@ -485,10 +485,13 @@ a hierarchical scheduler, but allows for convenient temporal isolation of a set 
 Quest-V, reservations are actually bound to virtual processors, not threads scheduled by that
 processor. 
 
+\label{p:overcommit}
 Reservations are a mechanism that can be used to provide isolation, however, all the kernels
 surveyed combine this mechanism with a good deal of policy for enforcement, how important
 reservations are, and admission. To build mixed-criticality systems, we
-need high-performance mechanisms for temporal isolation that are decoupled from policy.
+need high-performance mechanisms for temporal isolation that are decoupled from policy. To achieve
+this, systems must allow for \emph{overcommitting} of processing resources: schedulability is a system 
+policy, not a mechanism. 
 
 \subsection{Timeslice donation}
 \label{sec:os-timeslice-donation}
