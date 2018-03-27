@@ -326,9 +326,7 @@ low-associativity, the increase in cache footprint.
 \input{data/generated/avg_fault_round_trip_passive.inc}
     \bottomrule
 \end{tabularx}
-\caption[Passive fault IPC overhead.]{Passive fault IPC overhead baseline \selfour compared with MCS. All
-values excluding the first two rows shows the baseline performance counter value subtracted
-from the MCS performance counter value.}
+\caption{Passive fault IPC overhead.}
 \label{t:slowpath-fault-micro}
 \end{table}
 
@@ -338,15 +336,12 @@ from the MCS performance counter value.}
 \input{data/generated/avg_fault_round_trip.inc}
     \bottomrule
 \end{tabularx}
-\caption[Active fault IPC overhead.]{Active fault IPC overhead baseline \selfour compared with MCS. All
-values excluding the first two rows shows the baseline performance counter value subtracted
-from the MCS performance counter value.}
+\caption{Active fault IPC overhead.}
 \label{t:slowpath-fault-micro-passive}
 \end{table}
 
 Recall that fault handling in \selfour occurs via an \gls{IPC}, simulated by the kernel, to a fault
 endpoint, which a fault handling-thread can wait upon for messages (\cref{api:faults}). 
-
 To measure the fault-handling cost, we run two threads in the same address space: a fault handler
 and a faulting thread, with the same priority. We trigger a fault by executing an undefined instruction in a loop on the faulting thread's
 side. The fault handler then increments the instruction pointer past the undefined
@@ -368,23 +363,45 @@ so the fault benchmark does not work.
 \subsection{Signalling and interrupts}
 
 \begin{table}[t]\centering
-\begin{tabular}{cl r@{~}l r@{~}l r@{~}r}\toprule
-\emph{Platform}           & \multicolumn{1}{c}{\emph{Operation}}
-                                & \multicolumn{2}{c}{\emph{Base}}
-                                & \multicolumn{2}{c}{\emph{MCS}}
-                                & \multicolumn{2}{c}{\emph{Overhead}} \\
-%    \irqmicro{KZM}{kzm}
-%    \irqmicro{Sabre}{sabre}
-%    \irqmicro{Hikey32}{hikey32}
-%    \irqmicro{Hikey64}{hikey64}
-%    \irqmicro{TX1}{tx1}
-%    \irqmicro{ia32}{ia32}
-%    \irqmicro{x64}{haswell}
+    \rowcolors{2}{gray!25}{white}
+    \begin{tabularx}{\textwidth}{Xrrrrrr}\toprule
+        \emph{Platform}     
+                                & \multicolumn{2}{c}{\emph{Baseline}}
+                                & \multicolumn{2}{c}{\emph{MCS     }}
+                                & \multicolumn{2}{c}{\emph{Overhead}} \\\midrule
+    \irqmicro{KZM}{kzm}
+    \irqmicro{Sabre}{sabre}
+    \irqmicro{Hikey32}{hikey32}
+    \irqmicro{Hikey64}{hikey64}
+    \irqmicro{TX1}{tx1}
+    \irqmicro{ia32}{ia32}
+    \irqmicro{x64}{haswell}
     \bottomrule
-\end{tabular}
-\caption[Fastpath IRQ and Signal overhead.]{Fastpath IRQ and signal overhead in cycles, baseline
+\end{tabularx}
+\caption[Fastpath IRQ overhead.]{Fastpath IRQ overhead in cycles, baseline
     \selfour versus MCS. Standard deviations shown in parentheses.}
 \label{t:micro-irq}
+\end{table}
+
+\begin{table}[t]\centering
+    \rowcolors{2}{gray!25}{white}
+    \begin{tabularx}{\textwidth}{Xrrrrrr}\toprule
+        \emph{Platform}     
+                                & \multicolumn{2}{c}{\emph{Baseline}}
+                                & \multicolumn{2}{c}{\emph{MCS     }}
+                                & \multicolumn{2}{c}{\emph{Overhead}} \\\midrule
+    \sigmicro{KZM}{kzm}
+    \sigmicro{Sabre}{sabre}
+    \sigmicro{Hikey32}{hikey32}
+    \sigmicro{Hikey64}{hikey64}
+    \sigmicro{TX1}{tx1}
+    \sigmicro{ia32}{ia32}
+    \sigmicro{x64}{haswell}
+    \bottomrule
+\end{tabularx}
+\caption[Fastpath signal overhead.]{Fastpath signal overhead in cycles, baseline
+    \selfour versus MCS. Standard deviations shown in parentheses.}
+\label{t:micro-signal}
 \end{table}
 
 As noted in the previous section, mainly engineering effort is required to add new fastpaths. For

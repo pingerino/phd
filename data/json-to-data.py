@@ -137,6 +137,7 @@ def build_microbenchmark_dat(rt, baseline, arch):
             b_irq = getbenchmark(b_content, 'IRQ path cycle count (measured from user level)')[1]
             microbenchmark_row(out, '\\texttt{IRQ latency}', rt_irq, b_irq)
 
+        with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-signal-micro.inc'), 'w') as out:
             # signal
             rt_signal = getbenchmark(rt_content, 'Signal to low prio thread')[0]
             b_signal = getbenchmark(b_content, 'Signal to low prio thread')[0]
