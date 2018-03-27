@@ -59,7 +59,7 @@ ModeSwRoot=all up
 ModeSwFigs=$(patsubst %,imgs/mode-switch-%.pdf,$(ModeSwRoot))
 ExtraFigRoot= edf ipbench smp
 ExtraFigs= $(patsubst %,imgs/%.pdf,$(ExtraFigRoot)) $(ModeSwFigs)
-TexIncludes= $(wildcard data/generated/*.inc) $(wildcard *.tex) crit_includes micro_includes aes_includes data/generated/mode_switch.inc
+TexIncludes= $(wildcard data/generated/*.inc) $(wildcard *.tex) crit_includes micro_includes aes_includes data/generated/mode_switch.inc 
 # For ACM SIG camera ready submission. This will only work if Target
 # is a single identifier. You should then be able to use the "camera" target,
 # after setting CamRoot appropriately. Answer "no" for re-making references.bib
@@ -522,6 +522,17 @@ endef
 $(foreach var,${PLATS},$(eval $(call micro_includes,$(var))))
 
 micro_includes: ${GEN_DIR} $(PLATS:%=.%_micro_includes)
+
+
+perf_tables: ${GEN_DIR} $(foreach var,${PLATS},data/rt-$(var).json) $(foreach var,${PLATS},data/baseline-$(var).json) data/perf-tables.py
+	python3 data/perf-tables.py
+
+${GEN_DIR}/Average_seL4_Yield_no_thread_switch.inc: perf_tables
+${GEN_DIR}/avg_fault_round_trip.inc: perf_tables
+${GEN_DIR}/schedule_process_average.inc: perf_tables
+${GEN_DIR}/avg_fault_round_trip_passive.inc: perf_tables
+${GEN_DIR}/avg_slowpath_round_trip.inc: perf_tables
+${GEN_DIR}/avg_slowpath_round_trip_passive.inc: perf_tables
 
 # aes
 define aes_includes

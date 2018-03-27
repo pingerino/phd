@@ -88,8 +88,12 @@ def microbenchmark_row(out, name, rt, b, average=False):
     diff = rt_val - b_val
     out.write(str(diff))
     out.write('&\t')
-    out.write(str(round(int(diff / b_val * 100))))
-    out.write('\% \\\\\n')
+    if b_val:
+        out.write(str(round(int(diff / b_val * 100))))
+        out.write('\% ')
+    else:
+        out.write('\\infty')
+    out.write(' \\\\\n')
 
 def process_avg_results(raw_rt, raw_b):
     raw_rt = [x / 10000 for x in raw_rt['Raw results']]
@@ -126,35 +130,6 @@ def build_microbenchmark_dat(rt, baseline, arch):
                     ipc_result(rt_ipc, 'seL4_ReplyRecv', 0),
                     ipc_result(b_ipc, 'seL4_ReplyRecv', 0))
 
-        with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-slowpath-ipc-micro.inc'), 'w') as out:
-            # passive
-            rt = getbenchmark(rt_content, 'avg slowpath round trip passive')[0]
-            b  = getbenchmark(b_content, 'avg slowpath round trip passive')[0]
-            (rt_val, b_val) = process_avg_results(rt, b)         
-            microbenchmark_row(out, 'passive', rt_val, b_val)
-            
-            # active
-            rt = getbenchmark(rt_content, 'avg slowpath round trip')[0]
-            b  = getbenchmark(b_content, 'avg slowpath round trip')[0]
-            (rt_val, b_val) = process_avg_results(rt, b)         
-            microbenchmark_row(out, 'active', rt_val, b_val)
-
-
-        with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-fault-micro.inc'), 'w') as out:
-            # fault
-            print('\'{0}\''.format(arch))
-            if arch != 'kzm':
-                rt = getbenchmark(rt_content, 'avg fault round trip passive')[0]
-                b  = getbenchmark(b_content, 'avg fault round trip passive')[0]
-                (rt_val, b_val) = process_avg_results(rt, b)         
-                microbenchmark_row(out, 'passive', rt_val, b_val)
-            
-                # active
-                rt = getbenchmark(rt_content, 'avg fault round trip')[0]
-                b  = getbenchmark(b_content, 'avg fault round trip')[0]
-                (rt_val, b_val) = process_avg_results(rt, b)         
-                microbenchmark_row(out, 'active', rt_val, b_val)
-               
 
         with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-irq-micro.inc'), 'w') as out:
             rt_irq = getbenchmark(rt_content, 'IRQ path cycle count (measured from user level)')[1]
@@ -166,21 +141,6 @@ def build_microbenchmark_dat(rt, baseline, arch):
             b_signal = getbenchmark(b_content, 'Signal to low prio thread')[0]
             microbenchmark_row(out, '\\texttt{signal}', rt_signal, b_signal)
 
-
-        with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-schedule-micro.inc'), 'w') as out:
-            # schedule
-            rt_schedule = getbenchmark(rt_content, 'signal high prio thread avg')[0]
-            b_schedule = getbenchmark(b_content, 'signal high prio thread avg')[0]
-
-            (rt_val, b_val) = process_avg_results(rt_schedule, b_schedule)         
-            microbenchmark_row(out, 'schedule', rt_val, b_val)
-
-            # yield
-            rt_yield = getbenchmark(rt_content, 'Average seL4_Yield (no thread switch)')
-            b_yield = getbenchmark(b_content, 'Average seL4_Yield (no thread switch)')
-            rt_yield = next(x for x in rt_yield if x['Event'] == 'Cycle counter')
-            b_yield = next(x for x in b_yield if x['Event'] == 'Cycle counter')
-            microbenchmark_row(out, '\\texttt{yield}', rt_yield, b_yield)
 
 
 def aes_row(out, name, rt_aes_hot, rt_aes_cold, clk, formatstr, last=False):
