@@ -61,7 +61,6 @@ def microbenchmark_row(out, name, rt, b, average=False):
     rt_val = int(rt['Mean'])
     b_val = int(b['Mean'])
     out.write('&')
-    out.write(name + '&\t')
 
 #    out.write(str(int(b['Min'])))
 #    out.write('-')
@@ -119,13 +118,15 @@ def build_microbenchmark_dat(rt, baseline, arch):
         b_ipc = getbenchmark(b_content, 'One way IPC microbenchmarks')
         
         # ipc data table
-        with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-fastpath-ipc-micro.inc'), 'w') as out:
-            out.write('%Operation\tBaseline\tRT\tDiff\tOverhead\n')
+        with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-call-fastpath-ipc-micro.inc'), 'w') as out:
+            out.write('%\tBaseline\tRT\tDiff\tOverhead\n')
             # call
             microbenchmark_row(out, '\\call', 
                     ipc_result(rt_ipc, 'seL4_Call', 0),
                     ipc_result(b_ipc, 'seL4_Call', 0))
-
+        with open(os.path.join(os.getcwd(), DATA_DIR, arch + '-reply-fastpath-ipc-micro.inc'), 'w') as out:
+            out.write('%\tBaseline\tRT\tDiff\tOverhead\n')
+     
             microbenchmark_row(out, '\\replyrecv', 
                     ipc_result(rt_ipc, 'seL4_ReplyRecv', 0),
                     ipc_result(b_ipc, 'seL4_ReplyRecv', 0))

@@ -285,15 +285,12 @@
 
 % evaluation commands
 \newcommand{\inputbenchmarkrows}[3]{
-    \midrule
-    \multirow{2}{*}{\textsc{#1}}
+    \textsc{#1} 
     \input{data/generated/#2-#3-micro.inc}
 }
 
 \newcommand{\ipcmicro}[3]{\inputbenchmarkrows{#1}{#2}{#3-ipc}}
-\newcommand{\faultmicro}[2]{\inputbenchmarkrows{#1}{#2}{fault}}
 \newcommand{\irqmicro}[2]{\inputbenchmarkrows{#1}{#2}{irq}}
-\newcommand{\schedulemicro}[2]{\inputbenchmarkrows{#1}{#2}{schedule}}
 
 \defcitealias{NetBSD:url}{NetBSD}
 

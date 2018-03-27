@@ -156,28 +156,49 @@ only the kernel cost of the operation\footnote{The \gls{IPC} benchmarks already 
  \selfour, but we modify them to support the \gls{MCS} kernel as part of this thesis.}.
    The message sent is zero length, so neither the caller nor callee's \gls{IPC} buffer is accessed.
 
-\begin{table}[t]\centering
-\begin{tabular}{ll r@{~}l r@{~}l r@{~}r}\toprule
-\emph{Platform}           & \multicolumn{1}{c}{\emph{Operation}}
-                                & \multicolumn{2}{c}{\emph{Baseline}}
-                                & \multicolumn{2}{c}{\emph{MCS     }}
-                                & \multicolumn{2}{c}{\emph{Overhead}} \\
-    \ipcmicro{KZM}{kzm}{fastpath}
-    \ipcmicro{Sabre}{sabre}{fastpath}
-    \ipcmicro{Hikey32}{hikey32}{fastpath}
-    \ipcmicro{Hikey64}{hikey64}{fastpath}
-    \ipcmicro{TX1}{tx1}{fastpath}
-    \ipcmicro{ia32}{ia32}{fastpath}
-    \ipcmicro{x64}{haswell}{fastpath}
-    \bottomrule
-\end{tabular}
-\caption[Fastpath IPC overhead]{Time in cycles for \selfour fastpath \gls{IPC}. Standard deviations shown in brackets.}
-\label{t:fastpath-ipc-micro}
-\end{table}
-
 As discussed in \cref{p:impl-fastpath}, timer operations are avoided on the fastpath. However, we do
 add significantly to the \call fastpath, by accessing two further objects (the scheduling context
 and resume object) and two validation checks. In detail, the \call fastpath is altered as follows:
+
+\begin{table}[t]\centering
+    \rowcolors{2}{gray!25}{white}
+    \begin{tabularx}{\textwidth}{Xrrrrrr}\toprule
+        \emph{Platform}     
+                                & \multicolumn{2}{c}{\emph{Baseline}}
+                                & \multicolumn{2}{c}{\emph{MCS     }}
+                                & \multicolumn{2}{c}{\emph{Overhead}} \\\midrule
+    \ipcmicro{KZM}{kzm}{call-fastpath}
+    \ipcmicro{Sabre}{sabre}{call-fastpath}
+    \ipcmicro{Hikey32}{hikey32}{call-fastpath}
+    \ipcmicro{Hikey64}{hikey64}{call-fastpath}
+    \ipcmicro{TX1}{tx1}{call-fastpath}
+    \ipcmicro{ia32}{ia32}{call-fastpath}
+    \ipcmicro{x64}{haswell}{call-fastpath}
+    \bottomrule
+\end{tabularx}
+\caption[Fastpath IPC overhead (\call)]{Time in cycles for the \call fastpath. Standard deviations shown in parentheses.}
+\label{t:fastpath-ipc-micro-call}
+\end{table}
+\begin{table}[t]\centering
+    \rowcolors{2}{gray!25}{white}
+    \begin{tabularx}{\textwidth}{Xrrrrrr}\toprule
+        \emph{Platform}      
+                                & \multicolumn{2}{c}{\emph{Baseline}}
+                                & \multicolumn{2}{c}{\emph{MCS     }}
+                                & \multicolumn{2}{c}{\emph{Overhead}} \\\midrule
+ 
+    \ipcmicro{KZM}{kzm}{reply-fastpath}
+    \ipcmicro{Sabre}{sabre}{reply-fastpath}
+    \ipcmicro{Hikey32}{hikey32}{reply-fastpath}
+    \ipcmicro{Hikey64}{hikey64}{reply-fastpath}
+    \ipcmicro{TX1}{tx1}{reply-fastpath}
+    \ipcmicro{ia32}{ia32}{reply-fastpath}
+    \ipcmicro{x64}{haswell}{reply-fastpath}
+    \bottomrule
+\end{tabularx}
+\caption[Fastpath IPC overhead (\replyrecv)]{Time in cycles for the \replyrecv fastpath. Standard deviations shown in parentheses.}
+\label{t:fastpath-ipc-micro-reply}
+\end{table}
 
 \begin{itemize}
 \item We remove the reply capability lookup, so the sending \gls{TCB}'s \cnode is no
@@ -191,7 +212,8 @@ and resume object) and two validation checks. In detail, the \call fastpath is a
     the back pointer to the resume object.
 \end{itemize}
 
-\cref{t:fastpath-ipc-micro} shows the results.
+
+\cref{t:fastpath-ipc-micro-call} shows the results.
 Overheads on the \call fastpath are low, with the worst effected platform being
 \textsc{KZM} with a 10\% overhead, which is the oldest platform with the smallest caches. On call,
 \textsc{KZM} shows L1 data cache miss and 1 memory access, which is likely an unlucky cache-conflict. \textsc{Sabre} suffers a 7\% overhead, due to a \gls{TLB} miss likely
@@ -213,7 +235,7 @@ and top-level page directory capability, so the cache-foot print is not reduced.
 \gls{IPC} is now priority ordered, the fastpath must check if the callee's \gls{TCB} will be appended to the
 endpoint queue. Otherwise, the fastpath is aborted for an ordered insert. 
 
-As a result, the overheads shown in \cref{t:fastpath-ipc-micro} for \replyrecv are generally higher
+As a result, the overheads shown in \cref{t:fastpath-ipc-micro-reply} for \replyrecv are generally higher
 than \call, except for \textsc{Sabre}, which already suffered some \gls{TLB} misses on
 the baseline kernel, again due to low \gls{TLB} associativity.
 \clearpage
@@ -225,41 +247,76 @@ the baseline kernel, again due to low \gls{TLB} associativity.
     \rowcolors{2}{gray!25}{white}
     \begin{tabularx}{\textwidth}{Xlllllll}\toprule
         \input{data/generated/avg_slowpath_round_trip_passive.inc}
-    \bottomrule
+        \bottomrule
     \end{tabularx}
     \caption{Passive slowpath IPC overhead.}
     \label{t:slowpath-ipc-micro}
-    \rowcolors{2}{gray!25}{white}
-    \begin{tabularx}{\textwidth}{Xlllllll}\toprule
-    \input{data/generated/avg_slowpath_round_trip.inc}
-    \bottomrule
-\end{tabularx}
-\caption[Active slowpath IPC overhead.]{Active slowpath IPC overhead baseline \selfour compared with MCS. All
-values excluding the first two rows shows the baseline performance counter value subtracted
-from the MCS performance counter value.} \label{t:slowpath-ipc-micro-active}
 \end{table}
-
 Now we evaluate the \gls{IPC} slowpath, for both active and passive threads. Unlike the fastpath, the slowpath
-generally doesn't fit into the cache and shows erratic results with high standard deviations on our
-hardware, slowpath benchmarks are conducted differently. For the slowpath benchmarks, we set up a
-pair of threads to do \call and \replyrecv 10,000 times and divide the result by 10,000. We do this
-for 110 runs, abandoning the first 10, to calculate the standard deviation and average. In order to guarantee that we hit the
-slowpath on a non-error condition, we set the message length to ten words. 
+generally does not fit into the cache. Consequently precise measurements like those done for the
+fastpath show erratic results with high standard deviations on our hardware. Instead, we run average
+benchmarks for the slowpath, where for 110 runs, we measure the time taken for 10,000 IPC pairs
+(\call, \replyrecv) and divide by 10,000 to get a result.
+In order to hit the slowpath we make the message length 10 words, which exceeds
+the fastpath condition that the message should fit into registers.
 
-\cref{t:slowpath-ipc-micro} shows the results for round-trip, slowpath \gls{IPC}. For passive, slowpath IPC
-we see the cost of the
-timer read, extra objects and extra code. The overhead decreases as hardware caches increase in size and
-timer accesses faster (for ARM the worst result is on the \textsc{KZM} and best on \textsc{TX1}).
-For active slowpath \gls{IPC}, the scheduling context is changed on the IPC, invoking the sporadic
-check routines and requiring a time reprogram. 
+We run the benchmark for both active and passive threads, which shows the overhead of changing a
+scheduling context versus not. \cref{t:slowpath-ipc-micro} shows the results for the passive
+slowpath and \cref{t:slowpath-ipc-micro-active} for active, where the top row in the table is 
+the baseline number, the second row is the overhead when
+comparing the number of cycles taken for the benchmark. Every other row shows difference in value of the 
+listed performance counter between baseline and MCS. We do not show standard deviations, however
+they are measured and are very small (either 0 or a few percent of the mean). 
 
-It should be noted that the slowpath is avoided in most cases, as long IPC is discouraged in
+Passive slowpath overhead, as shown in \cref{t:slowpath-ipc-micro} is not small;
+this is due to the fact that the seL4 scheduler has far more
+functionality than previously, increasing the code size, and the cache foot print is higher, given
+that the resume object and scheduling context must be accessed in addition to the \glspl{TCB} of the
+caller and callee. Looking at ARM platforms, the overhead reduces drastically as hardware becomes
+more modern: for the most part, this means that the caches are bigger, and timer access costs are
+smaller. This is with the exception of the \textsc{Hikey} platform, with has an in-order
+execution pipeline and a smaller L2 cache than the \textsc{Sabre}. We suspect that the overheads could be reduced on Hikey with more careful hand
+optimisation. 64-bit Hikey has nearly half the excess instructions when compared to 32-bit, and far
+50\% less memory accesses, resulting in far less overhead on \textsc{Hikey64} than \textsc{Hikey32}.
+\textsc{Sabre} suffers from the low-associativity of its \gls{TLB} with misses in both the instruction and
+data TLBs. On the x86 platform, both \textsc{ia32} and \textsc{x64} show the same overhead in terms
+of ratio, both due to the increase in instructions.
+
+Another factor that complicates the slowpath is the compiler. We use GCC version 5.5.0 with optimisation
+level O2 for all benchmarks, with the \code{mtune} parameter set as appropriate. All of the kernel
+code is pre-processed and concatenated into to single file with the \code{whole-program} attribute
+set which allows for greater compiler optimisations. However, the level of optimisation for a
+specific platform, especially ARM platforms, is not know and contributes to the variance between
+platforms, and between arm versions.
+
+Additionally, it should be noted that the slowpath is avoided in most cases, as long IPC is discouraged in
 favour of establishing shared memory protocols to transfer large amounts of data. The majority of
 fastpath checks make sure the thread being switched to is valid and runnable. Only two cases hit the
 slowpath frequently: if a medium priority thread has woken, and is higher priority than the
 \gls{IPC} target, and if the target is active, not passive. 
 Additionally, many improvements can be made to the \gls{IPC} slowpath to improve
 performance, but it has not been examined extensively.
+
+\begin{table}[t]\centering
+    \rowcolors{2}{gray!25}{white}
+    \begin{tabularx}{\textwidth}{Xlllllll}\toprule
+        \input{data/generated/avg_slowpath_round_trip.inc}
+        \bottomrule
+    \end{tabularx}
+\caption{Active slowpath IPC overhead.}
+\label{t:slowpath-ipc-micro-active}
+\end{table}
+
+
+\cref{t:slowpath-ipc-micro-active} shows results for the active slowpath, and has higher overheads
+again. In this case, we change scheduling
+contexts, so not only does another object (the second \gls{SCO}) need to be accessed, but the timer
+needs to be reprogrammed, and sporadic replenishment logic applied. \textsc{TX1} and
+\textsc{Hikey64} have the lowest overhead, although the overhead looks to be ameliorated by lucky
+data placement with a reduction in L1 D-cache misses on both platforms. The vast majority of
+overhead comes from far more instructions executed, and on platforms with small caches or
+low-associativity, the increase in cache footprint.  
+
 
 \subsection{Faults}
 
@@ -316,17 +373,17 @@ so the fault benchmark does not work.
                                 & \multicolumn{2}{c}{\emph{Base}}
                                 & \multicolumn{2}{c}{\emph{MCS}}
                                 & \multicolumn{2}{c}{\emph{Overhead}} \\
-    \irqmicro{KZM}{kzm}
-    \irqmicro{Sabre}{sabre}
-    \irqmicro{Hikey32}{hikey32}
-    \irqmicro{Hikey64}{hikey64}
-    \irqmicro{TX1}{tx1}
-    \irqmicro{ia32}{ia32}
-    \irqmicro{x64}{haswell}
+%    \irqmicro{KZM}{kzm}
+%    \irqmicro{Sabre}{sabre}
+%    \irqmicro{Hikey32}{hikey32}
+%    \irqmicro{Hikey64}{hikey64}
+%    \irqmicro{TX1}{tx1}
+%    \irqmicro{ia32}{ia32}
+%    \irqmicro{x64}{haswell}
     \bottomrule
 \end{tabular}
 \caption[Fastpath IRQ and Signal overhead.]{Fastpath IRQ and signal overhead in cycles, baseline
-    \selfour versus MCS. Standard deviations shown in brackets.}
+    \selfour versus MCS. Standard deviations shown in parentheses.}
 \label{t:micro-irq}
 \end{table}
 
@@ -361,7 +418,7 @@ timer, in the case where older hardware is required.
 \input{data/generated/schedule_process_average.inc}
 \end{tabularx}
 \caption[Slowpath scheduler costs.]{Slowpath yield and scheduler costs in cycles, baseline \selfour 
-versus MCS. Standard deviations shown in brackets.}
+versus MCS. Standard deviations shown in parentheses.}
 \label{t:micro-schedule}
 \end{table}
 
@@ -371,7 +428,7 @@ versus MCS. Standard deviations shown in brackets.}
 \input{data/generated/Average_seL4_Yield_no_thread_switch.inc}
 \end{tabularx}
 \caption[Yield to self scheduler costs.]{Yield to self costs.Slowpath yield and scheduler costs in cycles, baseline \selfour 
-versus MCS. Standard deviations shown in brackets.}
+versus MCS. Standard deviations shown in parentheses.}
 \label{t:micro-schedule}
 \end{table}
 
