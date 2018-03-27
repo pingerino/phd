@@ -249,14 +249,16 @@ the baseline kernel, again due to low \gls{TLB} associativity.
         \input{data/generated/avg_slowpath_round_trip_passive.inc}
         \bottomrule
     \end{tabularx}
-    \caption{Passive slowpath IPC overhead.}
+    \caption{Passive slowpath round-trip IPC overhead.}
     \label{t:slowpath-ipc-micro}
 \end{table}
-Now we evaluate the \gls{IPC} slowpath, for both active and passive threads. Unlike the fastpath, the slowpath
-generally does not fit into the cache. Consequently precise measurements like those done for the
+Now we evaluate the \gls{IPC} slowpath, for both active and passive threads in the same address
+space.
+Unlike the fastpath, the slowpath
+generally does not fit into the cache. Consequently, precise measurements like those done for the
 fastpath show erratic results with high standard deviations on our hardware. Instead, we run average
 benchmarks for the slowpath, where for 110 runs, we measure the time taken for 10,000 IPC pairs
-(\call, \replyrecv) and divide by 10,000 to get a result.
+(\call, \replyrecv) and divide by 10,000 to get a result, abandoning the first 10 results. 
 In order to hit the slowpath we make the message length 10 words, which exceeds
 the fastpath condition that the message should fit into registers.
 
@@ -274,7 +276,7 @@ functionality than previously, increasing the code size, and the cache foot prin
 that the resume object and scheduling context must be accessed in addition to the \glspl{TCB} of the
 caller and callee. Looking at ARM platforms, the overhead reduces drastically as hardware becomes
 more modern: for the most part, this means that the caches are bigger, and timer access costs are
-smaller. This is with the exception of the \textsc{Hikey} platform, with has an in-order
+smaller. Except for the \textsc{Hikey} platform, with has an in-order
 execution pipeline and a smaller L2 cache than the \textsc{Sabre}. We suspect that the overheads could be reduced on Hikey with more careful hand
 optimisation. 64-bit Hikey has nearly half the excess instructions when compared to 32-bit, and far
 50\% less memory accesses, resulting in far less overhead on \textsc{Hikey64} than \textsc{Hikey32}.
@@ -283,10 +285,10 @@ data TLBs. On the x86 platform, both \textsc{ia32} and \textsc{x64} show the sam
 of ratio, both due to the increase in instructions.
 
 Another factor that complicates the slowpath is the compiler. We use GCC version 5.5.0 with optimisation
-level O2 for all benchmarks, with the \code{mtune} parameter set as appropriate. All of the kernel
+level O2 for all benchmarks, with the \code{mtune} parameter set as appropriate. All kernel
 code is pre-processed and concatenated into to single file with the \code{whole-program} attribute
 set which allows for greater compiler optimisations. However, the level of optimisation for a
-specific platform, especially ARM platforms, is not know and contributes to the variance between
+specific platform, especially ARM platforms, is not known and contributes to the variance between
 platforms, and between arm versions.
 
 Additionally, it should be noted that the slowpath is avoided in most cases, as long IPC is discouraged in
@@ -303,7 +305,7 @@ performance, but it has not been examined extensively.
         \input{data/generated/avg_slowpath_round_trip.inc}
         \bottomrule
     \end{tabularx}
-\caption{Active slowpath IPC overhead.}
+\caption{Active slowpath round-trip IPC overhead.}
 \label{t:slowpath-ipc-micro-active}
 \end{table}
 
@@ -326,7 +328,7 @@ low-associativity, the increase in cache footprint.
 \input{data/generated/avg_fault_round_trip_passive.inc}
     \bottomrule
 \end{tabularx}
-\caption{Passive fault IPC overhead.}
+\caption{Passive fault round-trip IPC overhead.}
 \label{t:slowpath-fault-micro}
 \end{table}
 
@@ -336,7 +338,7 @@ low-associativity, the increase in cache footprint.
 \input{data/generated/avg_fault_round_trip.inc}
     \bottomrule
 \end{tabularx}
-\caption{Active fault IPC overhead.}
+\caption{Active fault round-trip IPC overhead.}
 \label{t:slowpath-fault-micro-passive}
 \end{table}
 
@@ -424,37 +426,50 @@ a 5\% increase on the interrupt fastpath.
 scheduling context or access to the timer device.  In this benchmark, a high priority thread signals
 a low priority thread, a common operation for interrupt service routines. As \cref{t:micro-irq}
 shows, in 
-cases where slowpath performance is a issue, further fastpaths can be added to avoid accessing the
+cases where slowpath performance is an issue, further fastpaths can be added to avoid accessing the
 timer, in the case where older hardware is required.
 
 \subsection{Scheduling}
 
-\begin{table}[t]\centering
-    \rowcolors{2}{gray!25}{white}
-    \begin{tabularx}{\textwidth}{Xlllllll}\toprule
-\input{data/generated/schedule_process_average.inc}
-\end{tabularx}
-\caption[Slowpath scheduler costs.]{Slowpath yield and scheduler costs in cycles, baseline \selfour 
-versus MCS. Standard deviations shown in parentheses.}
-\label{t:micro-schedule}
-\end{table}
+In our final microbenchmark we look at the cost of the scheduler, and the \yield system call, both
+of which are slowpaths.
 
 \begin{table}[t]\centering
     \rowcolors{2}{gray!25}{white}
     \begin{tabularx}{\textwidth}{Xlllllll}\toprule
 \input{data/generated/Average_seL4_Yield_no_thread_switch.inc}
 \end{tabularx}
-\caption[Yield to self scheduler costs.]{Yield to self costs.Slowpath yield and scheduler costs in cycles, baseline \selfour 
-versus MCS. Standard deviations shown in parentheses.}
-\label{t:micro-schedule}
+\caption[Yield to self scheduler costs.]{Yield to self costs. Baseline \selfour  versus MCS. Standard deviations shown in parentheses.}
+\label{t:micro-yield}
 \end{table}
 
-In our final microbenchmark we look at the cost of the scheduler, and the \yield system call. 
+\cref{t:micro-yield} shows the results of measuring the average cost for the current thread to
+\yield to itself, which in the current kernel code always triggers a reschedule. The overhead is large 
+as \yield is nearly a completely different system call: previously \yield was incomplete, and would simply
+dequeue and enqueue the current thread from the scheduling queues, before returning to user level.
+\yield in the new model charges the remaining budget in the head replenishment to the thread, and
+triggers a timer reprogram. Although semantically similar for round robin threads, \yield does a lot
+more, hence the drastic overheads. ARM platforms show an large increase in instructions executed,
+and older ARM platforms experience some cache-misses. x86 platforms show a smaller increase in
+instructions executed, but recall from \cref{t:evaluation-timer} that when run in a tight loop, the
+overhead of reading and reprogramming the timer is over 200 cycles. 
 
-The \code{schedule} benchmark measures the cost of a signal to a higher priority thread, which forces 
-a reschedule operation and does not avoid picking a new thread from the scheduler, in addition to
-all other slowpath overheads. Like the other slowpath benchmarks, we take the average of 10,000
-runs. 
+The \code{schedule} benchmark measures the cost of two threads in different address spaces switching
+to each other in a loop by changing each other's priority. A high-priority thread increases the priority of
+a low-priority thread, subsequently the low-priority thread then sets its own priority back down, 
+resulting in a reschedule to the high-priority thread. Both threads do this 50,000 times,
+and we measure the cost
+for 110 runs, abandoning the first 10, so the caches are primed. This results in 10,000 invocations
+of the scheduler, as both threads do the switching. Of course, setting the priority of
+a thread higher does not need to invoke the scheduler: but this is the current state of the source
+code\footnote{We have a patch to fix this which is waiting in the queue for verification.}, and
+allows us to run this benchmark.
+
+\cref{t:micro-schedule} shows the results. On x86, the overhead can be attributed half to the
+increase in instructions and the rest to reading and reprogramming the timer. The overhead looks
+large on both \textsc{ia32} and \textsc{x64}, however note the very small initial value. On ARM, 
+we see a larger overhead that decreases in newer platforms.
+
 The scheduler is by definition a slowpath activity, as it is completely avoided on the fastpath, and
 much of the slowpath, by the lazy scheduling mechanism (\cref{sec:sel4-scheduler-opt}).
 \cref{t:micro-schedule} shows that scheduling cost increases noticeably, however note that \selfour IPC,
@@ -463,12 +478,15 @@ undisciplined timeslice donation), is designed to minimise the need for
 invoking the scheduler, therefore this increase is unlikely to have
 a noticeable effect in practice. 
 
-We also measure the average cost for the current thread to \yield to itself. The overhead is large 
-as \yield is nearly a completely different system call: previously \yield was incomplete, and would simply
-dequeue and enqueue the current thread from the scheduling queues, before returning to user level.
-\yield in the new model charges the remaining budget in the head replenishment to the thread, and
-triggers a timer reprogram. Although semantically similar for round robin threads, \yield does a lot
-more, hence the drastic overheads shown in \cref{t:micro-schedule}.
+\begin{table}[t]\centering
+    \rowcolors{2}{gray!25}{white}
+    \begin{tabularx}{\textwidth}{Xlllllll}\toprule
+\input{data/generated/schedule_process_average.inc}
+\end{tabularx}
+\caption[Slowpath scheduler costs.]{Scheduler costs in cycles, baseline \selfour 
+versus MCS. Standard deviations shown in parentheses.}
+\label{t:micro-schedule}
+\end{table}
 
 \subsection{Full system benchmark}
 \label{s:evaluation-redis-overhead}
@@ -793,7 +811,7 @@ latency of timeout handling, from the time the handler wakes up
 until it replies to the server.
 
 \autoref{t:rollback} shows the results. The maximum
-colD-cache cost, which is relevant for schedulability analysis, differs by a factor of 3--4 between
+cold-cache cost, which is relevant for schedulability analysis, differs by a factor of 3--4 between
 the different recovery scenarios, indicating that all are about equally feasible.  Approaches that
 restart the server and send \glspl{IPC} messages on its behalf (rollback, reply) are the most
 expensive as they must restore the server state from a checkpoint and follow the passive server
