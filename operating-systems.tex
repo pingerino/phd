@@ -501,7 +501,7 @@ accessing a resource) are key to avoiding priority inversion in a resource kerne
 
 We first examine mechanisms for charging in the context of microkernels.
 Recall from \cref{s:background-ipc} that in a microkernel, \gls{OS} services are implemented at
-user-level where clients use \gls{IPC} to communicate with servers, in an RPC-like fashion, as
+user-level where clients use \gls{IPC} to communicate with servers, using \glspl{RPC}, as
 illustrated in \cref{f:os-ipc}. These servers logically map to shared resources, where clients are
 the threads accessing those resources.
 

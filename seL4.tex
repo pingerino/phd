@@ -414,7 +414,7 @@ threads.
 
 \cref{t:endpoint-system-calls} summarises \selfour system calls when used on endpoint
 capabilities. Essentially, \send is used to send a message and \recv used to
-receive one, both having blocking and non-blocking variants. \call is of particular interest as it represents the caller side of an RPC
+receive one, both having blocking and non-blocking variants. \call is of particular interest as it represents the caller side of an \gls{RPC}
 operation critical to microkernel performance, distinguished from a basic pair of \send and
 \recv by \emph{resume} capabilities. Pioneered in KeyKOS~\citep{Bomberger_FFHLS_92} and
 further appearing in EROS~\citep{Shapiro_SF_99}, resume
@@ -771,7 +771,7 @@ events would need to share a user-level timer.
 To build a dynamic system with temporal isolation and high CPU utilisation, one could provide a 
 high-priority scheduling component which implements \gls{FPRM} at user-level. This task would manage a
 time-service for timeouts and monitor task execution, preempting tasks before they exceed their
-declared \gls{WCET}. On task completion, tasks would RPC the scheduler in order to dispatch
+declared \gls{WCET}. On task completion, tasks would \gls{RPC} the scheduler in order to dispatch
 a new task.
 However, since the timer component would need to maintain accounting information and track the currently running thread, it would need to be invoked for every single scheduling operation.
 This is prohibitively expensive, as it results in doubled context switching time and increased number of system calls for thread management.

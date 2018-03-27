@@ -11,7 +11,7 @@ isolation, but be permitted to share resources without violating their temporal 
 properties through mechanisms provided by the kernel.
 
 To achieve this we require temporal isolation: a feature of resource kernels, whose mechanisms we
-apply to our research platform, \selfour.  However temporal isolation is not enough: mixed-criticality
+apply to our research platform, \selfour.  However temporal isolation alone is insufficient: mixed-criticality
 systems require asymmetric protection rather than temporal isolation, as a result we leverage
 traditional resource kernel reservations but decouple them from priority, allowing the processor to
 be overcommitted while providing guarantees for the highest priority tasks.
@@ -196,7 +196,8 @@ Unlike \fiascooc's scheduling contexts~\citep{Lackorzynski_WVH_12}, which
 are superficially similar to ours, we retain priorities as a thread
 attribute rather than making them part of \glspl{SC}\footnote{\fiascooc's scheduling
 contexts are not integrated in to the capability system.}. The advantage of keeping the two
-orthogonal will become evident in \cref{s:locking}.
+orthogonal allows us to avoid mandating a specific prioritisation protocol for resource-sharing,
+which we expand on in \cref{s:locking}.
 
 \subsection{Accounting}
 \label{sec:model-accounting}
@@ -204,7 +205,7 @@ orthogonal will become evident in \cref{s:locking}.
 Accounting must be a mechanism implemented by the kernel, as the kernel is the only entity in the system
 that can monitor all threads, regardless of preemption in the system, since the kernel facilitates all
 preemption.
-The accounting mechanism is provided by new system invariant that the currently running thread 
+The accounting mechanism is provided by a new system invariant that the currently running thread 
 must have a scheduling context with available budget, as all time consumed is billed to the
 current scheduling context.
 This includes time spent executing in the kernel, including preemptions.
@@ -296,8 +297,8 @@ model from that of resource kernels.
 We use sporadic servers as they provide a mechanism for isolation without requiring the kernel
 to have access to all threads in the system, unlike other approaches discussed in
 \cref{background:fp-isolation}, \eg  priority exchange servers and slack stealing.
-Deferrable servers do not require global state but are avoided due to the back-to-back
-problem.
+Deferrable servers do not require global state but are ruled out due to the back-to-back
+problem, which violates temporal isolation.
 Avoiding global, shared-state is required for confidentiality, because access to shared state
 has cache effects, which leak information via cache-based timing-channels. In order to maintain these properties,
 timing channels must be mitigated through partitions. 
@@ -414,8 +415,8 @@ user-lever schedulers to specific  priorities, for instance an EDF scheduler.
 \subsection{Asymmetric Protection}
 
 Recall that in a mixed-criticality system, asymmetric protection means that tasks with higher
-criticality can cause deadline misses in lower criticality tasks.  Two approaches to mixed
-criticality scheduling that provide asymmetric protection are slack scheduling and
+criticality can cause deadline misses in lower criticality tasks.  Two approaches to 
+mixed-criticality scheduling that support asymmetric-protection are slack scheduling and
 \gls{RTA}~\citep{Burns_Davis_17}.
 
 Under slack scheduling, low-criticality tasks run in slack time of high-criticality tasks.  Our
@@ -453,13 +454,13 @@ present how the scheduling context mechanism facilitates resource sharing polici
 in terms of the three core mechanisms ---prioritisation, charging and enforcement---presented 
 in \cref{sec:resource-kernels}.
 
-In this section we consider only resources shared by resource servers in a \gls{RPC} style where
+In this section we consider only resources shared by resource servers in an \gls{RPC} style, where
 servers are scheduled directly as a result of the \gls{RPC}. Other forms of resource sharing, such
 as the asynchronous multicast provided by ARINC 653 (\cref{s:arinc}), are possible, but not
 relevant, as time is not directly exchanged, and we have already shown how temporal partitioning is possible with
 reservations. 
 
-RPC-style shared servers are fundamentally a trusted entity: the client does not resume until the
+\gls{RPC}-style shared servers are fundamentally a trusted entity: the client does not resume until the
 server replies to a request, and the server may not ever reply. Additionally, the client requires the
 server to carry out the operation requested. Consequently, the server takes on the ceiling of the
 requirements of all the clients. If a server is shared between trusted and untrusted clients, the
@@ -677,7 +678,7 @@ server is passive, it migrates to the core that the donated scheduling context p
 \section{Mechanisms}
 \label{sec:model-mechanisms}
 
-Before exploring how various user-level policies can be implemented using our model, we describe
+Before exploring how various user-level policies can be implemented at user-level using our model, we describe
 four new mechanisms introduced for high-performance implementation of those policies.
 
 \subsection{Directed yield}
@@ -747,7 +748,7 @@ copied.
 Recall from \cref{s:notification-binding} that notification objects can be bound to threads such that single-threaded servers can be 
 constructed which receive \gls{IPC} messages and signals. We extend this mechanism with passive server
 support by allowing scheduling contexts to be bound to notifications, such that the passive server
-execute using the notification's scheduling context when processing interrupts or signals from other
+executes using the notification's scheduling context when processing interrupts or signals from other
 threads. 
 
 \section{Policies}
@@ -771,7 +772,8 @@ designers can set a timeslice, which determines how long a specific scheduling c
 executed upon before preemption.
 
 More complicated, time-sharing schedulers can be built by a user level scheduler, using the directed
-yield and ability to request the amount of time consumed by a specific scheduling context.
+yield and consumed mechanisms, which allow user-level reorder the kernel's priority queues and
+request the amount of time consumed by a specific scheduling context.
 
 \subsubsection{Rate-limited threads}
 
@@ -884,7 +886,7 @@ implement such a system with our mechanisms, all server threads would be configu
 set to the ceiling priority of the clients. 
 
 This policy does not provide temporal isolation, as the server executes on its own budget.  If one
-client launches a denial of service attack on the server, depleting the servers budget, then other
+client launches a denial of service attack on the server, depleting the server's budget, then other
 clients are starved. 
 
 While our resource sharing mechanisms do not rule out this policy, it is only suitable for
@@ -898,9 +900,11 @@ threads (also termed stack-migrating \gls{IPC}).
 On every \gls{IPC}, client execution contexts (and CPU reservation) transfer to a new stack running in the
 server's protection domain, resulting in multi-threaded servers.
 
-To implement migrating threads, \composite requires that every server have a mechanism for allocating stacks.
-If no memory is available to allocate stacks, then the request is blocked.
-This solution forces servers to be multi-threaded, and does not solve the problem of a clients budget expiring while the server is in a critical section, which is solved by providing atomic primitives that call the kernel.
+To implement migrating threads, \composite requires that every server have a mechanism for
+allocating stacks.  If no memory is available to allocate stacks, then the request is blocked.  This
+solution forces servers to be multi-threaded, and does not solve the problem of a client's budget
+expiring while the server is in a critical section, which is solved by providing atomic primitives
+that call the kernel.
 
 A stack-spawning policy can be implemented using the mechanisms we have provided, similarly to
 the \gls{PIP} implementation described above (\cref{sec:model-pip-bwi}), except the proxy
@@ -919,8 +923,8 @@ until an operation completes before replying to the client. Consider a disk serv
 clients make requests of the server to write data to the disk. The server makes the request to the
 disk, but does not reply to the client until the device has signalled that \IO is complete. Rather
 than blocking until the driver responds, preventing the server from taking on further requests, the
-server can block on the endpoint and wait for the interrupt or further RPC requests. If an interrupt
-comes in, the server runs the bound notification objects scheduling context to complete the
+server can block on the endpoint and wait for the interrupt or further \gls{RPC} requests. If an interrupt
+comes in, the server runs the bound notification object's scheduling context to complete the
 request.
 
 Another option is to use multiple threads, with a passive thread for handling requests and an active

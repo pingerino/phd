@@ -555,7 +555,7 @@ handling faults, so thread fault handlers can be passive. Unlike previous versio
 donation in L4 kernels, there is no explicit flag for permitting donation: if the callee does not
 have a scheduling context, the caller would block indefinitely, as the callee has no other way to
 access processing time. As discussed in \cref{s:locking},
-the caller in an RPC-style operation must trust the callee: regardless of the scheduling context
+the caller in an \gls{RPC}-style operation must trust the callee: regardless of the scheduling context
 being executed upon, the callee can always choose to not reply, blocking the caller indefinitely. 
 
 Lent scheduling contexts are returned when the resume object is invoked, or the head resume object
@@ -570,7 +570,7 @@ unable to receive further scheduling contexts via donation or lending. Correct u
 context. Like lending, scheduling contexts can also be returned by a fault handler replying to a fault message.
 
 Forwarding a scheduling context does not establish a call-chain relationship, and allows
-for scheduling contexts to be transferred between threads in non-RPC patterns. The semantics are
+for scheduling contexts to be transferred between threads in non-\gls{RPC} patterns. The semantics are
 as follows: if \gls{IPC} forwarding is used via \nbsendrecv (\cref{s:ipc-forwarding}) is used, and the receiver does not have a scheduling context,
 the scheduling context is forwarded. 
 
