@@ -367,8 +367,8 @@ $1_micro_raw_data:
 	wget -O ${PWD}/data/rt-$1.json ${BAMBOO}${RT}${DIR}$2/results.json
 	wget -O ${PWD}/data/baseline-nfp-$1.json ${BAMBOO}EDF-NFB${DIR}$2/results.json
 	wget -O ${PWD}/data/rt-nfp-$1.json ${BAMBOO}EDF-NFP${DIR}$2/results.json
-#	$(foreach var, $(PERF_NUMBERS), \
-#		wget -O ${PWD}/data/ipc-perf-$(var)-rt-$1.json ${BAMBOO}${PERF_RT}$(var)${DIR}$2/results.json;)
+	$(foreach var, $(PERF_NUMBERS), \
+		wget -O ${PWD}/data/ipc-perf-$(var)-rt-$1.json ${BAMBOO}${PERF_RT}$(var)${DIR}$2/results.json;)
 	$(foreach var, $(PERF_NUMBERS), \
 		wget -O ${PWD}/data/ipc-perf-$(var)-baseline-$1.json ${BAMBOO}${PERF_BASE}$(var)${DIR}$2/results.json;)
 endef
