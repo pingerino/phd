@@ -769,7 +769,7 @@ budgets.
 
 In cases of non-preemptible servers, potentially due to a lack of thread safety, one option is to
 kill client threads. Such a scenario would stop untrusted misbehaving clients from constantly
-monopolising server time.  We implement an example were the timeout handler has access to client \gls{TCB}
+monopolising server time.  We implement an example where the timeout handler has access to client \gls{TCB}
 capabilities and simply calls suspend, however the server could also switch to a new reply object
 and leave the client blocked forever, without access to any of the clients capabilities. 
 
