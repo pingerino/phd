@@ -332,7 +332,7 @@ low-associativity, the increase in cache footprint.
 \label{t:slowpath-fault-micro}
 \end{table}
 
-\begin{table}[t]\centering
+\begin{table}[b]\centering
     \rowcolors{2}{gray!25}{white}
     \begin{tabularx}{\textwidth}{Xllllll}\toprule
 \input{data/generated/avg_fault_round_trip.inc}
@@ -361,44 +361,93 @@ We do not show results for the \textsc{KZM} platform, as it is ARMv6 and the per
 unit, including the cycle counter, cannot be read from user mode. As a result we use the
 undefined instruction to read the cycle counter efficiently on this platform, 
 so the fault benchmark does not work.
+\clearpage
+\subsection{Experimental fastpaths}
 
-\subsection{Signalling and interrupts}
+As noted in the previous section, mainly engineering effort is required to add new fastpaths. For
+this reason, we add two new (non-verified) experimental fastpaths to both kernels: one for interrupt
+delivery, and the other for signalling a low-priority thread. We measure baseline versus MCS results
+for both operations, with and without the fastpaths.
+
+\subsubsection{Interrupt fastpath}
+
+We measure interrupt latency using two threads, one spinning in a loop
+updating a volatile cycle counter, the other, higher priority thread
+waiting for an interrupt. On delivery, the handler thread determines the
+interrupt latency by subtracting the
+looped timestamp from the current time. We repeat this loop 110 times, discarding the first 10
+results.
+
+For the interrupt path, the experimental fastpath covers the case where either the interrupt
+does not result in a context switch, or the interrupt results in a switch to a higher-priority
+runnable thread. Note that this would be faster if we picked one of the cases, however without
+workload specifics, it is not clear whether one of these operations should be prioritised over the
+other. Additionally, as interrupts are by their nature preemptive, we must switch scheduling
+contexts, which incurs the time reprogram the timer and charge the previous thread. In both cases,
+the scheduler itself is avoided. 
+
 
 \begin{table}[t]\centering
     \rowcolors{2}{gray!25}{white}
     \begin{tabularx}{\textwidth}{Xrrrrrr}\toprule
-        \emph{Platform}     
+        \emph{Platform (faspath?)}    
                                 & \multicolumn{2}{c}{\emph{Baseline}}
                                 & \multicolumn{2}{c}{\emph{MCS     }}
                                 & \multicolumn{2}{c}{\emph{Overhead}} \\\midrule
-    \irqmicro{KZM}{kzm}
-    \irqmicro{Sabre}{sabre}
-    \irqmicro{Hikey32}{hikey32}
-    \irqmicro{Hikey64}{hikey64}
-    \irqmicro{TX1}{tx1}
-    \irqmicro{ia32}{ia32}
-    \irqmicro{x64}{haswell}
+        \irqmicro{KZM \yes}{kzm}
+        \irqmicro{KZM \no}{kzm-nfp}
+    \irqmicro{Sabre \yes}{sabre}
+    \irqmicro{Sabre \no}{sabre-nfp}
+    \irqmicro{Hikey32 \yes}{hikey32}
+    \irqmicro{Hikey32 \no}{hikey32-nfp}
+    \irqmicro{Hikey64 \yes}{hikey64}
+    \irqmicro{Hikey64 \no}{hikey64-nfp}
+    \irqmicro{TX1 \yes}{tx1}
+    \irqmicro{TX1 \no}{tx1-nfp}
+    \irqmicro{ia32 \yes}{ia32}
+    \irqmicro{ia32 \no}{ia32-nfp}
+    \irqmicro{x64 \yes}{haswell}
+    \irqmicro{x64 \no}{haswell-nfp}
     \bottomrule
 \end{tabularx}
-\caption[Fastpath IRQ overhead.]{Fastpath IRQ overhead in cycles, baseline
+\caption[Fastpath and non-fastpath IRQ overhead.]{Fastpath and non-fastpath IRQ overhead in cycles, baseline
     \selfour versus MCS. Standard deviations shown in parentheses.}
 \label{t:micro-irq}
 \end{table}
 
-\begin{table}[t]\centering
+\cref{t:micro-irq} shows the results. On most platforms, the overhead remains the same regardless of
+the fastpath or not, except on x86 platforms. In the case of the ARM platforms, the IRQ fastpath
+yields a performance improvement of a few hundred cycles, which can ameliorate somewhat the
+overheads of the MCS model, but not completely. In this case we see the majority of the MCS overhead
+is due to the operations required to switch scheduling contexts. \textsc{KZM} shows the  highest overhead, where once again we
+exceed the small cache. The \textsc{Hikey} pays for its in-order execution pipeline, which could be
+improved with further profiling of the fastpath. The \textsc{TX1} shows the least impact, with only
+a 6\% increase on the interrupt fastpath. 
+%\clearpage
+
+\subsubsection{Signal}
+
+\begin{table}[b]\centering
     \rowcolors{2}{gray!25}{white}
     \begin{tabularx}{\textwidth}{Xrrrrrr}\toprule
-        \emph{Platform}     
+        \emph{Platform (fastpath?)}     
                                 & \multicolumn{2}{c}{\emph{Baseline}}
                                 & \multicolumn{2}{c}{\emph{MCS     }}
                                 & \multicolumn{2}{c}{\emph{Overhead}} \\\midrule
-    \sigmicro{KZM}{kzm}
-    \sigmicro{Sabre}{sabre}
-    \sigmicro{Hikey32}{hikey32}
-    \sigmicro{Hikey64}{hikey64}
-    \sigmicro{TX1}{tx1}
-    \sigmicro{ia32}{ia32}
-    \sigmicro{x64}{haswell}
+    \sigmicro{KZM \yes}{kzm}
+    \sigmicro{KZM \no}{kzm-nfp}
+    \sigmicro{Sabre \yes}{sabre}
+    \sigmicro{Sabre \no}{sabre-nfp}
+    \sigmicro{Hikey32 \yes}{hikey32}
+    \sigmicro{Hikey32 \no}{hikey32-nfp}
+    \sigmicro{Hikey64 \yes}{hikey64}
+    \sigmicro{Hikey64 \no}{hikey64-nfp}
+\sigmicro{TX1 \yes}{tx1}
+\sigmicro{TX1 \no}{tx1-nfp}
+    \sigmicro{ia32 \yes}{ia32}
+    \sigmicro{ia32 \no}{ia32-nfp}
+    \sigmicro{x64 \yes}{haswell}
+    \sigmicro{x64 \no}{haswell-nfp}
     \bottomrule
 \end{tabularx}
 \caption[Fastpath signal overhead.]{Fastpath signal overhead in cycles, baseline
@@ -406,28 +455,19 @@ so the fault benchmark does not work.
 \label{t:micro-signal}
 \end{table}
 
-As noted in the previous section, mainly engineering effort is required to add new fastpaths. For
-this reason, we add two new (non-verified) experimental fastpaths to the baseline and MCS kernels: one for interrupt
-delivery, and the other for signalling a low-priority thread, which we now examine.
+In this benchmark, a high priority thread signals
+a low priority thread, a common operation for interrupt service routines. The experimental signal fastpath
+optimises this exact case: where no thread switch is triggered by the signal, and execution returns
+to the high priority thread.
 
-We measure interrupt latency using two threads, one spinning in a loop
-updating a volatile cycle counter, the other, higher priority thread
-waiting for an interrupt. On delivery, the handler thread determines the
-interrupt latency by subtracting the
-looped timestamp from the current time. \cref{t:micro-irq} shows the results. 
-The overhead is higher here as we must switch scheduling
-contexts, which requires reprogramming the timer, however the scheduler is by-passed as the switch
-is to a higher priority thread. \textsc{KZM} shows the  highest overhead, where once again we
-exceed the small cache. The \textsc{Hikey} pays for its in-order execution pipeline, which could be
-improved with further profiling of the fastpath. The \textsc{TX1} shows the least impact, with only
-a 5\% increase on the interrupt fastpath.
-
-\code{signal()}, on the other hand shows little overhead as it does not alter the
-scheduling context or access to the timer device.  In this benchmark, a high priority thread signals
-a low priority thread, a common operation for interrupt service routines. As \cref{t:micro-irq}
-shows, in 
-cases where slowpath performance is an issue, further fastpaths can be added to avoid accessing the
-timer, in the case where older hardware is required.
+\cref{t:micro-signal} shows the results. The first thing to note is that this fastpath offers a
+several hundred cycle performance improvement over the slowpath for this specific case, due to the 
+reduction in branching and cache-friendly, local code provided by the fastpath. 
+The non-fastpath cases show a high overhead when comparing MCS to baseline, although again the
+impact decreases on newer hardware. However, because the fastpath barely differs on baseline vs.
+MCS, we see a massive reduction in overhead when comparing fastpaths to slowpaths. If the signal
+operation were to become a bottle-neck, merging this fastpath to the master kernel is an option.  
+\clearpage
 
 \subsection{Scheduling}
 

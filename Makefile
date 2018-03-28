@@ -466,6 +466,8 @@ define process_micro_data
 	@python3 ${PWD}/data/json-to-data.py -b ${PWD}/data/baseline-$1.json -rt ${PWD}/data/rt-$1.json -a $1 > gen-$1.log || \
 		(cat gen-$1.log; false)
 	@python3 ${PWD}/data/ipc-perf.py -p $1 -o ${PWD}/data/generated/$1-ipc-perf.inc
+	@python3 ${PWD}/data/json-to-data.py -b ${PWD}/data/baseline-nfp-$1.json -rt ${PWD}/data/rt-nfp-$1.json -a $1-nfp > gen-$1.log || \
+		(cat gen-$1.log; false)
 	@touch $$@
 endef
 
