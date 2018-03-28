@@ -40,10 +40,10 @@ resources. However, resource sharing between components of mixed criticality is 
 standards.
 
 % what's wrong with static partitioning
-While MCS are becoming the norm in avionics, this is presently in a very restricted form: in the
-ARINC standard, the system
+While mixed-criticality systems are becoming the norm in avionics, this is presently in a very restricted form: in the
+ARINC 632 standard~\citep{ARINC653}, the system
 is orthogonally partitioned spatially and temporally, and partitions are scheduled with fixed time
-slices~\citep{ARINC653}. Shared resources are permitted but can only be accessed through fixed-time
+slices. Shared resources are permitted but can only be accessed through fixed-time
 partitions; in other words, a critical component must not
 trust a lower criticality one to behave correctly. This limits integration and cross-partition
 communication, and implies long interrupt latencies and poor resource utilisation. 
@@ -173,12 +173,12 @@ However, \gls{SWaP} alone could be reduced by consolidating systems of the same
 criticality. Ignoring the fact that this also consolidates points of failure (redundant systems by
 definition, cannot be consolidated), this alone is insufficient to completely address \gls{SWaP}
 challenges. The higher the assurance required of a system, the more over-provisioned the hardware is: not only in
-redundancy but in excess capacity. For example, \gls{WCET}
+redundancy but in excess capacity. As mentioned previously, \gls{WCET}
 estimates may be orders of magnitude larger than the typical execution time, and
 computation of safe \gls{WCET} bounds for non-trivial software tends to be highly pessimistic
 \citep{Wilhelm_EEHTWBFHMMPPSS_08}. At the same time, the core \emph{integrity property} of a
 high-criticality, real-time system is that deadlines must always be
-met, meaning that there must always be time to let such activities execute their full \emph{\gls{WCET}}.
+met, meaning that there must always be time to let such activities execute their full \gls{WCET}}.
 Consequently, consolidating high-criticality
 systems only ameliorates the problem slightly: the pessimism inherent in high-assurance systems is
 also consolidated, leaving unused, excess hardware resources.
@@ -197,12 +197,12 @@ advanced driver assistance systems, autonomous vehicles and aircraft.
 \rowcolors{2}{gray!25}{}
 \centering
 \begin{tabularx}{\textwidth}{lXl}\toprule
-    \emph{System}            & \emph{Purpose}                                                           & \emph{Criticality} \\\midrule
+    \emph{System}            & \emph{Purpose}                                                         & \emph{Criticality} \\\midrule
      Obstacle detection      & Safety: failure can lead to collision, which could lead to significant
     damage and loss of life. & Catastrophic    \\
-    \gls{GPS} Navigation          & Route planning:  failure can lead to an incorrect turn and further
+    \gls{GPS} Navigation     & Route planning:  failure can lead to an incorrect turn and further
     time travelling.         & Minor \\
-     Traffic service.        & Route planning: failure can lead to a slower trip, by failing to
+     Traffic service         & Route planning: failure can lead to a slower trip, by failing to
     avoid congested paths.
     & Minor \\
     \bottomrule
@@ -211,9 +211,9 @@ advanced driver assistance systems, autonomous vehicles and aircraft.
 \label{tab:self-driving-car}
 \end{table}
 
-Consider the systems required for a self-driving car to determine what commands to issue the vehicle
-next, as outlined in \Cref{tab:self-driving-car}. The object-detection is the most critical, and is
-generally comprised of a host of sensors: infra-red, LIDAR, cameras, and RADAR, which themselves
+Consider the systems required for a self-driving car to determine which commands to issue the vehicle,
+as outlined in \Cref{tab:self-driving-car}. The object-detection is the most critical, and is
+generally comprised of a host of sensors: infra-red, LIDAR, cameras, and radar, which themselves
 are subject to different criticality levels. Object-detection,
 especially from image data, is a function of the amount and complexity of data available: when
 driving in desert, compared to driving in a city, far less input is available. It is also the
