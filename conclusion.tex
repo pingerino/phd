@@ -22,7 +22,7 @@ confidentiality, spatial isolation, and security.
 In \cref{chap:model}, we introduced our model for treating time as a first-class resource, and 
 defined a minimal set of
 mechanisms that can be leveraged to implement temporal isolation between threads, even within shared
-servers. Our primitives also allow for more complex, application specific user-level schedulers to
+servers. Our primitives also allow for more complex, application-specific user-level schedulers to
 be constructed efficiently, as we demonstrated in the evaluation. Significantly, we provide a
 new model for L4 kernels to manage time as a first-class resource, without restricting policy
 options including overbooking, 
@@ -50,7 +50,7 @@ Specifically, we make the following contributions:
         a demonstration of isolation in a shared server through timeout-fault handling;
     \item a design and implementation of many different, user-level timeout-fault handling policies;
     \item and an implementation of a user-level \gls{EDF} scheduler which is as fast as the
-        \litmus, in-kernel EDF scheduler, which shows that despite the fixed-priority scheduler
+        \litmus in-kernel EDF scheduler, which shows that despite the fixed-priority scheduler
         present in the kernel, other schedulers remain practical;
     \item and a design and implementation of a criticality switch at user-level, which shows that
         criticality is not required to be a kernel-provided property.
