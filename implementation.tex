@@ -110,12 +110,12 @@ we provide the following deletion semantics for resume objects:
 \begin{table}[t]
     \centering
     \rowcolors{2}{gray!25}{}
-    \begin{tabularx}{\textwidth}{lX}\toprule
-        \emph{Field} & \emph{Description} \\\midrule
-        \code{tcb}    & The calling or waiting thread that is blocked on this reply object. \\
-        \code{prev} & 0 if this is the start of the call stack, otherwise points to the previous
+    \begin{tabularx}{\textwidth}{llX}\toprule
+        \emph{Field}   & \emph{Type}  & \emph{Description} \\\midrule
+        \code{tcb}     & \code{uintptr\_t}                                                                            & The calling or waiting thread that is blocked on this reply object. \\
+        \code{prev}    & \code{uintptr\_t}                                                                            & 0 if this is the start of the call stack, otherwise points to the previous
         reply object in the call stack. \\
-        \code{next} & Either a pointer to the scheduling context that was last donated using this
+        \code{next}    & \code{uintptr\_t}                                                                            & Either a pointer to the scheduling context that was last donated using this
         reply object, if this reply object is the head of a call stack (the last caller before the
         server) or a pointer to the next reply object in the stack. 0 if no scheduling context was
         passed along the stack.\\\bottomrule
@@ -144,21 +144,21 @@ Fields in an \gls{SCO} are shown in \cref{t:sc-fields}.
 \begin{table}[b] 
     \centering
     \rowcolors{2}{gray!25}{}
-    \begin{tabularx}{\textwidth}{lX}\toprule
-        \emph{Field}   & \emph{Description}\\\midrule
-        \code{Period}  & The replenishment period, $T$. \\
-     \code{Consumed} & The amount of cycles consumed since the last reset. \\
-     \code{Core}     & The ID of the processor this scheduling context grants time on.\\
-     \code{TCB}      & A pointer to the thread (if any) that this scheduling context is
+    \begin{tabularx}{\textwidth}{llX}\toprule
+        \emph{Field}   & \emph{Type} & \emph{Description}\\\midrule
+        \code{Period}  & \code{uint64\_t} & The replenishment period, $T$. \\
+        \code{Consumed} & \code{uint64\_t} & The amount of cycles consumed since the last reset. \\
+        \code{Core}     & \code{word\_t} & The ID of the processor this scheduling context grants time on.\\
+        \code{TCB}      & \code{uintptr\_t} & A pointer to the thread (if any) that this scheduling context is
         currently providing time to.\\
-        \code{Reply}    & A pointer to the head resume object (if any) in a call stack.\\
-        \code{Notification} & A pointer to the notification object (if any) to which this \gls{SCO} is bound.\\
-     \code{Badge} & An unforgeable identifier for this scheduling context, which is delivered as part of a
+        \code{Reply}    & \code{uintptr\_t} & A pointer to the head resume object (if any) in a call stack.\\
+        \code{Notification} & \code{uintptr\_t} & A pointer to the notification object (if any) to which this \gls{SCO} is bound.\\
+        \code{Badge} & \code{word\_t} & An unforgeable identifier for this scheduling context, which is delivered as part of a
         timeout fault message to identify the faulting client.\\
-     \code{YieldFrom} & Pointer to a \gls{TCB} that has performed a directed yield to this
+        \code{YieldFrom} & \code{uintptr\_t} & Pointer to a \gls{TCB} that has performed a directed yield to this
         \gls{SCO}.\\
-     \code{Head,Tail} & Indexes to the circular buffer of sporadic replenishments.\\
-     \code{Max} & Size of the circular buffer of replenishments for this scheduling context.\\
+        \code{Head,Tail} & \code{word\_t} & Indexes to the circular buffer of sporadic replenishments.\\
+        \code{Max} & \code{word\_t} & Size of the circular buffer of replenishments for this scheduling context.\\
         \bottomrule
     \end{tabularx}
     \caption{Fields of a scheduling context object.}
@@ -306,17 +306,17 @@ fields are shown in \cref{t:tcb-fields}.
 \begin{table}[t] 
     \centering
     \rowcolors{2}{gray!25}{}
-    \begin{tabularx}{\textwidth}{lX}\toprule
-        \emph{Field}   & \emph{Description}\\\midrule
-        \sout{\code{timeslice}} & Used to track the timeslice, replaced by the scheduling context. \\
-        \code{scheduling context} & The scheduling context this \gls{TCB} consumes time from, 0 if
-        this is a passive \gls{TCB}. \\
-        \code{MCP} & The \gls{MCP} of this \gls{TCB}. \\
-        \code{reply} & A pointer to the resume object this TCB is blocked on, if the TCB is
+    \begin{tabularx}{\textwidth}{llX}\toprule
+        \emph{Field}              & \emph{Type}           & \emph{Description}\\\midrule
+    \sout{\code{timeslice}}       & \sout{\code{word\_t}} & Used to track the timeslice, replaced by the scheduling context. \\
+        \code{scheduling context} & \code{uintptr\_t}     & The scheduling context this \gls{TCB}
+        consumes time from, 0 if this is a passive \gls{TCB}. \\
+        \code{MCP}   & \code{word\_t}    & The \gls{MCP} of this \gls{TCB}. \\
+        \code{reply} & \code{uintptr\_t} & A pointer to the resume object this TCB is blocked on, if the TCB is
         \code{BlockedOnReply} or \code{BlockedOnRecv}. \\
-        \code{yieldTo} & Pointer to the \gls{SCO} this \gls{TCB} has performed a directed yield to,
+        \code{yieldTo} & \code{uintptr\_t} & Pointer to the \gls{SCO} this \gls{TCB} has performed a directed yield to,
         if any.\\
-        \sout{\code{faultEndpoint}} &  Moved to the TCB \cnode. \\
+        \sout{\code{faultEndpoint}} & \sout{\code{word\_t}} & Moved to the TCB \cnode. \\
         \bottomrule
     \end{tabularx}
     \caption[Added and removed fields in a TCB.]{Added and removed fields in a \gls{TCB} object.}
