@@ -962,6 +962,27 @@ not reply to the client at all, thereby preventing the client from making furthe
 Alternatively, the timeout handler could  
 bind a temporary scheduling context to the server to complete the request. 
 
+\subsection{Example MCS}
+
+\begin{figure}[b]                                                                      
+  \centering                                                                          
+  \includegraphics[width=\columnwidth]{AAV}                                           
+  \caption{Simplified AAV design.}                  
+  \label{f:aav}                                                                       
+\end{figure}                                                                          
+
+\cref{f:aav} shows a simplified AAV architecture, which we use as an example
+mixed-criticality system using both passive and active components of different criticality levels.
+Each rectangle represents a component executing in a separate address space. 
+Solid frames indicate active components, while dashed frames indicate passive components.   Solid
+arrows indicate RPC-style server invocation and dashed    
+    arrows are completion signals. For clarity we do not show most                    
+    invocations of the logging service which would add a solid arrow                  
+    from each component to the ``Logging'' box. High-criticality                         
+    components are shown in red, medium-criticality in orange, and least-critical ones in white.     
+Most communication is by RPC-type message-passing, with the exception of device drivers which signal
+\IO completion via notifications (dashed arrows) and shared memory buffers.
+
 \section{Summary}
 
 In this chapter we have outlined our model for providing temporal isolation via scheduling and
