@@ -552,7 +552,9 @@ The contents of a scheduling context vary per implementation.
 Real-time Mach's scheduling contexts contained parameters for the deferrable
 server, while NOVA's contained a timeslice. In \fiascooc, scheduling contexts contain a
 replenishment rule, and a budget. All three implementations include a priority in the
-scheduling context. 
+scheduling context. Further experiments on \fiascooc added extra parameters, such as explicit
+deadlines, and bulk scheduling context changes for explicitly supporting mixed-criticality
+schedulers~\citep{Volp_LH_13}.
 
 \emph{Scheduling context donation} refers to a scheduling context transferring between threads over
 \gls{IPC}, and is implemented in both Real-time Mach and NOVA, although the implementations are

@@ -224,7 +224,8 @@ and resume object) and two validation checks. In detail, the \call fastpath is a
 \cref{t:fastpath-ipc-micro-call} shows the results.
 Overheads on the \call fastpath are low, with the worst affected platform being
 \textsc{KZM} with a 10\% overhead, which is the oldest platform with the smallest caches. On call,
-\textsc{KZM} shows L1 data cache miss and 1 memory access, which is likely an unlucky cache-conflict. \textsc{Sabre} suffers a 7\% overhead, due to a \gls{TLB} miss likely
+\textsc{KZM} shows L1 data cache miss and 1 memory access, which is likely an unlucky
+cache-conflict. \textsc{Sabre} suffers a 28\% overhead with high variance, due to a \gls{TLB} miss likely
 due to the relatively low associativity on Cortex-A9 \glspl{TLB}.  In general, as hardware becomes newer the
 overhead is lower, with the exception of the \textsc{HiKey}, which is the only platform we use that has 
 in-order execution. Additionally \textsc{HiKey} has a smaller L2 cache than the older \textsc{Sabre},
@@ -233,7 +234,9 @@ We posit that for the HiKey, further hand optimisation of the fastpath would res
 performance. The newest ARM hardware is the TX1, which only shows a 5\% overhead. x86 with its large
 caches and highly optimised pipeline only incurs a 1\% overhead. For further detail on the
 numbers read from the performance counters cited here, please see
-\cref{appendix:fastpath-performance}.
+\cref{appendix:fastpath-performance}. On \textsc{ia32} we see a minor reduction in the time for
+\call, although the instructions executed increases: this is most likely due to the long pipeline,
+and increased instructions reducing data dependencies. Overall for x86 fastpath overheads are low. 
 
 The fastpath for \replyrecv has a higher impact, for two reasons: first, we add a new capability
 lookup, being the resume object provided to receive, which must be looked up by the \replyrecv
@@ -324,8 +327,8 @@ contexts, so not only does another object (the second \gls{SCO}) need to be acce
 needs to be reprogrammed, and sporadic replenishment logic applied. \textsc{TX1} and
 \textsc{HiKey64} have the lowest overhead, although the overhead looks to be ameliorated by lucky
 data placement with a reduction in L1 D-cache misses on both platforms. The vast majority of
-overhead comes from far more instructions executed, and on platforms with small caches or
-low-associativity, the increase in cache footprint.  
+overhead comes from timer access and reprogramming, far more instructions executed, and on platforms
+with small caches or low-associativity, the increase in cache footprint.  
 
 
 \subsection{Faults}
