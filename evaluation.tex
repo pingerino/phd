@@ -35,32 +35,40 @@ the verified platform for \selfour, in addition to \text{x64}, which at the time
 ongoing. Currently, the only platforms that support more than one core are \textsc{Sabre},
 and \textsc{x64}.
 
-Two of our platforms, \textsc{x64} and \textsc{Hikey} support both 32- and 64-bit execution modes.
-We use both, referring to them as \textsc{ia32} and \textsc{Hikey32} when in 32-bit mode and
-\textsc{x64} and \textsc{Hikey64} otherwise. All platforms have out-of-order execution, except
-\textsc{Hikey}, which is in-order, and \textsc{KZM}, which has in order execution and out-of-order
-from some operations (\eg stores).
+Our ARM development boards for each \gls{SoC} are as follows:
+\begin{itemize}
+    \item \textsc{KZM}: NXP i.MX31 Lite development kit.
+    \item \textsc{Sabre}: NXP Sabre Lite development board.
+    \item \textsc{HiKey}: LeMaker HiKey. 
+    \item \textsc{TX1}: NVIDIA Jetson TX1 development kit.
+\end{itemize}
+
+Two of our platforms, \textsc{x64} and \textsc{HiKey} support both 32- and 64-bit execution modes.
+We use both, referring to them as \textsc{ia32} and \textsc{HiKey32} when in 32-bit mode and
+\textsc{x64} and \textsc{HiKey64} otherwise. All platforms have out-of-order execution, except
+\textsc{HiKey}, which is in-order, and \textsc{KZM}, which has in order execution and out-of-order
+from some operations (\eg stores). \textsc{TX1} currently only has 64-bit support on \selfour.
 
 Additionally, we use several load generators running Linux on an isolated network for 
 benchmarks that require a network.
 
 \begin{table}[t]
 \begin{tabularx}{\textwidth}{Xlrrrrr}\toprule
-    \emph{Platform}       & \emph{Microarch.} & \emph{Clock } & L1 & L2 & L3  & TLB  \\
-    \emph{Arch}           & \emph{CPU}        & GHz           & (KiB) & (KiB) & (MiB) & (entries) \\\midrule
-    \textsc{KZM} (32-bit) & ARM1136JF-S       & 1.0           & 16+16       & 128      & \no      & 32\\
-    \small{ARMv6}                 & i.MX31            &               & 4$\times$        & 8$\times$         & \no      & 2$\times$  \\
+    \emph{Platform}       & \emph{CPU} & \emph{Clock } & L1 & L2 & L3  & TLB  \\
+    \emph{Arch}           & \emph{SoC/Family}        & GHz           & (KiB) & (KiB) & (MiB) & (entries) \\\midrule
+    \textbf{\textsc{KZM}} (32-bit) & ARM1136JF-S       & 1.0           & 16+16       & 128      & \no      & 32\\
+    \small{ARMv6}                 & NXP i.MX31            &               & 4$\times$        & 8$\times$         & \no      & 2$\times$  \\
     \rowcolor{gray!25}
-    \textsc{Sabre} (32-bit) & Cortex-A9       & 1.0           & 32+32    & 1024     & \no      & 64\\
+    \textbf{\textsc{Sabre}} (32-bit) & Cortex-A9       & 1.0           & 32+32    & 1024     & \no      & 64\\
     \rowcolor{gray!25}
-    \small{ARMv7}                    & i.MX6             &               & 4$\times$  & 16 $\times$  & \no & 2$\times$  \\
-    \textsc{Hikey} (64-bit)  & Cortex-A53        & 1.2           & 32+32     & 512 & \no & 128         \\
+    \small{ARMv7}                    & NXP i.MX6             &               & 4$\times$  & 16 $\times$  & \no & 2$\times$  \\
+    \textbf{\textsc{HiKey}} (64-bit)  & Cortex-A53        & 1.2           & 32+32     & 512 & \no & 128         \\
     \small{ARMv8}                    & Kirin 620         &               & 4$\times$+2$\times$       & 16$\times$    & \no   & 4$\times$  \\
     \rowcolor{gray!25}
-    \textsc{TX1}   (64-bit)  & Cortex-A57        & 1.9           &  32+48 & 2,048 & \no & 256          \\
+    \textbf{\textsc{TX1}}   (64-bit)  & Cortex-A57        & 1.9           &  32+48 & 2,048 & \no & 256          \\
     \rowcolor{gray!25}
     \small{ARMv8}                   & Jetson TX1  &                   & 2$\times$+3$\times$       & 16$\times$ & \no & 4$\times$ \\
-    \textsc{x64}    (64-bit) & i7-4770           & 3.1           & 32+32 & 256 & 8 & 128,8 \\          
+    \textbf{\textsc{x64}}    (64-bit) & i7-4770           & 3.1           & 32+32 & 256 & 8 & 128,8 \\          
     \small{x86}                     & Haswell            &                 & 8$\times$ & 8$\times$ & 16$\times$ & 8$\times$ \\
     \bottomrule
 \end{tabularx}
@@ -97,7 +105,7 @@ note the timer hardware used on the specific platform.
     \\\midrule
     \textsc{KZM}               & General purpose timer    & 83 (0)   & 203(0)  & 286   \\
     \textsc{Sabre}             & ARM MPCore global timer  & 23 (0)   & 36 (0)  & 59    \\
-    \textsc{Hikey32/64}        & ARM generic timers       &  6 (0)   &  6 (0)  & 12    \\
+    \textsc{HiKey32/64}        & ARM generic timers       &  6 (0)   &  6 (0)  & 12    \\
     \textsc{TX1}               & ARM generic timers       &  8 (0)   &  1 (0)  & 9     \\
     \textsc{ia32}              & TSC deadline mode        & 12 (2.2) & 220 (1.0) & 232 \\
     \textsc{x64}               & TSC deadline mode        & 11 (2.3) & 217 (2.0) & 228 \\
@@ -169,8 +177,8 @@ and resume object) and two validation checks. In detail, the \call fastpath is a
                                 & \multicolumn{2}{c}{\emph{Overhead}} \\\midrule
     \ipcmicro{KZM}{kzm}{call-fastpath}
     \ipcmicro{Sabre}{sabre}{call-fastpath}
-    \ipcmicro{Hikey32}{hikey32}{call-fastpath}
-    \ipcmicro{Hikey64}{hikey64}{call-fastpath}
+    \ipcmicro{HiKey32}{hikey32}{call-fastpath}
+    \ipcmicro{HiKey64}{hikey64}{call-fastpath}
     \ipcmicro{TX1}{tx1}{call-fastpath}
     \ipcmicro{ia32}{ia32}{call-fastpath}
     \ipcmicro{x64}{haswell}{call-fastpath}
@@ -189,8 +197,8 @@ and resume object) and two validation checks. In detail, the \call fastpath is a
  
     \ipcmicro{KZM}{kzm}{reply-fastpath}
     \ipcmicro{Sabre}{sabre}{reply-fastpath}
-    \ipcmicro{Hikey32}{hikey32}{reply-fastpath}
-    \ipcmicro{Hikey64}{hikey64}{reply-fastpath}
+    \ipcmicro{HiKey32}{hikey32}{reply-fastpath}
+    \ipcmicro{HiKey64}{hikey64}{reply-fastpath}
     \ipcmicro{TX1}{tx1}{reply-fastpath}
     \ipcmicro{ia32}{ia32}{reply-fastpath}
     \ipcmicro{x64}{haswell}{reply-fastpath}
@@ -218,10 +226,10 @@ Overheads on the \call fastpath are low, with the worst effected platform being
 \textsc{KZM} with a 10\% overhead, which is the oldest platform with the smallest caches. On call,
 \textsc{KZM} shows L1 data cache miss and 1 memory access, which is likely an unlucky cache-conflict. \textsc{Sabre} suffers a 7\% overhead, due to a \gls{TLB} miss likely
 due to the relatively low associativity on Cortex-A9 \glspl{TLB}.  In general, as hardware becomes newer the
-overhead is lower, with the exception of the \textsc{Hikey}, which is the only platform we use that has 
-in-order execution. Additionally \textsc{Hikey} has a smaller L2 cache than the older \textsc{Sabre},
+overhead is lower, with the exception of the \textsc{HiKey}, which is the only platform we use that has 
+in-order execution. Additionally \textsc{HiKey} has a smaller L2 cache than the older \textsc{Sabre},
 but a larger \gls{TLB} wit higher associativity.
-We posit that for the Hikey, further hand optimisation of the fastpath would result in better
+We posit that for the HiKey, further hand optimisation of the fastpath would result in better
 performance. The newest ARM hardware is the TX1, which only shows a 5\% overhead. x86 with its large
 caches and highly optimised pipeline only incurs a 1\% overhead. For further detail on the
 numbers read from the performance counters cited here, please see
@@ -276,10 +284,10 @@ functionality than previously, increasing the code size, and the cache foot prin
 that the resume object and scheduling context must be accessed in addition to the \glspl{TCB} of the
 caller and callee. Looking at ARM platforms, the overhead reduces drastically as hardware becomes
 more modern: for the most part, this means that the caches are bigger, and timer access costs are
-smaller. Except for the \textsc{Hikey} platform, with has an in-order
-execution pipeline and a smaller L2 cache than the \textsc{Sabre}. We suspect that the overheads could be reduced on Hikey with more careful hand
-optimisation. 64-bit Hikey has nearly half the excess instructions when compared to 32-bit, and far
-50\% less memory accesses, resulting in far less overhead on \textsc{Hikey64} than \textsc{Hikey32}.
+smaller. Except for the \textsc{HiKey} platform, with has an in-order
+execution pipeline and a smaller L2 cache than the \textsc{Sabre}. We suspect that the overheads could be reduced on HiKey with more careful hand
+optimisation. 64-bit HiKey has nearly half the excess instructions when compared to 32-bit, and far
+50\% less memory accesses, resulting in far less overhead on \textsc{HiKey64} than \textsc{HiKey32}.
 \textsc{Sabre} suffers from the low-associativity of its \gls{TLB} with misses in both the instruction and
 data TLBs. On the x86 platform, both \textsc{ia32} and \textsc{x64} show the same overhead in terms
 of ratio, both due to the increase in instructions.
@@ -314,7 +322,7 @@ performance, but it has not been examined extensively.
 again. In this case, we change scheduling
 contexts, so not only does another object (the second \gls{SCO}) need to be accessed, but the timer
 needs to be reprogrammed, and sporadic replenishment logic applied. \textsc{TX1} and
-\textsc{Hikey64} have the lowest overhead, although the overhead looks to be ameliorated by lucky
+\textsc{HiKey64} have the lowest overhead, although the overhead looks to be ameliorated by lucky
 data placement with a reduction in L1 D-cache misses on both platforms. The vast majority of
 overhead comes from far more instructions executed, and on platforms with small caches or
 low-associativity, the increase in cache footprint.  
@@ -398,10 +406,10 @@ the scheduler itself is avoided.
         \irqmicro{KZM \no}{kzm-nfp}
     \irqmicro{Sabre \yes}{sabre}
     \irqmicro{Sabre \no}{sabre-nfp}
-    \irqmicro{Hikey32 \yes}{hikey32}
-    \irqmicro{Hikey32 \no}{hikey32-nfp}
-    \irqmicro{Hikey64 \yes}{hikey64}
-    \irqmicro{Hikey64 \no}{hikey64-nfp}
+    \irqmicro{HiKey32 \yes}{hikey32}
+    \irqmicro{HiKey32 \no}{hikey32-nfp}
+    \irqmicro{HiKey64 \yes}{hikey64}
+    \irqmicro{HiKey64 \no}{hikey64-nfp}
     \irqmicro{TX1 \yes}{tx1}
     \irqmicro{TX1 \no}{tx1-nfp}
     \irqmicro{ia32 \yes}{ia32}
@@ -420,7 +428,7 @@ the fastpath or not, except on x86 platforms. In the case of the ARM platforms, 
 yields a performance improvement of a few hundred cycles, which can ameliorate somewhat the
 overheads of the MCS model, but not completely. In this case we see the majority of the MCS overhead
 is due to the operations required to switch scheduling contexts. \textsc{KZM} shows the  highest overhead, where once again we
-exceed the small cache. The \textsc{Hikey} pays for its in-order execution pipeline, which could be
+exceed the small cache. The \textsc{HiKey} pays for its in-order execution pipeline, which could be
 improved with further profiling of the fastpath. The \textsc{TX1} shows the least impact, with only
 a 6\% increase on the interrupt fastpath. 
 %\clearpage
@@ -438,10 +446,10 @@ a 6\% increase on the interrupt fastpath.
     \sigmicro{KZM \no}{kzm-nfp}
     \sigmicro{Sabre \yes}{sabre}
     \sigmicro{Sabre \no}{sabre-nfp}
-    \sigmicro{Hikey32 \yes}{hikey32}
-    \sigmicro{Hikey32 \no}{hikey32-nfp}
-    \sigmicro{Hikey64 \yes}{hikey64}
-    \sigmicro{Hikey64 \no}{hikey64-nfp}
+    \sigmicro{HiKey32 \yes}{hikey32}
+    \sigmicro{HiKey32 \no}{hikey32-nfp}
+    \sigmicro{HiKey64 \yes}{hikey64}
+    \sigmicro{HiKey64 \no}{hikey64-nfp}
 \sigmicro{TX1 \yes}{tx1}
 \sigmicro{TX1 \no}{tx1-nfp}
     \sigmicro{ia32 \yes}{ia32}
@@ -825,7 +833,7 @@ This could be deployed in \gls{SRT} systems or for specific threads with unknown
                           \multirow{8}{*}{\textsc{Sabre}} 
                           \input{data/generated/sabre-aes.inc} 
                           \midrule
-                          \multirow{8}{*}{\textsc{Hikey64}} 
+                          \multirow{8}{*}{\textsc{HiKey64}} 
                           \input{data/generated/hikey64-aes.inc} 
                           \midrule
                           \multirow{8}{*}{\textsc{TX1}} 
@@ -904,7 +912,7 @@ implementation, and an \gls{EDF} scheduler, which we compare to \litmus.
   \centering
   \includegraphics[width=\textwidth]{mode-switch-all}
   \caption[Kernel vs. user-level criticality switch.]{Cost of switching the priority of $n$ threads in kernel and user level, with hot
-      and cold caches, on \textsc{x64} (top-left), \textsc{TX1} (top-right), \textsc{Hikey64}
+      and cold caches, on \textsc{x64} (top-left), \textsc{TX1} (top-right), \textsc{HiKey64}
       (bottom-left) and \textsc{Sabre} (bottom-right). All data points are the average of 100 runs,
                   with very small standard deviations.}
   \label{f:mode-switch}
@@ -928,7 +936,7 @@ criticalities and boosts their priority on a criticality switch. However, given 
         \emph{Platform}     & \emph{Kernel cold ($\mu$s)} & \emph{User-level cold ($\mu$s)} & \emph{Diff $\mu$s} \\\midrule
         \textsc{x64}    & $\leq2$ & $\leq4$ & \textasciitilde2 \\
         \textsc{TX1}    & $\leq4$ & $\leq8$ & \textasciitilde4 \\
-        \textsc{Hikey64}    & $\leq18$ & $\leq30$ & \textasciitilde12 \\
+        \textsc{HiKey64}    & $\leq18$ & $\leq30$ & \textasciitilde12 \\
         \textsc{Sabre}    & $\leq12$ & $\leq22$ & \textasciitilde10 \\
         \bottomrule
 \end{tabular}
@@ -942,7 +950,7 @@ priority switch to cold, user-level priority switch.}
 As the graph shows, switching is linear in the number of threads being boosted, in both kernel and
 user-level implementations.
 \Cref{t:cold-prio-switch} compares the results of cold, in-kernel switching to user-level in roughly
-absolute terms. \textsc{Hikey64} is the slowest at 30\,\(\mu\)s with eight threads to switch,
+absolute terms. \textsc{HiKey64} is the slowest at 30\,\(\mu\)s with eight threads to switch,
 due to the smaller L2 cache and
 in-order execution, however all platforms show roughly the same factor of two increase when
 comparing kernel and user-level cold-cache results.
