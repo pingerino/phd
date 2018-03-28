@@ -4,9 +4,9 @@
 We now evaluate our model through a series of microbenchmarks, system benchmarks and case studies.
 First, we present the ARM and x86 hardware platforms used in addition to the cost of timer operations on those
 platforms. Then we demonstrate the low performance overhead of our mechanisms using a set of 
-microbenchmarks which measure the overheads of the MCS kernel versus a baseline, which is the \selfour
-kernel, at development version 7.0.0 with some added experimental fastpaths for interrupt and signal
-handling. Both branches have the same merge-base, \ie both branches divert from the master branch at
+microbenchmarks that measure the overheads of the MCS kernel versus a baseline. The baseline kernel
+is \selfour, at development version 7.0.0 with some added experimental fastpaths for interrupt and signal
+handling. Both kernels are branches of \selfour with the same merge-base, \ie both branches divert from the master branch at
 the same point. The exact revisions used are available online at:
 \begin{description}
     \item[Baseline:] \url{https://github.com/pingerino/seL4/releases/tag/phd-baseline},
@@ -17,13 +17,13 @@ We then run several system benchmarks, first comparing a Redis~\citep{redis:url}
 implementation to baseline \selfour, Linux and NetBSD to show that our kernel is competitive.
 We then demonstrate temporal
 isolation between threads sharing the same CPU in two scenarios,
-using Redis again, followed by ipbench~\citep{Wienand_Macpherson_04}. Finally, we show isolation in a
+using Redis again, followed by \code{ipbench}~\citep{Wienand_Macpherson_04}. We then show isolation in a
 shared encryption server, and measure the cost of various timeout fault-handling policies. 
 
 In addition, we evaluate two user-level scheduler implementations: one which implements a static
 criticality switch, and a user-level \gls{EDF} implementation which we show is
 competitive with an in-kernel \gls{EDF} scheduling from \litmus. Lastly, we use an \gls{IPC}
-throughput benchmark to demonstrate low, multicore-scalability overhead, and we show 
+throughput benchmark to demonstrate low multicore-scalability overhead, and we show 
 how resource server threads can migrate between processing cores.
 
 \section{Hardware}
@@ -31,8 +31,9 @@ how resource server threads can migrate between processing cores.
 % describe benchmark setup, details of each hardware platform
 We run microbenchmarks on a variety of hardware to show the overheads of the model compared to
 baseline \selfour. \Cref{t:evaluation-hardware} summarises the hardware platforms. \textsc{Sabre} is
-the verified platform for \selfour, in addition to \text{x64}, which at the time of writing verification is
-ongoing. Currently, the only platforms that support more than one core are \textsc{Sabre},
+the verified platform for \selfour and, at the time of writing, verification of the \text{x64}
+platform is in progress.
+Currently, the only platforms with support for more than one core in \selfour are \textsc{Sabre},
 and \textsc{x64}.
 
 Our ARM development boards for each \gls{SoC} are as follows:
@@ -46,7 +47,7 @@ Our ARM development boards for each \gls{SoC} are as follows:
 Two of our platforms, \textsc{x64} and \textsc{HiKey} support both 32- and 64-bit execution modes.
 We use both, referring to them as \textsc{ia32} and \textsc{HiKey32} when in 32-bit mode and
 \textsc{x64} and \textsc{HiKey64} otherwise. All platforms have out-of-order execution, except
-\textsc{HiKey}, which is in-order, and \textsc{KZM}, which has in order execution and out-of-order
+\textsc{HiKey}, which is in-order, and \textsc{KZM}, which has in-order execution and out-of-order
 from some operations (\eg stores). \textsc{TX1} currently only has 64-bit support on \selfour.
 
 Additionally, we use several load generators running Linux on an isolated network for 
@@ -80,13 +81,13 @@ benchmarks that require a network.
 
 We first present a suite of microbenchmarks to evaluate any performance overheads against baseline
 \selfour.
-Because the kernel uses \emph{lazy switching} for the \gls{FPU}, where the \gls{FPU} context is only
-switched if it is actively being used, we ensure \gls{FPU} context switching
+Because the kernel uses \emph{lazy switching} for the \gls{FPU}, meaning that the \gls{FPU} context is only
+switched if it is actively being used, we ensure that \gls{FPU} context switching
 is off. This is achieved by performing the required number of system calls 
 without activating the \gls{FPU}. We present
 overheads on IPC operations, signalling and interrupts, and finally scheduling. 
 
-For each of the benchmarks in this section, we measure the cost of measurement, which is reading the
+For each of the benchmarks in this section, we measure the cost of measurement, which is the cost of reading the
 cycle counter on ARM platforms, and the \gls{TSC} on x86, and subtract the value obtained
 from the final result.
 
@@ -123,7 +124,7 @@ both operations separately, and then their sum, which is the total measured over
 scheduling context switch.
 
 All platforms excluding \textsc{KZM} have a 64-bit timer available, making \textsc{KZM} the only
-platform requiring timer overflow interrupts, which are not measured as \textsc{KZM} is a deprecated
+platform requiring timer overflow interrupts. These are not measured as \textsc{KZM} is a deprecated
 platform provided for comparison with modern ARM versions.
 
 \textsc{KZM} and \textsc{Sabre} both use memory-mapped timers, the 32-bit general purpose timer for
@@ -136,11 +137,10 @@ coprocessor. The majority of new ARM platforms support the ARM generic timers.
 
 On \textsc{x64} we use the \gls{TSC} with \gls{TSC}-deadline
 mode~\citep{Intel_64_IA-32:asdmspg_325384}, an architectural \gls{MSR} available since
-Intel SandyBridge by which a local-APIC timer interrupt is triggered when the \gls{TSC} matches the
-programmed value. 
-
-\Cref{t:evaluation-timer} shows the instruction latency of each timer operation. In practice, especially
-for \textsc{x64}, these operations are subject to pipeline parallelism and out-of-order execution, which
+Intel SandyBridge. A local-APIC timer interrupt is triggered when the \gls{TSC} matches the
+value written to the \gls{MSR}. 
+In practice, especially
+for \textsc{x64}, timer operations are subject to pipeline parallelism and out-of-order execution, which
 reduces the overhead.
 
 Results on both architectures show that the overhead of a tickless kernel, which requires the timers
@@ -150,7 +150,7 @@ reduced by an order of magnitude from ARMv6 through to ARMv8.
 \subsection{IPC performance}
 
 \Gls{IPC} performance is a critical measure of the practicality and efficiency of a
-microkernel~\citep{Liedtke_95}. We benchmark our \gls{IPC} operations against base system, \selfour,
+microkernel~\citep{Liedtke_95}. We benchmark our \gls{IPC} operations against baseline \selfour,
 which has an established efficient \gls{IPC} fastpath~\citep{Elphinstone_Heiser_13}. 
 
 \subsubsection{Fastpath}
@@ -159,7 +159,7 @@ To evaluate IPC fastpath performance, we set up a client (the caller) and server
 address spaces. We take timestamps on either side of the IPC operation being benchmarked and record
 the difference. This is done 16 times for each result value to prime the cache, then record the next
 value. Results presented are for performing this a total of 16 times. Additionally, we measure the
-overhead of system calls stubs in the same way and subtract this from the measurement, to obtain
+overhead of system call stubs in the same way and subtract this from the measurement, to obtain
 only the kernel cost of the operation\footnote{The \gls{IPC} benchmarks already existed for
  \selfour, but we modify them to support the \gls{MCS} kernel as part of this thesis.}.
    The message sent is zero length, so neither the caller nor callee's \gls{IPC} buffer is accessed.
@@ -222,13 +222,13 @@ and resume object) and two validation checks. In detail, the \call fastpath is a
 
 
 \cref{t:fastpath-ipc-micro-call} shows the results.
-Overheads on the \call fastpath are low, with the worst effected platform being
+Overheads on the \call fastpath are low, with the worst affected platform being
 \textsc{KZM} with a 10\% overhead, which is the oldest platform with the smallest caches. On call,
 \textsc{KZM} shows L1 data cache miss and 1 memory access, which is likely an unlucky cache-conflict. \textsc{Sabre} suffers a 7\% overhead, due to a \gls{TLB} miss likely
 due to the relatively low associativity on Cortex-A9 \glspl{TLB}.  In general, as hardware becomes newer the
 overhead is lower, with the exception of the \textsc{HiKey}, which is the only platform we use that has 
 in-order execution. Additionally \textsc{HiKey} has a smaller L2 cache than the older \textsc{Sabre},
-but a larger \gls{TLB} wit higher associativity.
+but a larger \gls{TLB} with higher associativity.
 We posit that for the HiKey, further hand optimisation of the fastpath would result in better
 performance. The newest ARM hardware is the TX1, which only shows a 5\% overhead. x86 with its large
 caches and highly optimised pipeline only incurs a 1\% overhead. For further detail on the
@@ -237,7 +237,7 @@ numbers read from the performance counters cited here, please see
 
 The fastpath for \replyrecv has a higher impact, for two reasons: first, we add a new capability
 lookup, being the resume object provided to receive, which must be looked up by the \replyrecv
-fastpath. Although we remove of reply capability from the \gls{TCB}
+fastpath. Although we remove the reply capability from the \gls{TCB}
 \cnode, that \cnode is still accessed to validate the caller's root \cnode capability
 and top-level page directory capability, so the cache-foot print is not reduced. Additionally, because
 \gls{IPC} is now priority ordered, the fastpath must check if the callee's \gls{TCB} will be appended to the
@@ -274,7 +274,7 @@ We run the benchmark for both active and passive threads, which shows the overhe
 scheduling context versus not. \cref{t:slowpath-ipc-micro} shows the results for the passive
 slowpath and \cref{t:slowpath-ipc-micro-active} for active, where the top row in the table is 
 the baseline number, the second row is the overhead when
-comparing the number of cycles taken for the benchmark. Every other row shows difference in value of the 
+comparing the number of cycles taken for the benchmark. Every other row shows the difference in value of the 
 listed performance counter between baseline and MCS. We do not show standard deviations, however
 they are measured and are very small (either 0 or a few percent of the mean). 
 
@@ -286,7 +286,7 @@ caller and callee. Looking at ARM platforms, the overhead reduces drastically as
 more modern: for the most part, this means that the caches are bigger, and timer access costs are
 smaller. Except for the \textsc{HiKey} platform, with has an in-order
 execution pipeline and a smaller L2 cache than the \textsc{Sabre}. We suspect that the overheads could be reduced on HiKey with more careful hand
-optimisation. 64-bit HiKey has nearly half the excess instructions when compared to 32-bit, and far
+optimisation. 64-bit HiKey has nearly half the excess instructions when compared to 32-bit, and 
 50\% less memory accesses, resulting in far less overhead on \textsc{HiKey64} than \textsc{HiKey32}.
 \textsc{Sabre} suffers from the low-associativity of its \gls{TLB} with misses in both the instruction and
 data TLBs. On the x86 platform, both \textsc{ia32} and \textsc{x64} show the same overhead in terms
@@ -391,7 +391,7 @@ does not result in a context switch, or the interrupt results in a switch to a h
 runnable thread. Note that this would be faster if we picked one of the cases, however without
 workload specifics, it is not clear whether one of these operations should be prioritised over the
 other. Additionally, as interrupts are by their nature preemptive, we must switch scheduling
-contexts, which incurs the time reprogram the timer and charge the previous thread. In both cases,
+contexts, which incurs the time to reprogram the timer and charge the previous thread. In both cases,
 the scheduler itself is avoided. 
 
 
@@ -506,9 +506,9 @@ The \code{schedule} benchmark measures the cost of two threads in different addr
 to each other in a loop by changing each other's priority. A high-priority thread increases the priority of
 a low-priority thread, subsequently the low-priority thread then sets its own priority back down, 
 resulting in a reschedule to the high-priority thread. Both threads do this 50,000 times,
-and we measure the cost
-for 110 runs, abandoning the first 10, so the caches are primed. This results in 10,000 invocations
-of the scheduler, as both threads do the switching. Of course, setting the priority of
+and we run the benchmark for 110 runs, abandoning the first 10, so the caches are primed.
+This results in 10,000 invocations
+of the scheduler per benchmark run, as both threads do the switching. Of course, setting the priority of
 a thread higher does not need to invoke the scheduler: but this is the current state of the source
 code\footnote{We have a patch to fix this which is waiting in the queue for verification.}, and
 allows us to run this benchmark.
@@ -580,7 +580,7 @@ in the Linux case, where there is a small amount of idle time. The
 cost per operation (utilisation over throughput) is best on Linux, a
 result of its highly optimised drivers and network stack. Our
 bare-metal and \selfour-based setups use Rump's NetBSD drivers, and
-actually performance within a few percent of native NetBSD. This
+ performance is within a few percent of native NetBSD. This
 indicates that the MCS model comes with low overhead.
 
 \begin{table}[t]\centering
@@ -642,12 +642,12 @@ The system consists of a single-core of a Linux \gls{VM} which runs at a high pr
 constrained budget and a \gls{UDP} echo server running at a lower priority,
 representing a lower-rate \textsc{high} thread. We
 measure the average  and maximum UDP latency reported by the
-ipbench~\citep{Wienand_Macpherson_04} latency test.
+\code{ipbench}~\citep{Wienand_Macpherson_04} latency test.
 
 \begin{figure}[h]
     \centering
     \includegraphics{ipbench-arch}
-    \caption{System architecture of ipbench benchmark.}
+    \caption{System architecture of \code{ipbench} benchmark.}
     \label{f:ipbench-arch}
 \end{figure}
 
@@ -660,8 +660,8 @@ benchmark, but sharing the
 serial driver, runs at a low priority with its own HPET timer
 driver.
 
-Two client machines run ipbench daemons to send packets to the UDP-echo server on the target machine
-(\textsc{x64}). The control machine, one of the load generators, runs ipbench with a \gls{UDP} socket at 10\,Mbps over a 1\,Gb/s Ethernet connection with 100-byte packets. The Linux VM has a 10\,ms period and we vary the
+Two client machines run \code{ipbench} daemons to send packets to the UDP-echo server on the target machine
+(\textsc{x64}). The control machine, one of the load generators, runs \code{ipbench} with a \gls{UDP} socket at 10\,Mbps over a 1\,Gb/s Ethernet connection with 100-byte packets. The Linux VM has a 10\,ms period and we vary the
 budget between 1\,ms and 9\,ms.
 We represent the zero-budget case by an unconstrained Linux that is not running any user code.
 Any time not consumed by Linux is available to UDP echo for processing
@@ -679,7 +679,7 @@ interference of a high-priority process.
 \begin{figure}[h]
   \centering
   \includegraphics{ipbench}
-  \caption[Results of ipbench isolation benchmark.]{Average and maximum latency of UDP packets with
+  \caption[Results of \code{ipbench} isolation benchmark.]{Average and maximum latency of UDP packets with
   a CPU-hog VM running a high priority with a 10\,ms budget.}
   \label{f:ipbench}
 \end{figure}
@@ -898,8 +898,8 @@ graphs), both clients achieve their desired throughput.
 Fundamental to the microkernel philosophy is keeping policy out of the
 kernel as much as possible, and instead providing general mechanisms
 that allow the implementation of arbitrary policies
-\citep{Heiser_Elphinstone_16}.  As on the face of it, our
-fixed-priority-based model seems to violate this principle,  we
+\citep{Heiser_Elphinstone_16}.  On the face of it, our
+fixed-priority-based model seems to violate this principle, but we
 demonstrate that the model is general enough to support the efficient
 implementation of alternate policies at user level. Specifically, we
 implement two user-level schedulers: first, a static mixed criticality
