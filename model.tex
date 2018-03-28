@@ -12,7 +12,8 @@ properties through mechanisms provided by the kernel.
 
 To achieve this we require temporal isolation: a feature of resource kernels, the mechanisms of
 which we apply to general-purpose, high-assurance microkernels, and specifically our research platform,
-\selfour.  However, temporal isolation alone is insufficient: mixed-criticality
+\selfour, notable for its strong and provable spatial isolation.
+However, temporal isolation alone is insufficient: mixed-criticality
 systems require asymmetric protection rather than temporal isolation. As a result we leverage
 traditional resource kernel reservations but decouple them from priority, allowing the processor to
 be overcommitted while providing guarantees for the highest priority tasks.
@@ -39,18 +40,18 @@ Our design goals are as follows:
                         with fast \gls{IPC} implementations in high-performance microkernels.
 
     \item[Temporal isolation:] The model must allow system designers to create systems in which a
-        temporal failure in one component cannot cause a temporal failure in another part of the
+        failure in one component cannot cause a temporal failure in another part of the
         system.
 
     \item[Overcommitment:] The model must allow systems to be specified that are not necessarily
-        schedulable: as the degree and nature of overcommitment is a core policy of a particular
+        schedulable, as the degree and nature of overcommitment is a core policy of a particular
         system, as established in \cref{p:overcommit}.
         Overcommitment is also key to providing  asymmetric protection, where high
         criticality tasks can disrupt low criticality tasks, and policy freedom, as schedulability
         is system-specific policy.
 
     \item[Safe resource sharing:] Temporal isolation should persist even in the case of
-        shared-resources, to provide mechanisms for sharing between applications with different
+        shared resources, to provide mechanisms for sharing between applications with different
         levels of time-sensitivity, criticality and trust.
 \end{description}
 
@@ -106,7 +107,7 @@ thread.
 Given a mixed-criticality system requires a trusted scheduler, providing a basic scheduler in the kernel 
 obviates this overhead as a requirement, and forms part of a complete trusted computing base.
 
-Additionally, as the scheduler is a core component of the system it must be
+Additionally, as the scheduler is a core component of the system, it must be
 verified: by keeping the
 scheduler in the kernel we maintain the current verification. Verification of a user-level scheduler
 and its interaction with the kernel is a far more complex task, especially as verification of
@@ -122,7 +123,7 @@ Our model uses \gls{FP} scheduling as a core part of the kernel, with the additi
 that allow for the efficient implementation of user-level schedulers.
 We choose \gls{FP} over \gls{EDF} for three reasons: 
 fixed-priority is dominant in industry
-as shown in \cref{chap:operating-systems} and maps well to \gls{FP} with \gls{RM} priority assignment; and dynamic scheduling policies like
+as shown in \cref{f:fixed-prio-dom}; dynamic scheduling policies such as
 \gls{EDF} can be implemented at user level; and \gls{FP} has defined behaviour on overcommitted
 systems.
 
@@ -135,9 +136,9 @@ support both scheduling algorithms, usually with \gls{EDF} at a specific priorit
 schedulability analysis of \gls{EDF}-within-priorities is well
 understood~\citep{Harbour_Palencia_03}.
 
-We do not consider Pfair scheduling (recall \cref{s:pfair}) an option, as its high interrupt
-overheads and fairness properties are not suitable for hard real-time systems.  Again however, it is
-possible to implement a Pfair scheduler at user level.
+We do not consider Pfair scheduling (recall \cref{s:pfair}) an option within the kernel, as its high interrupt
+overheads and fairness properties are not suitable for hard real-time systems.  Again however, it
+should be possible to implement a Pfair scheduler at user level.
 
 The final reason to base the approach on fixed priorities is the ability
 to reason about the behaviour of an
@@ -169,8 +170,7 @@ the enforcement and accounting mechanisms in our model.
 An \gls{SC} is a representation
 of a reservation in the object-capability system, which means that 
 they are first-class objects, like threads, address spaces, or
-\gls{IPC} endpoints. An SC is represented by a capability to a
-scheduling context object.
+\gls{IPC} endpoints. 
 
 In order to run, a thread needs an \gls{SC}, which represents the
 maximum CPU bandwidth the thread can consume. Threads obtain \glspl{SC} through \emph{binding}, and
@@ -210,10 +210,10 @@ which we expand on in \cref{s:locking}.
 Accounting must be a mechanism implemented by the kernel, as the kernel is the only entity in the system
 that can monitor all threads---regardless of preemption in the system---since the kernel facilitates all
 preemption.
-The accounting mechanism is provided by a new system invariant that the currently running thread 
+The accounting mechanism is provided by a new system invariant, that the currently running thread 
 must have a scheduling context with available budget, as all time consumed is billed to the
 current scheduling context.
-This includes time spent executing in the kernel, including preemptions.
+That includes time spent executing in the kernel, including preemptions.
 The rule for accounting kernel time is that all time, from kernel entry, is billed to the scheduling
 context active on kernel exit. This means that if a thread is preempted and 
 that preemption does not trigger a switch to a 
@@ -236,14 +236,14 @@ choice is that the design naturally supports over-commitment, as this is part of
 The mechanisms for admission control consist of two parts: scheduling contexts are created without
 any budget at all, and a new control capability must be invoked to populate scheduling context
 parameters.
-\schedcontrol is the new control capability, one of which is provided per processing core,
-and grants authority to 100\% of time on that core, thus providing the admission-control privilege.
+\schedcontrol is the new control capability, one of which is provided per processing core.
+It grants authority to 100\% of time on that core, thus providing the admission-control privilege.
 This is analogous to how \selfour controls the right
 to receive interrupts, which is controlled by the IRQ\_control
 capability as introduced in \cref{s:control-capabilities}. Like time, IRQ sources are non-fungible.
 
 Unlike the reservations in resource kernels, the scheduling context does not 
-act as a lower-bound on CPU bandwidth that a thread can consume. This, combined with
+act as a lower bound on CPU bandwidth that a thread can consume. This, combined with
 user-level admission control, is also key to allowing system designers to over-commit the system. 
 
 By designating admission tests as user-level policy, we allow system designers complete freedom
@@ -262,7 +262,7 @@ A consequence of this design is that more reservations can be made than processi
 This is a desirable feature: it allows system designers to overcommit the system, while features of the scheduling mechanisms provided by the kernel guarantee that the most important tasks get their allocations, if the priorities of the system are set correctly.
 
 However, allowing any thread in the system to create reservations could result in overload behaviour and violation of temporal isolation.
-To prevent this, admission control is currently restricted to the task that holds the scheduling
+To prevent this, admission control is restricted to the task that holds the scheduling
 control capability for each processing core.
 
 \subsection{Replenishment}
@@ -279,18 +279,18 @@ Full \glspl{SC} are key to maintaining policy freedom and performance; while sys
 must be able to use our mechanisms to enforce upper bounds on execution, the usage of 
 those mechanisms is policy. If a task is truly trusted, no enforcement is required,
 as in standard \gls{HRT} systems. They can also be used for best-effort threads which run in slack time.
-The \(C\) of a full \gls{SC} represents the timeslice, which once expired results in round robin
+The \(C\) of a full \gls{SC} represents the timeslice, which once expired, results in round-robin
 scheduling at that priority. Additionally, full \glspl{SC} provide legacy compatibility: setting
 \(C\ = T\) to
 the previous timeslice value results in the same behaviour as the master kernel. 
 
-From a performance perspective full \glspl{SC} prevent mandatory preemption overheads 
+From a performance perspective, full \glspl{SC} prevent mandatory preemption overheads 
 that derive from forcing all threads in a system to have a reservation. Threads with a full
 budget incur no inherent overhead other than the preemption rate $1/T$.
 
 Threads with \emph{partial} \glspl{SC} have a limited budget, which forms an upper
 bound on their execution. For replenishment, we
-use the sporadic servers model as described in \cref{p:sporadic} with an
+use the sporadic-servers model, as described in \cref{p:sporadic}, with an
 implementation based on the algorithms presented
 by~\citet{Stanovic_BWH_10}. 
 
@@ -300,12 +300,11 @@ model from that of resource kernels.
 \subsubsection{Sporadic servers}
 \label{sec:model-sporadic}
 
-We use sporadic servers as they provide a mechanism for isolation without requiring the kernel
-to have access to all threads in the system, unlike other approaches discussed in
+We use sporadic servers, as they provide a mechanism for isolation without requiring the kernel
+to have access to all threads in the system. This is unlike other approaches discussed in
 \cref{background:fp-isolation}, such as  priority exchange servers and slack stealing.
 Deferrable servers do not require global state but are ruled out due to the back-to-back
-problem, which violates temporal isolation.
-Avoiding global shared-state is required for confidentiality, because access to shared state
+problem, which violates temporal isolation, as discussed in \cref{p:ds}. Avoiding global shared state is required for confidentiality, because access to shared state
 has cache effects, which leak information via cache-based timing-channels. In order to maintain these properties,
 timing channels must be mitigated through partitions. 
 It must be possible to partition a system completely, such that operations in one partition do not
@@ -334,7 +333,7 @@ implementation details of the system, as well as the characteristics
 of the underlying hardware. We therefore make the threshold an attribute of the SC. \glspl{SC} are variably sized,
 such that system designers can set this bound per SC. This is a generalisation of the approach used
 in Quest-V~\citep{Danish_LW_11}, where \IO reservations are polling servers and other reservations 
-are sporadic servers. This policy can easily be implemented at user-level with variably sized
+are sporadic servers. This policy can easily be implemented at user-level with variably-sized
 \glspl{SC}.
 
 \subsection{Enforcement}
@@ -356,23 +355,23 @@ kernel should only provide appropriate
 mechanisms for implementing the desired policy. Our core mechanism is
 the \emph{timeout exception}, which is raised when a thread is
 preempted due to budget expiry. To allow the system to handle the exceptions, each thread
-is optionally associated with a timeout exception handler, which is
-the temporal equivalent to a (spatial) protection exception. When a
+is optionally associated with a timeout-exception handler, which is
+the temporal equivalent to a handler for a (spatial) protection exception. When a
 thread is preempted, the kernel notifies its handler via an \gls{IPC} message. The
 exception is ignored when the thread has no timeout exception handler, and the thread
 can continue to run once its budget is replenished.
 
-The timeout fault
+The timeout-fault
 endpoint is separate from the existing thread fault endpoint, as the semantics are different:
 non-timeout faults are not recoverable without the action of another thread. 
 While threads are not required to have a fault endpoint, when a fault occurs a thread is always
 blocked, as it is no longer in a runnable state. Timeout faults on the other hand are recoverable:
 the thread must simply wait until budget replenishment. 
 
-Timeout fault handling threads should have their own \gls{SC} to run on, with enough budget to handle
+Timeout-fault handling threads should have their own \gls{SC} to run on, with enough budget to handle
 the fault, otherwise they will not be eligible for selection by the kernel scheduler.
 
-Similar to a page fault handler, timeout fault handlers can be used to adjust thread parameters
+Similar to a page-fault handler, timeout-fault handlers can be used to adjust thread parameters
 dynamically as may be required for an \gls{SRT} system, or raise an error.
 The handler has a choice of a range of overrun policies, including:
 \begin{itemize}
@@ -388,20 +387,21 @@ is immediately runnable. It is inserted at the end of the ready queue
 for its priority, meaning that within a priority, scheduling of
 runnable threads is round-robin.
 
-The timeout fault handler is similar to the original KeyKOS~\citep{Bomberger_FFHLS_92} concept of
-meters, which was carried through to earlier L4 microkernels as a \emph{preempter}. The preempter was
+The timeout-fault handler is similar to the original KeyKOS concept of
+meters~\citep{Bomberger_FFHLS_92},
+which was carried through to earlier L4 microkernels as a \emph{preempter}. The preempter was
 invoked every time the timeslice/meter expired to make a scheduling decision. This was abandoned due
 to performance reasons. Our approach differs in that timeout fault handlers are optional, so that
-they can be used in exceptional scenarios only. However, timeout fault handlers can also be used to
+their use can be restricted to exceptional scenarios. However, timeout fault handlers can also be used to
 facilitate user-level scheduling, which is feasible now that modern hardware has much faster context
 switch times. 
 
 \subsection{Priority assignment}
 
 Assignment of priorities to threads is user-level policy. One approach is to simply use
-rate-monotonic scheduling: where priorities are assigned to threads based on their period, and
+rate-monotonic scheduling, where priorities are assigned to threads based on their period, and
 threads use scheduling contexts that match their sporadic task parameters.  Each thread in the
-system will be temporally isolated as the kernel will not permit it to exceed the processing time
+system will be temporally isolated, as the kernel will not permit it to exceed the processing time
 reservation that the scheduling context represents.
 
 However, the system we have designed offers far more options than simple rate-monotonic fixed-priority
@@ -433,7 +433,7 @@ a \crit{HI} mode and a \crit{LO} mode, although they have been generalised to
 more~\citep{Fleming_Burns_13}.  In \crit{LO} mode, high-criticality tasks run with smaller 
 reservations, and the remaining
 CPU time is used for low-criticality tasks.  If a high-criticality task does not complete before its
-\crit{LO}-mode reservation is exhausted, the system switches to \crit{HI} mode: all low criticality
+\crit{LO}-mode reservation is exhausted, the system switches to \crit{HI} mode: all low-criticality
 tasks are suspended.  Such a criticality switch is also supported by our model, at user-level: a high-priority scheduling thread can be
 set up to receive temporal faults when a task does not complete before its budget expires.  On a
 temporal fault, the scheduling thread can modify the scheduling parameters of tasks appropriately,
@@ -454,26 +454,26 @@ In the next section, we show how our model provides mechanisms for resource shar
 
 Reservations through the mechanism of scheduling contexts are not sufficient alone to provide
 resource sharing between tasks of different time-sensitivity, criticality, and trust. We now
-present how the scheduling context mechanism facilitates resource sharing policies 
-in terms of the three core mechanisms ---prioritisation, charging and enforcement---presented 
+present how the scheduling-context mechanism facilitates resource sharing policies 
+in terms of the three core mechanisms---prioritisation, charging and enforcement---presented 
 in \cref{sec:resource-kernels}.
 
 In this section we consider only resources shared by resource servers in an \gls{RPC} style, in
 which servers are scheduled directly as a result of the \gls{RPC}. Other forms of resource sharing, such
 as the asynchronous multicast provided by ARINC 653 (\cref{s:arinc}), are possible but not
-relevant, as time is not directly exchanged, and we have already shown how temporal partitioning is possible with
+relevant, as these exist within partitions without altering timing behaviour, and we have already shown how temporal partitioning is possible with
 reservations. 
 
 \gls{RPC}-style shared servers are fundamentally a trusted entity: the client does not resume until the
-server replies to a request, and the server may not ever reply. Additionally, the client requires the
+server replies to a request, and the server may not reply. Additionally, the client requires the
 server to carry out the operation requested. Consequently, the server takes on the ceiling of the
-requirements of all the clients. If a server is shared between trusted and untrusted clients, the
+requirements of the clients. If a server is shared between trusted and untrusted clients, the
 server must be trusted as much as the most trusted client. If a server is shared between \gls{HRT}
 and best-effort clients, the server must have the same time sensitivity as the HRT clients: a defined 
 \gls{WCET} and bounded blocking behaviour. Finally, the server must be at the highest criticality
 level of all clients, however the opposite is not true. If a server has sufficient isolation
 properties, then all the clients of that server are not also promoted to the
-highest criticality level, which as we know greatly increases the certification burden. 
+highest criticality level, which as we know would greatly increases the certification burden. 
 
 This asymmetry also holds for trust: a trusted server need not trust its clients,
 and the clients need not trust each other. 
@@ -498,11 +498,11 @@ order to support resource sharing. Additionally, unlike previous microkernel des
 remains an attribute of the execution context. Decoupling priority and scheduling context avoids
 prior patterns where priority-inheritance is enforced by the kernel. 
 
-The \Gls{IPCP} maps neatly to this model: if server threads are assigned the ceiling protocol of all of
+The \Gls{IPCP} (introduced in \cref{sec:ipcp}) maps neatly to this model: if server threads are assigned the ceiling protocol of all of
 their clients, then when the \gls{IPC} rendezvous occurs and we switch from client to server, the
 server's priority is used, a consequence of decoupling priority from the scheduling context.
 \gls{IPCP} is also practical: it is mandated by the AUTOSAR standard
-(recall \cref{sec:os-autosar}) and is therefore understood well by parts of the industry.
+(recall \cref{sec:os-autosar}) and is therefore well understood by parts of the industry.
 
 The main drawback of the \gls{IPCP}, namely the requirement that all
 lockers' priorities are known \emph{a priori}, is easy to enforce in a
@@ -519,40 +519,43 @@ than the traditional \gls{FIFO} of L4 kernels. Threads of the same priority rema
 
 \subsubsection{\gls{PIP}}
 
-The major factor in ruling the \gls{PIP} out as a mechanism provided by the microkernel is
-performance. Introducing \gls{PIP} would drastically increase scheduler operations on the critical
+The major factor in ruling the \gls{PIP} (recall \cref{sec:pip}) out as a mechanism provided by the microkernel is
+performance. Introducing \gls{PIP} would complicate scheduler operations on the critical
 \gls{IPC} fastpath, as priorities would need to be returned on the reply path. One could take after
 Real-time Mach, and provide \gls{PIP} as an optional flag on a message port, thereby retaining
-policy freedom, but at a performance cost. Mandating the \gls{PIP}, which incurs a high-preemption
+policy freedom, but at a performance cost due to the increased branching required on \gls{IPC}, and
+tracking required to restore inherited priorities. Mandating the \gls{PIP}, which incurs a high-preemption
 overhead compared to other protocols, would violate both our performance and policy freedom
 requirements. 
 
 There is an additional, practical concern, in that the \gls{PIP} does not map well to the existing
-capability system. Recall from \cref{p:sel4_ipc} that endpoints have very minimal state\footnote{Which
-again contributes to high performance.}, and once an \gls{IPC} rendezvous has occurred, the caller is
+capability system. Recall from \cref{p:sel4_ipc} that endpoints have minimal state,\footnote{Which
+again contributes to high performance.} and once an \gls{IPC} rendezvous has occurred, the caller is
 blocked on the resume capability. Consequently, there is \emph{no way to reach the caller} after an 
 \gls{IPC} message has been sent. 
 Significant changes would be required to the \gls{IPC} model to ensure threads
-blocked on resume capabilities could be tracked from the endpoint that the message was sent over.
-
+blocked on resume capabilities could be tracked from the endpoint that facilitated the IPC rendezvous.
 
 
 \subsection{\gls{OPCP}}
 
-Although the \gls{OPCP} offers greater processor utilisation than the \gls{IPCP}, it would require the
-kernel to track a system ceiling and also implement priority inheritance, in a form where unrelated
-threads may inherit priorities due to a resource access pattern. Both of these mechanisms are
+Although the \gls{OPCP} (\cref{sec:opcp}) offers greater processor utilisation than the \gls{IPCP}, it would require the
+kernel to track a system ceiling and also boost priorities when threads access resources. This is
+because in the \gls{OPCP} a tasks priority is only raised when another task attempts to lock the
+same resource. Additionally, tasks can only lock resources if their dynamic priority is higher than
+the ceilings of all other resources, requiring the kernel to identify and track resources and their
+states. Both of these mechanisms are
 required to implement the \gls{OPCP}, and both would violate confidentiality by altering state 
 across partitioned resources.  This is the same reason we exclude
 priority-exchange and slack-stealing servers, as discussed in \cref{sec:model-sporadic}.
 
 Although not provided by the kernel, \gls{PIP} and \gls{OPCP} can be implemented at user-level if
-required, by proxying requests to shared resources via an endpoint and thread which manipulates the priorities
+required, by proxying requests to shared resources via an endpoint and thread. The proxy then which manipulates the priorities
 appropriately, before forwarding on the request. For \gls{PIP}, only one extra thread per resource would 
 be required and could exist in the same address space as the resource.
 Since \gls{OPCP} requires global state, an implementation would require a shared service for all threads 
-sharing a set of resources. We describe such an implementation in \cref{sec:model-mechanisms} after introducing further mechanisms
-in \cref{sec:model-policies}.
+sharing a set of resources. We describe such an implementation in \cref{sec:model-policies} after introducing further mechanisms
+in \cref{sec:model-mechanisms}.
 
 \subsection{Charging}
 
@@ -601,9 +604,9 @@ reply phase. Both client and server have their own SC. See \Cref{f:legend-2} for
 \label{f:active}
 \end{figure}
 
-Charging for time executed in a server is simple in our model: charge the scheduling
-context that the resource server is running on.
-The question is, \emph{which} scheduling context is the server running on? Unlike
+Charging for time executed in a server is simple in our model: the scheduling context that
+the resource server is running on is charged.
+The question is, \emph{which} scheduling context should be used by the resource server? Unlike
 previous implementations of donation-like semantics, our model does not mandate
 scheduling context donation. Resource servers are free to run on their own scheduling context, 
 according to the policy of the system.
@@ -615,12 +618,12 @@ and receive them over \gls{IPC} whereas \emph{active} servers have their own sch
 Passive servers, as illustrated in \cref{f:passive}, effectively provide a migrating-thread
 model~\citep{Ford_Lepreau_94, Gabber_SBBS_99}, but without requiring
 the kernel to manage stacks. \Cref{f:active} shows active servers, which allow system designers to
-build systems without temporal isolation, as it is not suitable
-for all systems.
+build systems without temporal isolation, which is not suitable
+for all servers.
 
 \subsection{Enforcement}
 
-If a passive resource server exhausts the scheduling context it is running on, it and any waiting clients
+If scheduling context is exhausted while in use by a passive server, the server and any waiting clients
 are blocked until replenishment. On its own, this means that a client
 not only has to trust its server, but all the server's other
 clients. This would rule out sharing a server between clients of
@@ -636,7 +639,7 @@ potential clients, would be blocked until the client's budget is replenished.
 Timeout exceptions can be used to remove this need for trust, and
 allow a server to be shared across criticalities, as depicted in \cref{f:timeout}. Timeout fault endpoints are specific to the
 execution context of a thread, not the scheduling context. Consequently, servers may have timeout
-fault handlers while clients do not. The 
+fault handlers while clients may not. The 
 server's timeout handler can, for example, provide an emergency budget
 to continue the operation (useful for \crit{HI} clients) or abort
 the operation and reset or roll back the server. The latter option is
@@ -674,10 +677,10 @@ clean up time).
 
 The mechanism of scheduling-context donation can also be used across processing cores, and 
 allows users to easily specify if servers should migrate to the core of the client, or 
-process the request on a remote core. Specifically, active servers process requests on the core of
-their own scheduling context, and passive servers migrate to the scheduling context of the client. 
+process the request on a remote core. 
 The mechanism is simple: if a
-server is passive, it migrates to the core that the donated scheduling context provides time for. 
+server is passive, it migrates to the core for which the donated scheduling context provides
+time. 
 
 \section{Mechanisms}
 \label{sec:model-mechanisms}
@@ -689,13 +692,14 @@ four new mechanisms introduced for high-performance implementation of those poli
 
 The first is simple: in order to implement user-level schedulers, the kernel's scheduling queues
 must be able to be manipulated. For this, we add an operation on scheduling contexts: a
-directed yield to a specified scheduling context. By invoking the \scyieldto invocation on 
+directed yield to a specified scheduling context. By using the \scyieldto invocation on 
 a specific scheduling context, the thread running on that scheduling context is placed at the head
 of the scheduler queue for its priority. 
 This may change the currently running thread if it is at the same priority, and only effects the
-scheduler if there is a runnable thread bound to the invoked scheduling context. Threads cannot
-yield to threads of higher priorities than their own, as they are by definition not currently
-running.
+scheduler if there is a runnable thread bound to the invoked scheduling context. The invocation does
+not have any effect if the thread bound to the scheduling context is blocked, either due to budget
+expiry or blocked waiting for an event. Thus threads cannot
+yield to threads of higher priorities than their own maximum control priority.
 
 \subsection{IPC Forwarding}
 \label{sec:ipc-forwarding}
@@ -703,8 +707,10 @@ running.
 We introduce another concept called \emph{forwarding}, which allows callers to
 invoke one capability and block on another capability in the same system call, via
 a new system call \nbsendrecv. This is required to
-facilitate a forwarding \gls{IPC}, and allows passive proxies to seamlessly forward messages,
-capabilities and scheduling contexts, as shown in \cref{f:model-forward}. 
+facilitate a forwarding \gls{IPC}, which allows a message, capability and scheduling context to be
+sent to another thread without requiring it be returned via the same pathway (similar to a forwarded
+email, where the receiver of the forwarded email can reply directly to the original sender).
+IPC forwarding is illustrated in \cref{f:model-forward}. 
 
 \begin{figure}
     \centering
@@ -750,8 +756,8 @@ copied.
 \subsection{Notification Binding}
 
 Recall from \cref{s:notification-binding} that notification objects can be bound to threads such that single-threaded servers can be 
-constructed which receive \gls{IPC} messages and signals. We extend this mechanism with passive server
-support by allowing scheduling contexts to be bound to notifications, such that the passive server
+constructed which receive \gls{IPC} messages and signals. We extend this mechanism with passive-server
+support, by allowing scheduling contexts to be bound to notifications, such that the passive server
 executes using the notification's scheduling context when processing interrupts or signals from other
 threads. 
 
@@ -783,11 +789,11 @@ request the amount of time consumed by a specific scheduling context.
 
 Rate-limited threads simply have their scheduling contexts configured with
 parameters that express the desired upper-bound on rate.  No other work is
-required by the user: if there are no higher priority threads and the
+required by the user: if there are no higher-priority threads and the
 rate-limited thread does not block, it will be runnable at the rate expressed
 in the scheduling context.  Otherwise, the thread will be capped at the rate
 specified, but cannot be guaranteed to get the entire rate allocation if there
-are higher priority threads in the system, or if the priority of the
+are higher-priority threads in the system, or if the priority of the
 rate-limited thread is overloaded.
 
 \subsubsection{Periodic, polling threads}
@@ -865,21 +871,24 @@ receive periodic notifications from a timer service.
 another server ($S_{1}$) to manipulate priorities according to some protocol before and after
 requests. The policy works as follows: clients are given a badged capability to an endpoint,
 $E_{1}$, on which to make requests on the resource server. $S_{1}$ receives requests, identifies 
-the client via the badge, and manipulates $S_{2}$'s priority before forwarding the request to
-$S_{2}$ over endpoint $E_{2}$. $S_{1}$ returns to wait on $E_{1}$, while $S_{2}$ processes the
-request. If while $S_{2}$ is processing a request from $A$, and a higher priority thread $B$
-preempts it and sends a request on $E_{1}$, $S_{2}$ can bump $S_{1}$'s priority again, and forward
-$B$'s request to $S_{2}$, once again returning to wait on $E_{1}$ for further messages. When $A$'s
-request is complete, $S_{2}$ enqueues a request on $E_{1}$, such that $S_{1}$ can readjust the
-priority of $S_{2}$ according to the protocol, and reply to the original caller. Note that for this
+the client via the badge, and manipulates $S_{2}$'s priority to match the caller. $S_{1}$ has
+multiple responsibilities: it caches pending messages for $S_{2}$, and manipulates priorities.
+While $S_{2}$ is processing requests, $S_{1}$ continues to receive messages over $E_{1}$, and stores
+them in a buffer, and bumps $S_{2}$'s priority each time a pending request arrives.\footnote{We
+assume a uniprocessor in this example, so pending requests are always the highest priority.}
+Once $S_{2}$ is finished with a request, it uses \gls{IPC} forwarding to send a
+message on $E_{1}$ that it is ready for more work, and returns to wait on $E_{2}$.
+$S_{1}$ then invokes the resume capability, which returns the scheduling context to the client, and
+sends the reply. Finally $S_{1}$ can then forward another pending request to the client, or itself
+wait for further requests on $E_{1}$. Note that for this
 method to work, $S_{1}$ must be the highest priority, and acts as a critical section for
-manipulating priorities in the system.
+manipulating priorities in the system. 
 
 Our description so far can be used to implement the \gls{PIP} or the \gls{OPCP}, depending on 
-the logic used by the proxy-server $S_{1}$. This functions whether $S_{1}$ and $S_{2}$ are active or
-not. In order to extend this protocol to bandwidth inheritance, a timeout fault handler would need
-to be specified for both server threads, which could then bind the pending client's scheduling
-context to the server to finish the request. 
+the logic used by the proxy-server $S_{1}$. This also determines whether $S_{1}$ and $S_{2}$ are active or
+not. In order to extend this protocol to bandwidth inheritance, $S_{1}$ could also act as a timeout-fault
+handler would and could also bind the pending client's scheduling
+context to the server to finish the requests. 
 
 \subsubsection{Best-effort Shared Server}
 \label{sec:best-effort}
@@ -890,7 +899,7 @@ implement such a system with our mechanisms, all server threads would be configu
 set to the ceiling priority of the clients. 
 
 This policy does not provide temporal isolation, as the server executes on its own budget.  If one
-client launches a denial of service attack on the server, depleting the server's budget, then other
+client launches a denial-of-service attack on the server, depleting the server's budget, then other
 clients are starved. 
 
 While our resource sharing mechanisms do not rule out this policy, it is only suitable for
@@ -902,7 +911,7 @@ priori}, or systems that have low temporal sensitivity.
 \composite~\citep{Parmer_10} solves the resource sharing model by using migrating 
 threads (also termed stack-migrating \gls{IPC}).
 On every \gls{IPC}, client execution contexts (and CPU reservation) transfer to a new stack running in the
-server's protection domain, resulting in multi-threaded servers.
+server's protection domain.
 
 To implement migrating threads, \composite requires that every server have a mechanism for
 allocating stacks.  If no memory is available to allocate stacks, then the request is blocked.  This
@@ -914,9 +923,9 @@ A stack-spawning policy can be implemented using the mechanisms we have provided
 the \gls{PIP} implementation described above (\cref{sec:model-pip-bwi}), except the proxy
 server spawns new worker threads instead of manipulating priorities. 
 The stack-spawning proxy would also be at a lower priority than the worker threads, 
-such that it would only be activated when all worker threads are busy.
+such that it would only be activated when all worker threads are blocked.
 
-An alternative policy is to build systems with a fixed number of server threads, all waiting on the
+An alternative policy is to build systems with a fixed-size pool of worker threads, all waiting on the
 same endpoint. 
 Like the best-effort policy, our model supports this approach but it is not required.
 
@@ -924,7 +933,7 @@ Like the best-effort policy, our model supports this approach but it is not requ
 
 Some servers need to block in order to function: for example, servers providing \IO may need to wait
 until an operation completes before replying to the client. Consider a disk server, where
-clients make requests of the server to write data to the disk. The server makes the request to the
+clients make requests to the server to write data to the disk. The server makes the request to the
 disk, but does not reply to the client until the device has signalled that \IO is complete. Rather
 than blocking until the driver responds, preventing the server from taking on further requests, the
 server can block on the endpoint and wait for the interrupt or further \gls{RPC} requests. If an interrupt
@@ -941,17 +950,20 @@ We now describe how timeout handlers can be used to implement server isolation a
 as previously introduced in \cref{sec:model-enforcement}. 
 
 For our example consider a server shared between clients of different criticality, time sensitivity,
-and trust, which provides an encryption service via \gls{AES}. 
+and trust, which provides an encryption service via AES. 
 Such a server processes data in blocks, and the \gls{WCET} of a request is a function of the 
 amount of data to be encrypted. Such a server can be constructed transactionally in order
 to render it preemptable: each block processed is considered a transaction. The server atomically
 switches between two states each time it completes a block, effectively finishing one transaction
-and starting another. The state the server is working on is always dirty, the previous is clean. 
+and starting another. Each block specifies the block in the memory buffer which is being processed by the
+server. The state the server is working on is always dirty, the previous one is clean, where the dirty
+state indicate the incomplete block, and the clean state indicates the last processed block.
 
 By constructing the server in this way, a timeout handler can reset the server to the last clean
 state if the passive server raises a timeout exception due to the client's \gls{SC} expiring. 
-The timeout handler saves the server at a known checkpoint, and flips the server back to 
-the known checkpoint. The handler can then reply to the client on the server's behalf, and return how
+When the server is initialised, the timeout handler saves the server at a known checkpoint, and on
+exception, restores the server back to this checkpoint to receive further requests.
+The handler can then reply to the client on the server's behalf, and return how
 far through the request the server completed by reading it out of the last clean state. Invoking the
 reply returns the scheduling context to the client, and the timeout handler blocks waiting for the
 next request.
