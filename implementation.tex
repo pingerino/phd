@@ -113,7 +113,7 @@ we provide the following deletion semantics for resume objects:
     \begin{tabularx}{\textwidth}{lX}\toprule
         \emph{Field} & \emph{Description} \\\midrule
         \code{tcb}    & The calling or waiting thread that is blocked on this reply object. \\
-        \code{prev} & \code{NULL} if this is the start of the call stack, otherwise points to the previous
+        \code{prev} & 0 if this is the start of the call stack, otherwise points to the previous
         reply object in the call stack. \\
         \code{next} & Either a pointer to the scheduling context that was last donated using this
         reply object, if this reply object is the head of a call stack (the last caller before the
@@ -139,7 +139,7 @@ Scheduling contexts encapsulate processor time reservations,
 derived from sporadic task parameters: minimum inter-arrival time ($T$) and a set of replenishments which is
 populated from an original execution budget ($C$), representing the reserved rate
 ($U$ = $\frac{C}{T}$).
-Fields in an \glspl{SCO} are shown in \cref{t:sc-fields}.
+Fields in an \gls{SCO} are shown in \cref{t:sc-fields}.
 
 \begin{table}[b] 
     \centering
@@ -176,7 +176,7 @@ Sporadic threads are more complex; the replenishments form a circular buffer use
 how much time a thread can execute for (\code{amount}) and when that time can be used (\code{timestamp}).
 The size of the circular buffer is limited by both a variable
 provided on configuration of the \gls{SCO}, and the size of the \gls{SCO} (where the former must be
-$leq$ the latter). This allows system
+$\leq$ the latter). This allows system
 designers to control the preemption and fragmentation of sporadic replenishments as discussed in
 \cref{sec:model-sporadic}. 
 
@@ -262,7 +262,7 @@ set and the thread is migrated to the new core.
 
 Recall that polling servers (\cref{p:polling-servers}) provide a specified bandwidth to a thread,
 but once a thread wakes, if it blocks or is preempted, the budget is abandoned until the next
-period. Sporadic servers(\cref{p:sporadic}) also limit threads to a specified execution bandwidth,
+period. Sporadic servers (\cref{p:sporadic}) also limit threads to a specified execution bandwidth,
 but do so by tracking a buffer of replenishments, which is appended to each time a thread is
 preempted or blocks. Sporadic servers with only one replenishment act like polling servers.
 As a result, configured scheduling contexts with zero extra replenishments behave like polling servers,
@@ -279,7 +279,7 @@ The algorithms for managing replenishments are taken from \citet{Danish_LW_11}, 
 support periods of 0 (for round robin threads) and to implement a minimum budget.  Whenever the
 current scheduling context is changed, \code{check\_budget} (\cref{list:check}) is called to bill the amount of time consumed since the last scheduling
 context change. If the budget is not completely consumed by \code{check\_budget},
-\texttt{split\_budget} (\cref{list:split}) is called to schedule the
+\code{split\_budget} (\cref{list:split}) is called to schedule the
 subsequent refill for the chunk of time just consumed.  If the replenishment buffer is full, or the
 amount consumed is less than the minimum budget, the amount used is merged into the next
 replenishment.  When a new scheduling context is switched to, \code{unblock\_check} 
@@ -309,7 +309,8 @@ fields are shown in \cref{t:tcb-fields}.
     \begin{tabularx}{\textwidth}{lX}\toprule
         \emph{Field}   & \emph{Description}\\\midrule
         \sout{\code{timeslice}} & Used to track the timeslice, replaced by the scheduling context. \\
-        \code{scheduling context} & The scheduling context (if any) this \gls{TCB} consumes time from. \\
+        \code{scheduling context} & The scheduling context this \gls{TCB} consumes time from, 0 if
+        this is a passive \gls{TCB}. \\
         \code{MCP} & The \gls{MCP} of this \gls{TCB}. \\
         \code{reply} & A pointer to the resume object this TCB is blocked on, if the TCB is
         \code{BlockedOnReply} or \code{BlockedOnRecv}. \\
@@ -423,15 +424,16 @@ non-blocking.
     \label{fig:send-wait}
 \end{figure}
 
-To illustrate the problem, we refer to \cref{fig:send-wait}, which shows four threads, $T_{z}$ and
-$T_{1},T_{2},T_{3}$ and four endpoints, $E_{1},\dots,E_{4}$. Black arrows have already
+To illustrate the problem, we refer to \cref{fig:send-wait}, which shows five threads, $T_{z}$ and
+$T_{1},\ldots,T_{4}$ and four endpoints, $E_{1},\dots,E_{4}$. Black arrows have already
 occurred, blocking each thread on an endpoint, and grey are pending once each. $T_{1}$ has used \sendrecv on
 $E_{1}$ and $E_{2}$, $T_{2}$ has used \sendrecv on $E_{2}$ and $E_{3}$,  
-$T_{3}$ has used \sendrecv on $E_{3}$ and $E_{4}$. 
+$T_{3}$ has used \sendrecv on $E_{3}$ and $E_{4}$. $T_{4}$ is blocked sending on $E_{4}$,
+however the chain could continue without bound.
 Because the send-phase is blocking, each thread $T_{n}$ is blocked waiting for the send to proceed 
 on $E_{n}$. $T_{z}$ then uses \recv on $E_{1}$ (the red arrow), which triggers an unbounded chain of message
 sending: $T_{1}$ finishes its send phase and begins the receive phase on $E_{2}$, which allows
-$T_{2}$ to finish its send phase and being the receive phase on $E_{3}$, which allows $T_{3}$ to
+$T_{2}$ to finish its send phase and begin the receive phase on $E_{3}$, which allows $T_{3}$ to
 finish its send phase and start the receive phase on $E_{4}$. This chain reaction is an
 unbounded, long-running operation. By making the send-phase non-blocking such a chain reaction is not
 possible: the send-phase is aborted as the endpoint has no threads waiting for a message on it, and
@@ -468,8 +470,7 @@ Otherwise the \gls{TCB} is moved to the head of the scheduling queue for its pri
         \yield             & scheduling         & \no              & \no         & \cref{api:yield} \\
         \sout{\reply}      & \sout{sending}     & -                & -           & Removed \\
     \end{tabularx}
-    \caption[New seL4 system call summary.]{New \selfour system call summary, indicating which system calls can trigger donation.
-    and/or receiving messages. }
+    \caption[New seL4 system call summary.]{New \selfour system call summary, indicating which system calls can trigger donation and/or receiving messages. }
     \label{t:new-system-calls}
 \end{table}
 
@@ -719,7 +720,7 @@ on every entry, we only charge threads at specific points:
 \begin{itemize}
 \item when the timer interrupt has fired, so clearly the timer needs reprogramming,
 \item when the current scheduling context changes, so a different interrupt is required,
-\item when the kernel timestamp has been acted upon: for instance, the used to schedule a
+\item when the kernel timestamp has been acted upon: for instance, used to schedule a
     replenishment.
 \end{itemize}
 If the recorded timestamp is not acted upon, the time is rolled back to the previously recorded value,
@@ -792,7 +793,8 @@ time consumed by that scheduling context since the last reset.
 In this chapter we have presented the new kernel objects, system call API, invocations and 
 structural changes made to provide mechanisms for temporal isolation. 
 The implementation adds roughly 2,000 lines of code to \selfour (14\% increase), as measured
-by source lines of code (SLOC)~\citep{Wheeler_01} on the pre-processed code for the \textsc{Sabre}, the verified platform.
+by source lines of code (SLOC)~\citep{Wheeler_01} on the pre-processed code for the \textsc{Sabre},
+which is the verified platform for \selfour.
 In the next chapter, we evaluate our implementation with a series of microbenchmarks, 
 system benchmarks and case studies.
 
