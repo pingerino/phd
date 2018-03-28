@@ -44,6 +44,8 @@ from some operations (\eg stores).
 Additionally, we use several load generators running Linux on an isolated network for 
 benchmarks that require a network.
 
+% Should you use the full platform+soc names for all of your hardware variants at least once somewhere? Is it reasonable to expect that the tx1 refers to the tegra x1 soc
+% being running on a jetson dev board?
 \begin{table}[t]
 \begin{tabularx}{\textwidth}{Xlrrrrr}\toprule
     \emph{Platform}       & \emph{Microarch.} & \emph{Clock } & L1 & L2 & L3  & TLB  \\
@@ -131,6 +133,7 @@ mode~\citep{Intel_64_IA-32:asdmspg_325384}, an architectural \gls{MSR} available
 Intel SandyBridge by which a local-APIC timer interrupt is triggered when the \gls{TSC} matches the
 programmed value. 
 
+% Its weird that you reference the table again as you referenced it at the start of this subsection and the subsection has been referring to it the whole time?
 \Cref{t:evaluation-timer} shows the instruction latency of each timer operation. In practice, especially
 for \textsc{x64}, these operations are subject to pipeline parallelism and out-of-order execution, which
 reduces the overhead.
@@ -142,7 +145,7 @@ reduced by an order of magnitude from ARMv6 through to ARMv8.
 \subsection{IPC performance}
 
 \Gls{IPC} performance is a critical measure of the practicality and efficiency of a
-microkernel~\citep{Liedtke_95}. We benchmark our \gls{IPC} operations against base system, \selfour,
+microkernel~\citep{Liedtke_95}. We benchmark our \gls{IPC} operations against the base system, \selfour,
 which has an established efficient \gls{IPC} fastpath~\citep{Elphinstone_Heiser_13}. 
 
 \subsubsection{Fastpath}
@@ -214,13 +217,13 @@ and resume object) and two validation checks. In detail, the \call fastpath is a
 
 
 \cref{t:fastpath-ipc-micro-call} shows the results.
-Overheads on the \call fastpath are low, with the worst effected platform being
+Overheads on the \call fastpath are low, with the worst affected platform being
 \textsc{KZM} with a 10\% overhead, which is the oldest platform with the smallest caches. On call,
 \textsc{KZM} shows L1 data cache miss and 1 memory access, which is likely an unlucky cache-conflict. \textsc{Sabre} suffers a 7\% overhead, due to a \gls{TLB} miss likely
 due to the relatively low associativity on Cortex-A9 \glspl{TLB}.  In general, as hardware becomes newer the
 overhead is lower, with the exception of the \textsc{Hikey}, which is the only platform we use that has 
 in-order execution. Additionally \textsc{Hikey} has a smaller L2 cache than the older \textsc{Sabre},
-but a larger \gls{TLB} wit higher associativity.
+but a larger \gls{TLB} with higher associativity.
 We posit that for the Hikey, further hand optimisation of the fastpath would result in better
 performance. The newest ARM hardware is the TX1, which only shows a 5\% overhead. x86 with its large
 caches and highly optimised pipeline only incurs a 1\% overhead. For further detail on the
@@ -229,7 +232,7 @@ numbers read from the performance counters cited here, please see
 
 The fastpath for \replyrecv has a higher impact, for two reasons: first, we add a new capability
 lookup, being the resume object provided to receive, which must be looked up by the \replyrecv
-fastpath. Although we remove of reply capability from the \gls{TCB}
+fastpath. Although we removed the reply capability from the \gls{TCB}
 \cnode, that \cnode is still accessed to validate the caller's root \cnode capability
 and top-level page directory capability, so the cache-foot print is not reduced. Additionally, because
 \gls{IPC} is now priority ordered, the fastpath must check if the callee's \gls{TCB} will be appended to the
@@ -252,6 +255,7 @@ the baseline kernel, again due to low \gls{TLB} associativity.
     \caption{Passive slowpath round-trip IPC overhead.}
     \label{t:slowpath-ipc-micro}
 \end{table}
+% Why were the fastpath microbenchmarks different address spaces, but the slowpath ones same address space.
 Now we evaluate the \gls{IPC} slowpath, for both active and passive threads in the same address
 space.
 Unlike the fastpath, the slowpath
@@ -266,9 +270,11 @@ We run the benchmark for both active and passive threads, which shows the overhe
 scheduling context versus not. \cref{t:slowpath-ipc-micro} shows the results for the passive
 slowpath and \cref{t:slowpath-ipc-micro-active} for active, where the top row in the table is 
 the baseline number, the second row is the overhead when
-comparing the number of cycles taken for the benchmark. Every other row shows difference in value of the 
+comparing the number of cycles taken for the benchmark. Every other row shows the difference in value of the 
 listed performance counter between baseline and MCS. We do not show standard deviations, however
 they are measured and are very small (either 0 or a few percent of the mean). 
+% I don't know what the memory access performance counter means? I would think it means either cycles spent doing memory access, or amount of memory words/bytes read/written, 
+% but then that doesn't coincide with the increased instruction count and increased cycle counts.
 
 Passive slowpath overhead, as shown in \cref{t:slowpath-ipc-micro} is not small;
 this is due to the fact that the seL4 scheduler has far more
@@ -278,7 +284,7 @@ caller and callee. Looking at ARM platforms, the overhead reduces drastically as
 more modern: for the most part, this means that the caches are bigger, and timer access costs are
 smaller. Except for the \textsc{Hikey} platform, with has an in-order
 execution pipeline and a smaller L2 cache than the \textsc{Sabre}. We suspect that the overheads could be reduced on Hikey with more careful hand
-optimisation. 64-bit Hikey has nearly half the excess instructions when compared to 32-bit, and far
+optimisation. 64-bit Hikey has nearly half the excess instructions when compared to 32-bit, and
 50\% less memory accesses, resulting in far less overhead on \textsc{Hikey64} than \textsc{Hikey32}.
 \textsc{Sabre} suffers from the low-associativity of its \gls{TLB} with misses in both the instruction and
 data TLBs. On the x86 platform, both \textsc{ia32} and \textsc{x64} show the same overhead in terms
@@ -310,6 +316,8 @@ performance, but it has not been examined extensively.
 \end{table}
 
 
+% What is the instruction counter for?  The active table instruction counter shows lower instruction counts than the passive table.
+% Does this imply less instructions executed or am i interpreting the counter wrong?
 \cref{t:slowpath-ipc-micro-active} shows results for the active slowpath, and has higher overheads
 again. In this case, we change scheduling
 contexts, so not only does another object (the second \gls{SCO}) need to be accessed, but the timer
@@ -383,7 +391,7 @@ does not result in a context switch, or the interrupt results in a switch to a h
 runnable thread. Note that this would be faster if we picked one of the cases, however without
 workload specifics, it is not clear whether one of these operations should be prioritised over the
 other. Additionally, as interrupts are by their nature preemptive, we must switch scheduling
-contexts, which incurs the time reprogram the timer and charge the previous thread. In both cases,
+contexts, which incurs the time to reprogram the timer and charge the previous thread. In both cases,
 the scheduler itself is avoided. 
 
 
@@ -498,7 +506,7 @@ The \code{schedule} benchmark measures the cost of two threads in different addr
 to each other in a loop by changing each other's priority. A high-priority thread increases the priority of
 a low-priority thread, subsequently the low-priority thread then sets its own priority back down, 
 resulting in a reschedule to the high-priority thread. Both threads do this 50,000 times,
-and we measure the cost
+and we measure the cost % I think one of your numbers is wrong? 50,000 schedules * 100 runs > 10 000 scheduler invocations?
 for 110 runs, abandoning the first 10, so the caches are primed. This results in 10,000 invocations
 of the scheduler, as both threads do the switching. Of course, setting the priority of
 a thread higher does not need to invoke the scheduler: but this is the current state of the source
@@ -572,7 +580,7 @@ in the Linux case, where there is a small amount of idle time. The
 cost per operation (utilisation over throughput) is best on Linux, a
 result of its highly optimised drivers and network stack. Our
 bare-metal and \selfour-based setups use Rump's NetBSD drivers, and
-actually performance within a few percent of native NetBSD. This
+performance is within a few percent of native NetBSD. This
 indicates that the MCS model comes with low overhead.
 
 \begin{table}[t]\centering
@@ -884,13 +892,14 @@ The results show that in the CPU-limited cases (left graphs)
 we have the expected near perfect proportionality between throughput and
 budget (with slight wiggles due to the rollbacks), showing isolation between clients. In the cases where there is headspace (centre of the right
 graphs), both clients achieve their desired throughput.
+% A sentence at the end of this paragraph linking the whole section back to timing isolation and how your system behaves?
 
 \section{Practicality}
 
 Fundamental to the microkernel philosophy is keeping policy out of the
 kernel as much as possible, and instead providing general mechanisms
 that allow the implementation of arbitrary policies
-\citep{Heiser_Elphinstone_16}.  As on the face of it, our
+\citep{Heiser_Elphinstone_16}.  As our % as on the face of it? 
 fixed-priority-based model seems to violate this principle,  we
 demonstrate that the model is general enough to support the efficient
 implementation of alternate policies at user level. Specifically, we
