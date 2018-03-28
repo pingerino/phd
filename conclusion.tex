@@ -10,10 +10,11 @@ caused by human error, measured at 94\% in the US~\citep{Singh_15}, something th
 
 As established in \cref{sec:motivation}, in order to practically develop such systems,
 they must be mixed-criticality, as certification of all parts of such a system to high-assurance
-levels is not feasible. Consequently, require strong temporal isolation, asymmetric protection, 
-and mechanisms to support sharing resources between sub-systems of different criticality levels. 
+levels is not feasible. Consequently, mixed-criticality systems require strong temporal isolation
+and asymmetric protection between sub-systems of different criticality levels, 
+which must also be able to safely share resources.
 
-This thesis has drawn on real-time theory and systems practice to develop core-mechanisms required
+This thesis has drawn on real-time theory and systems practice to develop core mechanisms required
 in a high-assurance, trusted computing base for mixed criticality systems. Importantly, the
 mechanisms we have developed do not violate other requirements, like policy-freedom, integrity,
 confidentiality, spatial isolation, and security. 
@@ -22,11 +23,17 @@ In \cref{chap:model}, we introduced our model for treating time as a first-class
 defined a minimal set of
 mechanisms that can be leveraged to implement temporal isolation between threads, even within shared
 servers. Our primitives also allow for more complex, application specific user-level schedulers to
-be constructed efficiently, as we showed in the evaluation. Although many attempts at integrating a
-capability system with the non-fungible resource that is time have existed before, we believe this is
-the first complete implementation which provides permission to time while not imposing policy
-restrictions. Unlike many models before it, we do not impose hierarchical scheduling, and our model
-does not conflate criticality, temporal sensitivity and trust.
+be constructed efficiently, as we demonstrated in the evaluation. Significantly, we provide a
+new model for L4 kernels to manage time as a first-class resource, without restricting policy
+options including overbooking, 
+or requiring specific correlations between the priority of a task and the scheduling model, or
+importance of that task. 
+We integrate a capability system with the non-fungible resource that is time, without violating our
+existing isolation and confidentiality properties, or requiring a heavy performance overhead.
+Our mechanisms provide a basic scheduler, which is a critical part of the
+trusted computing base, and allow for more system-specific schedulers to be constructed at
+user-level. Additionally, we do not force specific
+resource-sharing prioritisation policies, but provide mechanisms to allow for their implementation at user-level. 
 \clearpage
 
 \section{Contributions}
@@ -35,24 +42,24 @@ Specifically, we make the following contributions:
 
 \begin{itemize}
     \item Mechanisms for principled management of time through capabilities to scheduling contexts,
-        which is compatible with the fast IPC implementations traditional used in high-performance
-        microkernels, and is compatible with established real-time resource-sharing policies;
+        which are compatible with the fast IPC implementations traditional used in high-performance
+        microkernels, and also compatible with established real-time resource-sharing policies;
     \item An implementation of those mechanisms in the non-preemptible \selfour microkernel, and an
         exploration of how the implementation interacts with the existing kernel model;
-    \item An evaluation of the overheads and isolation properties of the implementation, to the
-        point of showing isolation in a shared server through timeout-fault handling;
+    \item An evaluation of the overheads and isolation properties of the implementation, including
+        a demonstration of isolation in a shared server through timeout-fault handling;
     \item Design and implementation of many different, user-level timeout-fault handling policies;
-    \item An implementation of a user-level \gls{EDF} scheduler which is competitive with the
+    \item An implementation of a user-level \gls{EDF} scheduler which is as fast as the
         \litmus, in-kernel EDF scheduler, which shows that despite the fixed-priority scheduler
         present in the kernel, other schedulers remain practical;
     \item and a design and implementation of a criticality switch at user-level, which shows that
-        criticality is not required to be a kernel provided property;
+        criticality is not required to be a kernel-provided property;
 \end{itemize}
 
-The implementation is complete, and the verification of this model is currently in-progress.
+The implementation is complete, and the verification of this implementation is currently in progress.
 Specifications have already been developed by the verification engineering team at Data61, CSIRO,
 who are now completing the first-level refinement of the functional correctness proof.
-The maximum controlled priority feature has already been merged to the master kernel. 
+The maximum controlled priority feature has already been verified and merged to the master kernel. 
 Verification is beyond the scope of this PhD, although we continue to work closely with
 the team to assist in verification. 
 
@@ -66,7 +73,7 @@ support for running experiments and building systems on \selfour.
 
 \section{Future work}
 
-Modern \glspl{CPU} have dynamic frequency scaling and low-power modes in order to save power, which
+Modern \glspl{CPU} have dynamic frequency scaling and low-power modes in order to reduce energy usage, which
 is of high concern in many embedded systems. The implementation as it stands assumes a constant
 \gls{CPU} frequency, and all kernel operations are calculated in \gls{CPU} cycles. Frequency scaling
 can have undesirable effects on real-time processes: if the period is specified in microseconds, then
@@ -78,14 +85,29 @@ cores and active threads remain fixed, there is much more to consider in terms o
 scheduling and resource sharing. Our model provides a partitioned, fixed priority scheduler, and 
 load-balancing is up to user level. Further experiments to evaluate the mechanisms for higher-level
 multicore scheduling and resource sharing protocols is required. 
-                
-\section{Summary}
 
-Cyber-physical systems are the future, and our work has focused on principled mechanisms for
-managing time in such systems, which are critical in more ways than the impact of failure. The work
-we have done is one step of thousands towards of future of trustworthy, safe and secure
-autonomous systems. 
+Finally, this work does not consider counter-measures for timing-related covert and side channels,
+security risks which arise from
+shared hardware~\citep{Ge_YCH_18}. \emph{Covert} channels are unintentional, explicit communication
+channels which may be used by a malicious sender in a trusted component to leak sensitive data to a receiver
+in an untrusted component. Providing a time-source can open a covert channel, where the sender
+manipulates timing behaviour through shared architectural structures like caches, and the receiver
+uses the timer source to observe the behaviour. Shared hardware also presents the risk of  \emph{side} channels, 
+where an attacker in an untrusted
+component can learn secret information about a trusted component by observing timing behaviour. 
+Both attack vectors are risks in mixed-criticality systems, which we do not consider in this
+thesis, and merit extensive future work. 
 
+\section{Concluding Remarks}
+
+Original automobiles did not have seat belts, as safety was never a concern. Perhaps one day we
+will reflect on human-piloted, high-speed vehicles in the same way. For this future to eventuate, 
+cyber-physical systems which combine components of different criticality on shared hardware are essential.
+Our work has focused on principled mechanisms for managing time in such systems,
+making one significant step towards a future of trustworthy,
+safe and secure autonomous systems.
+
+\bigskip
 This material is based on research sponsored by the Department of Homeland Security (DHS) Science
 and Technology Directorate, Cyber Security Division (DHS S\&T/CSD) BAA HSHQDC-14-R-B00016, and the
 Government of United Kingdom of Great Britain and the Government of Canada via contract number

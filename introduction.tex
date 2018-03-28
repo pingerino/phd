@@ -10,7 +10,9 @@ extensive, expensive, independent certification.
 For modern cyber-physical systems, including autonomous aircraft and other vehicles, the traditional
 approach of isolating systems of different criticality by using completely separate physical
 hardware is no
-longer practical, being both restrictive and inefficient.
+longer practical, being both restrictive and inefficient: restrictive in that physical isolation
+prevents the construction of modern cyber-physical systems; inefficient in terms of
+under-utilised hardware resources.
 The result is \emph{mixed-criticality} systems, where software applications with different criticalities
 execute on the same hardware. Sufficient mechanisms are required to ascertain that software in
 mixed-criticality systems is isolated. Otherwise, all software on shared hardware is
@@ -34,7 +36,7 @@ need to reduce \gls{SWaP} by consolidating growing functionality onto a smaller
 number of physical processors. More recently the
 \gls{MCAR}~\citep{Barhorst_BBHPSSSSU_09} program was launched, which recognises that in order to
 construct fully autonomous systems, critical and less critical systems must be able to share
-resources. However, resource sharing between components of mixed-criticality is heavily restricted by current
+resources. However, resource sharing between components of mixed criticality is heavily restricted by current
 standards.
 
 % what's wrong with static partitioning
@@ -55,7 +57,8 @@ classes of cyber-physical systems, such as smart factories, will experience simi
 % finally, overcommitting
 One could reduce the number of separate processors without mixing criticalities by simply consolidating 
 systems of the same criticality level, however, this is does not lead to efficient use of resources. 
-High-criticality systems that are subject to high levels of assurance have very high \gls{WCET} estimates,
+High-criticality systems that are subject to high levels of assurance frequently have very
+pessimistic \gls{WCET} estimates,
 which are often orders of magnitude beyond the average execution time due to the limitations in analysis,
 and the complexity of modern hardware~\citep{Wilhelm_EEHTWBFHMMPPSS_08}. However, in current systems the full \gls{WCET} must be
 statically reserved for the high criticality tasks. By building mixed-criticality systems, where
@@ -81,11 +84,13 @@ route information service. In fact, the route information service---being connec
 internet---is not even a trusted service: it is subject to attacks, such as denial-of-service. 
 
 Allowing untrusted, less critical components to
-share hardware and communicate with more critical components, far more complex software can be
+share hardware and communicate with more critical components, far more sophisticated software can be
 introduced to the system. Examples include heuristics that are common in artificial
 intelligence algorithms, or internet-connected software which by its nature cannot be completely
 trusted. Both of these use-cases are far too complex to certify to the highest criticality standard,
-but are essential for emerging cyber-physical systems like self-driving cars. 
+but are essential for emerging cyber-physical systems like self-driving cars. The solution is to
+co-locate these services, and provide strong isolation and safety guarantees to assure
+correctness.
 
 Our goal is to develop trustworthy, high-assurance \gls{OS} mechanisms that provide for the unique
 requirements of mixed-criticality systems, without requiring all systems to be promoted to the highest
@@ -133,14 +138,14 @@ software for commercial aircraft in the United States.
      \label{tab:criticality_table}
  \end{table}
 
-As the criticality level rises, so too do the assurance levels: higher engineering and safety standards are required for higher criticality levels, up to
-certification by independent \glspl{CA} at the highest level, which is a timely,
+As the criticality level rises, so do the assurance levels: higher engineering and safety standards are required for higher criticality levels, up to
+certification by independent \glspl{CA} at the highest level, which is a time-consuming,
 expensive and restrictive process. Additionally, requirements specified by \glspl{CA} are highly
-cautious, and pessimistic, which when combined with safety strategies like redundant resources,
+cautious and pessimistic, which, when combined with safety strategies such as redundant resources,
 leads to large amounts of excess capacity in processing power. 
 
 Consequently, highly
-critical software is incredibly expensive to develop and tends to have low complexity in order to
+critical software is expensive to develop and tends to have low complexity in order to
 minimise costs. Any software that is not fully isolated from a critical component is promoted to
 that level of criticality, increasing the production cost, and imposing strict requirements.
 
@@ -155,7 +160,7 @@ longer viable for three reasons: \gls{SWaP}, efficiency, and resource sharing.
 \subsection{SWaP}
 
 First, systems with air-gaps require increased physical
-resources each extra processor comes with extra cabling and power requirements:
+resources as each extra processor comes with extra cabling and power requirements,
 increasing production costs and environmental impact.
 For vehicles, especially aircraft, this goes further to reduce their function; the
 heavier the system, the more fuel it requires, especially when considering 
@@ -167,13 +172,13 @@ triple-redundant.
 However, \gls{SWaP} alone could be reduced by consolidating systems of the same
 criticality. Ignoring the fact that this also consolidates points of failure (redundant systems by
 definition, cannot be consolidated), this alone is insufficient to completely address \gls{SWaP}
-challenges. The higher assurance required of a system, the more over-provisioned the hardware is: not only in
+challenges. The higher the assurance required of a system, the more over-provisioned the hardware is: not only in
 redundancy but in excess capacity. For example, \gls{WCET}
 estimates may be orders of magnitude larger than the typical execution time, and
 computation of safe \gls{WCET} bounds for non-trivial software tends to be highly pessimistic
 \citep{Wilhelm_EEHTWBFHMMPPSS_08}. At the same time, the core \emph{integrity property} of a
 high-criticality, real-time system is that deadlines must always be
-met, meaning that there must always be time to let such threads execute their full \emph{\gls{WCET}}.
+met, meaning that there must always be time to let such activities execute their full \emph{\gls{WCET}}.
 Consequently, consolidating high-criticality
 systems only ameliorates the problem slightly: the pessimism inherent in high-assurance systems is
 also consolidated, leaving unused, excess hardware resources.
@@ -211,7 +216,7 @@ next, as outlined in \Cref{tab:self-driving-car}. The object-detection is the mo
 generally comprised of a host of sensors: infra-red, LIDAR, cameras, and RADAR, which themselves
 are subject to different criticality levels. Object-detection,
 especially from image data, is a function of the amount and complexity of data available: when
-driving in desert, compared to driving in a blizzard, far less input is available. It is also the
+driving in desert, compared to driving in a city, far less input is available. It is also the
 most critical system in our example, with failure leading to potentially disastrous collisions.
 
 However, a GPS navigation service is also required to determine the route to take, and finally a
@@ -288,7 +293,7 @@ support mixed criticality systems. We implement those mechanisms in \selfour and
 microbenchmarks and case studies to evaluate the implementation. 
 
 \Cref{chap:background} establishes the basic terminology required to present
-the remaining ideas, including an introduction to real-time scheduling and resource sharing theory.
+the remaining ideas, including an introduction to real-time scheduling and resource-sharing theory.
 We also introduce the concept of a resource kernel, an existing approach to providing principled
 access to time as a first class resource.
 
@@ -303,7 +308,7 @@ overbooking and asymmetric protection is insufficient for modern, cyber-physical
 
 \Cref{chap:sel4} presents the final piece of background, presenting the existing concepts which make
 our implementation platform, \selfour, an excellent target for high-assurance systems with its
-existing spatial-resource isolation mechanisms. However, we also show that like the other operating
+existing spatial-resource isolation mechanisms. However, we also show that, like the other operating
 systems considered in the chapter before it, current mechanisms are insufficient for temporal
 isolation, asymmetric protection, and resource overbooking. 
 
@@ -314,8 +319,9 @@ shared safely between systems of different criticalities. Our model is designed 
 \selfour, however has wider applications to \gls{OS} design for mixed-criticality systems.
 
 \cref{chap:implementation} delves deeply into the implementation details, presenting a full, mature
-implementation of our model along with discussions of design trade-offs and limitations. Finally,
-\cref{chap:evaluation} presents a detailed set of benchmarks and case studies on a variety of x86
+implementation of our model along with discussions of design trade-offs and limitations. 
+
+Finally, \cref{chap:evaluation} presents a detailed set of benchmarks and case studies on a variety of x86
 and ARM platforms, showing the overheads
 of our implementation, demonstrating temporal isolation in systems with and without shared
 resources, and showing how resource overbooking and asymmetric protection can be achieved.
@@ -325,12 +331,12 @@ resources, and showing how resource overbooking and asymmetric protection can be
 We make the following specific contributions:
 
 \begin{itemize}
-    \item We develop a design and model for fine-grained access control to processing time, without
+    \item a design and model for fine-grained access control to processing time, without
         imposing strict limitations on system policy or introducing performance overheads, and
         without requiring sacrifices to integrity or confidentiality;
     \item an implementation of the model in the high-assurance, non-preemptible \selfour microkernel,
         and an exploration of the simplicity of the model and its integration with the existing
-        model which provides strong isolation properties;
+        model, which provides strong isolation properties;
     \item an evaluation of the implementation, demonstrating low overheads and temporal isolation
         between systems sharing a processor and other resources;
     \item user-level implementations of dynamic schedulers and resource sharing servers which
@@ -339,4 +345,7 @@ We make the following specific contributions:
 
 \section{Scope}
 
-We focus on uniprocessor and \gls{SMP} systems with \glspl{MMU} for ARM and x86, where our focus is on safety, through integrity and availability. We leave security concerns such as covert channels to future work. Additionally, we assume a constant processor speed, and leave variable-speed processors and power-saving mechanisms to future work.
+We focus on uniprocessor and \gls{SMP} systems with \glspl{MMU} for ARM and x86, where our focus is
+on safety, through integrity and availability. We leave security concerns such as covert channels to
+future work. Additionally, we assume a constant processor speed, and leave variable-speed processors
+and energy-saving mechanisms to future work.
