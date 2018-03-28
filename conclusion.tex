@@ -42,18 +42,18 @@ Specifically, we make the following contributions:
 
 \begin{itemize}
     \item Mechanisms for principled management of time through capabilities to scheduling contexts,
-        which are compatible with the fast IPC implementations traditional used in high-performance
+        which are compatible with the fast IPC implementations traditionally used in high-performance
         microkernels, and also compatible with established real-time resource-sharing policies;
-    \item An implementation of those mechanisms in the non-preemptible \selfour microkernel, and an
+    \item an implementation of those mechanisms in the non-preemptible \selfour microkernel, and an
         exploration of how the implementation interacts with the existing kernel model;
-    \item An evaluation of the overheads and isolation properties of the implementation, including
+    \item an evaluation of the overheads and isolation properties of the implementation, including
         a demonstration of isolation in a shared server through timeout-fault handling;
-    \item Design and implementation of many different, user-level timeout-fault handling policies;
-    \item An implementation of a user-level \gls{EDF} scheduler which is as fast as the
+    \item a design and implementation of many different, user-level timeout-fault handling policies;
+    \item and an implementation of a user-level \gls{EDF} scheduler which is as fast as the
         \litmus, in-kernel EDF scheduler, which shows that despite the fixed-priority scheduler
         present in the kernel, other schedulers remain practical;
     \item and a design and implementation of a criticality switch at user-level, which shows that
-        criticality is not required to be a kernel-provided property;
+        criticality is not required to be a kernel-provided property.
 \end{itemize}
 
 The implementation is complete, and the verification of this implementation is currently in progress.
@@ -83,16 +83,17 @@ limitation of our model and promising area for future work.
 Although we provide a mechanism for cross-core IPC, where passive threads migrate between processing
 cores and active threads remain fixed, there is much more to consider in terms of multicore
 scheduling and resource sharing. Our model provides a partitioned, fixed priority scheduler, and 
-load-balancing is up to user level. Further experiments to evaluate the mechanisms for higher-level
+load balancing can be managed by user level. Further experiments to evaluate the mechanisms for higher-level
 multicore scheduling and resource sharing protocols is required. 
 
 Finally, this work does not consider counter-measures for timing-related covert and side channels,
 security risks which arise from
-shared hardware~\citep{Ge_YCH_18}. \emph{Covert} channels are unintentional, explicit communication
+shared hardware~\citep{Ge_YCH_18}. \emph{Covert channels} are unintentional, explicit communication
 channels which may be used by a malicious sender in a trusted component to leak sensitive data to a receiver
 in an untrusted component. Providing a time-source can open a covert channel, where the sender
 manipulates timing behaviour through shared architectural structures like caches, and the receiver
-uses the timer source to observe the behaviour. Shared hardware also presents the risk of  \emph{side} channels, 
+uses the timer source to observe the behaviour. Shared hardware also presents the risk of
+\emph{side channels}, 
 where an attacker in an untrusted
 component can learn secret information about a trusted component by observing timing behaviour. 
 Both attack vectors are risks in mixed-criticality systems, which we do not consider in this
