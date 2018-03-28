@@ -261,19 +261,19 @@ def main():
     args = parser.parse_args()
 
     clk = 3400      
-    if args.arch == 'sabre':
+    if 'sabre' in args.arch:
         clk = 996
-    elif args.arch == 'odroidxu':
+    elif 'odroidxu' in args.arch:
         clk = 2000
-    elif args.arch == 'zynq7000':
+    elif 'zynq7000' in args.arch:
         clk = 677
-    elif args.arch == 'tk1':
+    elif 'tk1' in args.arch:
         clk = 800
-    elif args.arch == 'rpi3':
+    elif 'rpi3' in args.arch:
         clk = 1200
-    elif args.arch == 'tx1':
+    elif 'tx1' in args.arch:
         clk = 1900
-    elif args.arch == 'hikey32' or args.arch == 'hikey64':
+    elif 'hikey32' or 'hikey64' in args.arch in args.arch:
         clk = 1200
 
     pwd = os.getcwd()
