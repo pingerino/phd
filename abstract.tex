@@ -26,7 +26,22 @@ software to share resources in far less restrictive ways, opening further possib
 cyber-physical system design without sacrificing assurance properties. 
 Two key properties are required: first, time must be managed as a central resource of the system, while allowing for overbooking with asymmetric protection without increasing certification burdens.
 Second, components of different criticalities should be able to safely share resources without suffering undue utilisation penalties.
-The implementation platform is the \selfour microkernel, which is built for the safety-critical, high assurance domain.
+
+We present a
+model for capability-controlled access to processing time without incurring over-head related capacity loss or
+restricting user policy, including processing time in shared resources. This is achieved by
+combining the idea of resource reservations, from resource kernels, with the concept of resource
+overbooking, which is central to policy freedom. The
+result is the core mechanisms of scheduling contexts, scheduling context donation over IPC, and
+timeout exceptions which allow  system designers to designate their own resource allocation policies.
+
+We follow with an
+implementation of the model in the \selfour microkernel, a high-assurance, high-performance platform.
+Our final contribution is a thorough evaluation, including microbenchmarks, whole system benchmarks,
+and isolation benchmarks. The micro- and system benchmarks show that our implementation is low
+overhead, while the user-level scheduling benchmark demonstrates policy freedom in terms of
+scheduling is retained. Finally, our isolation benchmarks show that our processor temporal isolation
+mechanisms are effective, even in the case of shared resources.
 
 \end{abstract}
 \addcontentsline{toc}{chapter}{Abstract}
