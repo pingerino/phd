@@ -409,7 +409,8 @@ hierarchy deepens.  Child schedulers with adequate permissions use a dedicated s
 the kernel to switch threads, while the kernel itself does not provide blocking semantics, which are also
 provided by user-level schedulers.  This design offers total scheduling policy freedom, as
 user-level scheduling components can implement all the goals of a resource kernel according to
-their own policy.
+their own policy. \composite recently added the concept of temporal capabilities~\citep{Gadepalli_GBKP_17} which interact with
+the user-level scheduling model, and are discussed further later in this chapter (\Cref{s:os-capabilities}).
 
 \subsection{Timeslices and meters}
 \label{s:timeslices-and-meters}
@@ -546,12 +547,15 @@ information, such as priority and accounting information, in a single structure 
 Other kernels, including real-time Mach, NOVA, and \fiascooc, divide the TCB into an execution context and
 \emph{scheduling context} in order to allow the scheduling context to
 transfer between threads over \gls{IPC} for accounting and/or priority inheritance purposes, and for
-performance~\citep{Steinberg_WH_05}.
+performance. \citet{Steinberg_WH_05} first introduced the term \emph{scheduling context} although the
+approach had been used previously in real-time Mach, as \emph{processor capacity reserves}.
 
 The contents of a scheduling context vary per implementation.
 Real-time Mach's scheduling contexts contained parameters for the deferrable
-server, while NOVA's contained a timeslice. In \fiascooc, scheduling contexts contain a
-replenishment rule, and a budget. All three implementations include a priority in the
+server, while NOVA's contained a timeslice. In \fiascooc, scheduling contexts are realised as
+reservations for virtual processors, and contain a
+replenishment rule and a budget~\citep{Lackorzynski_WVH_12}.
+All three implementations include a priority in the
 scheduling context. Further experiments on \fiascooc added extra parameters, such as explicit
 deadlines, and bulk scheduling context changes for explicitly supporting mixed-criticality
 schedulers~\citep{Volp_LH_13}.
@@ -623,7 +627,7 @@ the right to execute for the unit of time held by the meter, however as establis
 
 EROS~\citep{Shapiro_SF_99} combined processor capacity reserves with capabilities rather than the
 meters of KeyKOS. Additionally, 
-However, processor capacity reserves were \emph{optional}: a two level scheduler first
+however, processor capacity reserves were \emph{optional}: a two level scheduler first
 scheduled the reserves with available capacity, then threads without reserves,
 or with exhausted reserves, were scheduled.
 Like any hierarchical scheduling model, this enforces a policy that
@@ -646,7 +650,8 @@ sufficient capabilities on each scheduling decision.
 hierarchically-scheduled subsystems without explicitly mapping all
 local priorities onto a single, global priority space, although for performance reasons, the number
 of supported delegations is statically limited.
-Additionally, time capabilities cannot be revoked unless empty. 
+Additionally, time capabilities cannot be revoked unless empty, although the time they represent is
+non-replenishing, so once a time capability is drained it can be revoked. 
 \composite's mechanism of temporal capabilities is the most promising, and decoupling access
 control from scheduling is surely key to providing mechanisms for temporal isolation without 
 heavily restricting policy freedom. However, the static limit on delegations and lack of revoke
