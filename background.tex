@@ -46,7 +46,7 @@ system, which is generally referred to as \gls{HRT}, \gls{SRT}, or \emph{best-ef
 
 \emph{Hard Real-Time} tasks have absolute deadlines; if a deadline is missed,
 the task is considered incorrect. \gls{HRT} tasks are most common in safety-critical systems, where
-deadline misses lead to catastrophic results.  Examples include airbag systems
+deadline misses can lead to catastrophic results.  Examples include airbag systems
 in cars and control systems for autonomous vehicles.  In the former, missing a deadline could cause
 an airbag to be deployed too late.  In the latter, the autonomous vehicle could crash.  To guarantee
 that a \gls{HRT} task can meet deadlines, the code must be subject to {\gls{WCET}} analysis. State
@@ -78,7 +78,7 @@ completely~\citep{Koren_Shasha_95} while others allow deadlines to be postponed.
 deadlines to be skipped are often referred to as firm real-time \eg media processing, where some
 frames can be dropped. 
 
-\emph{best-effort} tasks do not have temporal requirements, and generally execute in the
+\emph{Best-effort} tasks do not have temporal requirements, and generally execute in the
 background of a real-time system. Examples include logging services and standard applications, but
 may be far more complicated. Of course, any task must be scheduled at some point for system success,
 so there must be some timing guarantee. 
@@ -109,7 +109,7 @@ for (;;) {
 
 The sporadic task model considers a real-time system as a set of tasks, $A_{1},A_{2},\ldots,A_{n}$.
 Each $A_{i}$ refers to a specific task in the task set, usually each for a different functionality.
-The infinite series of jobs is per task, and represented by $A_{i1},A_{i2},\ldots,A{in}$. Each task has
+The infinite series of jobs is per task, and represented by $A_{i1},A_{i2},\ldots,A_{in}$. Each task has
 a \gls{WCET}, $C_{i}$, and period, $T_{i}$, which represents the minimum inter-arrival time
 between jobs. When a $T_{i}$ has passed and a job can run again, it is said to be \emph{released}.
 When a job is ready to run, it is said to have \emph{arrived} and when a job finishes and blocks until
@@ -295,7 +295,7 @@ Schedulability analysis for \gls{RM} priority assignment requires that deadlines
 \Gls{DM} priority assignment~\citep{Leung_Whitehead_82} allocates higher priorities to tasks with shorter deadlines and relaxes this requirement.
 In both cases, ties are broken arbitrarily.
 The \gls{FP} scheduling technique itself is not optimal, as it results in algorithmic capacity loss
-and may leave up to 30\% of the processor idle. \cref{eq:3} shows the schedulability test for
+and may leave up to 31\% of the processor idle. \cref{eq:3} shows the schedulability test for
 \gls{FPRM}, and \cref{eq:4} shows that the limit as the number of tasks in the task set ($n$) tends
 towards infinity.
 \cref{f:fp-schedule} shows an example \gls{FPRM} schedule.
@@ -434,9 +434,10 @@ In the \gls{PIP}, when a high priority task encounters a locked resource, it don
 to the task holding the lock and when the lock is released the priority is restored. 
 This approach avoids blocking any higher priority threads that do not access this resource, and
 works for both fixed and dynamic priority scheduling.
-However, \gls{PIP} results in a large preemption overhead and as a result has poor WCET analysis.
+However, \gls{PIP} results in large systems overheads due to nesting, implementation complexity and
+additional preemptions, and as a result has poor WCET analysis.
 
-To understand this, consider a task set with $n$ tasks, $A_{1}, \ldots, A_{n}$, where each task's priority
+To understand the additional preemptions inherent in \gls{PIP}, consider a task set with $n$ tasks, $A_{1}, \ldots, A_{n}$, where each task's priority
 corresponds to its index, such that the priority of $A_{i} = i$. The highest priority is $n$ and the
 lowest is 1 and all tasks access the same resource. If $A_{1}$ holds the lock to that resource, then
 the worst preemption overhead occurs if $A_{2}$ wakes up, elevating the priority of $A_{1}$ to 2. Subsequently,
@@ -515,7 +516,7 @@ for verification on a large scale.
     \put(-4.5,2){\rotatebox{90}{Complexity}}
     \put(2,15){OPCP}
     \put(12,3){IPCP}
-    \put(25,11){PIP}
+    \put(25,15){PIP}
     \put(35,1.5){NCP}
   \end{picture}
   \caption[Comparison of RT locking protocols.]{Comparison of real-time locking protocols based on
@@ -574,7 +575,8 @@ applications to run independently of each other.
 
 Common \glspl{OS}, such as Windows, MacOS and Linux, are \emph{monolithic} operating systems,
 which means that many services required to run applications are inside the kernel.  A \emph{microkernel}
-attempts to minimise the amount of code running in the kernel in order to reduce the amount of
+attempts to minimise the amount of code running in the kernel in order to reduce the amount
+of necessarily
 trusted code.  Figure \ref{fig:os-microkernel} illustrates the difference between monolithic
 \glspl{OS} and microkernels.  Modern microkernel implementation is guided by the minimality
 principle~\citep{Liedtke_95} which aims to provide minimal mechanisms to allow resource servers to
@@ -615,7 +617,7 @@ former involves modifications to the source of the guest. Modern hardware has vi
 extensions which improve virtualisation performance and reduce the need for para-virtualisation.
 Both microkernels and monolithic kernels can also be hypervisors, although monolithic hypervisors
 are often smaller than full OS counterparts, as they provide less functionality and rely on guest
-OSes to provide most systems. 
+OSes to provide most subsystems. 
 
 \subsection{IPC}
 \label{s:background-ipc}
@@ -693,7 +695,8 @@ an \gls{RTOS}, one application having exclusive access to a resource cannot be a
 deadline miss.  Similarly, the \gls{RTOS} itself cannot cause a deadline miss.  This means that all
 operations in the \gls{RTOS} must either be bounded with known {\gls{WCET}} or the \gls{RTOS} must
 be fully preemptible.  However, it must be noted that a fully preemptible \gls{OS} is completely
-non-deterministic, making correctness impractical to guarantee~\citep{Blackham_TH_12}.  The overheads
+non-deterministic, in that interrupts can cause unpredictable interleaving of operations which lead
+to state-space explosions in current verification techniques, making correctness impractical to guarantee~\citep{Blackham_TH_12}.  The overheads
 of \gls{RTOS} operations like interrupt handling and context switching must also be considered when
 determining whether deadlines can be met.
 
