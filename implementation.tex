@@ -687,7 +687,7 @@ sufficient budget is actually \emph{twice} the \gls{WCET} of the kernel.
 We check budget sufficiency on kernel entry, by reading the current timestamp and storing 
 the amount of time consumed since the last kernel entry, allowing us to detect budget expiry in a single 
 point, and carry on other kernel operations with this assumption intact. This means that timeout 
-faults can only be raised at once point in the kernel, greatly simplifying the implementation by
+faults can only be raised at one point in the kernel, greatly simplifying the implementation by
 avoiding excessive checks in other paths. 
 
 \begin{figure}
