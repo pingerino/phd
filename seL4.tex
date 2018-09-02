@@ -531,7 +531,7 @@ thread is rendered inactive and no fault message is sent.
 Notification objects provide the mechanism for semaphores in \selfour, and consist of a word of
 data. Sending on a notification either sends the badge of the invoked notification capability to a 
 thread waiting on that notification object or---if no threads are waiting---stores the badge in the
-data word of the notifications. Unlike IPC, where messages being sent are queued, notifications
+data word of the notifications. Unlike IPC, where threads waiting to send messages are queued, notifications
 accumulate messages in the data word.
 
 \begin{figure}
@@ -691,7 +691,7 @@ threads \emph{except the current thread} are in the scheduler. Consequently, we 
 scheduling queues when doing a direct switch, reducing the cache footprint and resulting in a performance improvement.
 
 The result of these optimisations is that \selfour, like L4 kernels before it, has very fast
-\gls{IPC}, compared to non-L4 kernels e.g.\ at least a factor of four in CertiKOS~\citep{Gu_SCWKSC_16}.
+\gls{IPC}, compared to non-microkernels e.g.\ at least a factor of four in CertiKOS~\citep{Gu_SCWKSC_16}.
 
 \subsubsection{Round-robin}
 \label{sec:seL4-round-robin}
