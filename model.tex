@@ -32,7 +32,7 @@ Our design goals are as follows:
           access control of security-oriented systems such as \selfour.
     \item[Policy freedom:] In line with microkernel philosophy
         \citep{Heiser_Elphinstone_16}, the model should not force systems
-        into a particular resource-management policy. In particular, it
+        into a particular resource-management policy unnecessarily. In particular, it
         should support a wide range of scheduling policies and
         resource-sharing models, such as locking protocols.
     \item[Efficient:] The model should add minimal overhead to the best
@@ -103,7 +103,9 @@ of lower criticality.
 As a result, a user-level scheduling decision will require at least two context switches for any
 component that is not at the highest criticality level:
 from the preempted thread to the scheduler, and from the scheduler to the dispatched
-thread. 
+thread. Although \composite has demonstrated this overhead to be small, by providing a very fast
+context switches and avoiding schedulers on the device interrupt handling path, it is an overhead
+that is not mandatory if using our in-kernel scheduler. 
 Given a mixed-criticality system requires a trusted scheduler, providing a basic scheduler in the kernel 
 obviates this overhead as a requirement, and forms part of a complete trusted computing base.
 
@@ -112,10 +114,6 @@ verified: by keeping the
 scheduler in the kernel we maintain the current verification. Verification of a user-level scheduler
 and its interaction with the kernel is a far more complex task, especially as verification of
 concurrent systems is very much an open research challenge. 
-
-One might claim that maintaining a scheduler in the kernel violates our goal of policy freedom.
-However, we maintain this is not the case, which comes down to our choice of fixed priorities over
-\gls{EDF}.
 
 \subsubsection{Fixed priorities}
 
@@ -262,7 +260,7 @@ A consequence of this design is that more reservations can be made than processi
 This is a desirable feature: it allows system designers to overcommit the system, while features of the scheduling mechanisms provided by the kernel guarantee that the most important tasks get their allocations, if the priorities of the system are set correctly.
 
 However, allowing any thread in the system to create reservations could result in overload behaviour and violation of temporal isolation.
-To prevent this, admission control is restricted to the task that holds the scheduling
+To prevent this, admission control is restricted to the task(s) that holds the scheduling
 control capability for each processing core.
 
 \subsection{Replenishment}
@@ -335,6 +333,12 @@ such that system designers can set this bound per SC. This is a generalisation o
 in Quest-V~\citep{Danish_LW_11}, where \IO reservations are polling servers and other reservations 
 are sporadic servers. This policy can easily be implemented at user-level with variably-sized
 \glspl{SC}.
+
+The choice of sporadic servers is a concession to our goal of policy freedom, as ultimately temporal
+isolation is a more important requirement for mixed-criticality systems which overrules the policy
+freedom requirement. While our model does not prevent other policies to be implemented at user-level, these
+do come with a performance overhead as they require full user-level scheduling, with context
+switches to and from the user-level scheduler.
 
 \subsection{Enforcement}
 \label{sec:model-enforcement}
@@ -533,9 +537,11 @@ capability system. Recall from \cref{p:sel4_ipc} that endpoints have minimal sta
 again contributes to high performance.} and once an \gls{IPC} rendezvous has occurred, the caller is
 blocked on the resume capability. Consequently, there is \emph{no way to reach the caller} after an 
 \gls{IPC} message has been sent. 
-Significant changes would be required to the \gls{IPC} model to ensure threads
-blocked on resume capabilities could be tracked from the endpoint that facilitated the IPC rendezvous.
-
+Significant changes would be required to the seL4 \gls{IPC} model to ensure threads
+blocked on resume capabilities could be tracked from the endpoint that facilitated the IPC
+rendezvous. Prior kernels which implement efficient \gls{PIP} over \gls{IPC}, including Fiasco and Nova (recall
+\Cref{s:sc-intro}), did not use endpoints but sent \gls{IPC} directly between threads, which could
+then be used to track inheritance chains.
 
 \subsection{\gls{OPCP}}
 
@@ -615,9 +621,9 @@ Whether donation occurs or not is inferred at the time of the \gls{IPC} rendezvo
 server is passive or active. 
 \emph{Passive} servers do not have a scheduling context 
 and receive them over \gls{IPC} whereas \emph{active} servers have their own scheduling context. 
-Passive servers, as illustrated in \cref{f:passive}, effectively provide a migrating-thread
-model~\citep{Ford_Lepreau_94, Gabber_SBBS_99}, but without requiring
-the kernel to manage stacks. \Cref{f:active} shows active servers, which allow system designers to
+Passive servers, as illustrated in \cref{f:passive}, provide a model similar to the 
+ migrating-thread model~\citep{Ford_Lepreau_94, Gabber_SBBS_99}, although revocation can decouple
+ clients and servers mid-IPC. \Cref{f:active} shows active servers, which allow system designers to
 build systems without temporal isolation, which is not suitable
 for all servers.
 
@@ -915,9 +921,8 @@ server's protection domain.
 
 To implement migrating threads, \composite requires that every server have a mechanism for
 allocating stacks.  If no memory is available to allocate stacks, then the request is blocked.  This
-solution forces servers to be multi-threaded, and does not solve the problem of a client's budget
-expiring while the server is in a critical section, which is solved by providing atomic primitives
-that call the kernel.
+solution forces servers to be multi-threaded, which is problematic for verification of server code 
+due to state-space explosions created by interleaving. 
 
 A stack-spawning policy can be implemented using the mechanisms we have provided, similar to
 the \gls{PIP} implementation described above (\cref{sec:model-pip-bwi}), except the proxy
