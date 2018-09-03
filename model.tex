@@ -202,6 +202,16 @@ The advantage of keeping the two
 orthogonal allows us to avoid mandating a specific prioritisation protocol for resource-sharing,
 which we expand on in \cref{s:locking}.
 
+Unlike prior approaches, where a reservation forms part of a two-level scheduler in the kernel, our
+model only allows one thread to use a scheduling context as a time. 
+Prior implementations of reservation-based kernels allow for multiple threads per reservation, 
+such that the kernel first picks a reservation to schedule, then picks a thread from that reservation.
+We depart from this model for simplicity and performance reasons, and to abide by the microkernel
+minimality principle: user level can build cooperative or preemptive schedulers using a single
+scheduling context, via \gls{IPC}, therefore this feature is not permitted in the kernel.
+Additionally, for use-cases where multiple real-time threads share a scheduling context, user-level
+threads can be used to multiplex multiple execution contexts onto one scheduling context.
+
 \subsection{Accounting}
 \label{sec:model-accounting}
 
@@ -895,6 +905,10 @@ the logic used by the proxy-server $S_{1}$. This also determines whether $S_{1}$
 not. In order to extend this protocol to bandwidth inheritance, $S_{1}$ could also act as a timeout-fault
 handler would and could also bind the pending client's scheduling
 context to the server to finish the requests. 
+
+In order to handle nested requests, which are the most complex part of any \gls{PIP} implementation,
+the same server thread $S_{1}$ would need to be used for all locking operations, essentially
+becoming a locking server.
 
 \subsubsection{Best-effort Shared Server}
 \label{sec:best-effort}
