@@ -287,7 +287,6 @@ refill_split_check(sched_context_t *sc, ticks_t usage)
     } else  {
         /* split the head refill  */
         REFILL_HEAD(sc).rAmount = remnant;
-        REFILL_HEAD(sc).rTime += usage;
         schedule_used(sc, new);
     }
 }

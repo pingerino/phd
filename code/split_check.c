@@ -18,6 +18,5 @@ if (SIZE(sc) == sc->max || remnant < MIN_BUDGET) {
 } else {
   /* split the head refill  */
   HEAD(sc).amount = remnant;
-  HEAD(sc).time += usage;
   schedule_used(sc, new);
 }

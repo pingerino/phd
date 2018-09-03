@@ -756,7 +756,7 @@ to priority queues, ordered by \gls{TCB} priority. All queues are implemented as
 lists, where all operations complete in $O(1)$ except for insertion, which is $O(n)$, where $n$ 
 is the number of threads in the queue. 
 We chose the list data structure over a heap for increased performance and reduced verification
-burden.
+burden. 
 
 A list-based priority queue out-performs a heap-based priority queue for small $n$ (in our
 implementation up to around $n = 100$).  This $n$ is larger than one would expect in a traditional
@@ -764,8 +764,11 @@ implementation up to around $n = 100$).  This $n$ is larger than one would expec
 cache usage.  However, because \selfour kernel memory is
 managed at user-level (as discussed in \cref{sec:sel4-memory}), data structures must be dynamic, 
 resulting in much higher code complexity, and poorer performance than a static heap. 
-For endpoint queues, it is reasonable to expect a low number of threads, as many threads queuing on
-an endpoint at once indicates a poor system design. For the release queue, the restriction
+For endpoint queues, it is reasonable to expect a low number of threads, 
+as in well-designed systems the amount of kernel threads should be minimal to maintain a low memory
+profile (note that for systems requiring many threads, user-level or green threads can easily be
+deployed as a light-weight solution). 
+For the release queue, the restriction
 becomes a function of the user-level admission test: only scheduling contexts with 
 partial budgets are placed into the release queue, which limits the size of the queue.
 Consequently we do not expect any of the priority queues to contain large numbers of threads,
@@ -774,10 +777,12 @@ practice this implementation could be reconsidered. \citet{Brandenburg:phd} used
 binomial heaps for schedulers in \litmus, however Linux does not provide the guarantees, or
 implementation requirements of \selfour.
 
+The list-based queues are non-preemptible, such that the \gls{WCET} of the kernel is a function of the 
+number of threads that can wait on an endpoint.
 One security concern is sub-systems with access to a single scheduling context and a large amount
 of memory can increase the kernel's run-time by queuing up a large amount of passive threads on 
 an endpoint. To prevent this, system designers must not hand out large untyped capabilities to
-untrusted sub-systems. 
+untrusted sub-systems.
 
 \subsubsection{Timeout Exception Handlers}
 
