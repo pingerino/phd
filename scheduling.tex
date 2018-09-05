@@ -87,31 +87,21 @@ When overload conditions exist, the rate is slowed for all tasks.
 Pfair scheduling algorithms are good theoretically but do not perform well in practice; they incur
 large overhead related capacity loss due to an increased number of context
 switches~\citep{Abeni_Buttazzo_04}. Additionally, since
-scheduling decisions can only be made at quantised intervals, scheduling is less precise in
-proportionate fair systems.  This problem can be exacerbated by critical sections, which may last
-longer than a single quantum.  \citet{Stoica_AKBGP_96} propose defining arbitrary quanta sizes based
-on maximum critical section size, however quanta size decreases the accuracy of the scheduler.
-Additionally, it may not be possible to have \emph{a priori} knowledge of critical section size, especially
-in a soft real-time system where it is not worth conducting \gls{WCET} analysis or execution time
-is dependent on exterior factors, such as network behaviour.
+scheduling decisions can only be made at quantised intervals, scheduling precision is limited by the
+size of the quanta in proportionate fair systems.\footnote{Note that this limitation applies to any
+    system that uses a scheduling \emph{tick} rather than specific timeouts for scheduling.}
 
 One early uniprocessor Pfair scheduling algorithm is earliest-eligible deadline first, presented in
 \citet{Stoica_AKBGP_96}.  PD$^{2}$~\citep{Srinivasan_Anderson_06} is a more recent Pfair/ERfair
-scheduling algorithm that is theoretically optimal for multiprocessors under \gls{HRT} constraints,
-although only under the assumption that process preemption and migration are free.
+scheduling algorithm that is theoretically optimal for multiprocessors under \gls{HRT} constraints.
 
 Recall that temporal isolation means that tasks should not be able to interfere with the temporal
 behaviour of other tasks in the system.  Proportionate fair systems provide temporal isolation as
-part of their fairness property, unless the system is overloaded, at which point the rate of all
-tasks will degrade. Pfair schedulers by definition do not support asymmetric protection.
+part of their fairness property, but by definition do not support asymmetric protection.
 
-\subsection{Isolation with EDF schedulers}
+\subsection{Robust earliest deadline scheduling}
 
 Temporal isolation in \gls{EDF} scheduling has been explored thoroughly in the real-time discipline.
-We outline the most dominant approaches in this section.
-
-\subsubsection{Robust earliest deadline scheduling}
-
 One early approach to temporal isolation with \gls{EDF} scheduling attempts to extend the 
 algorithm to allow overload conditions to be handled with respect to a value. Robust earliest deadline
 scheduling~\citep{Buttazzo_Stankovic_93} assigns a value to each task set, and will drop jobs from
@@ -123,72 +113,25 @@ tasks, the authors recommend using a dedicated scheduling processor such that ov
 affect the timing behaviour -- but this is not suitable for embedded systems, where the goal is to
 minimise the number of processors, not increase them.
 
-\subsubsection{Constant-bandwidth servers}
+\subsection{Resource servers}
 
-In the real-time community, the term \emph{server} is used to describe virtual time sources, where
-an intermediate algorithm monitors task execution and, using that information, prevents task(s)
-guarded by the server from exceeding specified temporal behaviour. These algorithms are integrated
-into the scheduler.
-
-\Gls{CBS} is a technique for scheduling \gls{HRT} and
-\gls{SRT} tasks and providing temporal isolation~\citep{Abeni_Buttazzo_04}. Under \gls{CBS}, \gls{HRT} tasks are scheduled using an \gls{EDF}
-scheduler, but \gls{SRT} tasks are treated differently as \gls{EDF} does not handle overload
-reasonably.
-Instead, a \gls{CBS} is assigned to each \gls{SRT} task.  Each \gls{CBS} has a bandwidth assigned to
-it, and breaks down \gls{SRT} jobs into sub-jobs such that the utilisation rate of the task does not
-exceed the assigned bandwidth.  Any sub-job that will cause the bandwidth to be exceeded is
-postponed, but still executed.
-
-\gls{CBS} stands out from previous server-based approaches like the total bandwidth
-server\citep{Spuri_Buttazzo_94} as it does not require a \gls{WCET} or a minimum
-bound on job inter-arrival time, making it much more suitable for \gls{SRT} tasks.  Implementation
-wise, \gls{CBS} has less system overheads than Pfair schedulers.
-
-Many extensions exist for \gls{CBS} to improve functionality.  \citet{Kato_IR_11} extend \gls{CBS} to
-implement \emph{slack donation}, where any unused bandwidth is given to other jobs.  In
-~\citep{Craciunas_KPRS_12}, \gls{CBS} is extended such that bandwidths are variable at run-time.
-\citet{Lamastra_LA_01} introduce bandwidth inheritance across CBS servers applied to different
-resources, providing temporal isolation for additional resources other than processing time.
-
-\subsubsection{Rate-based EDF}
-
-\Gls{RBED} schedulers explicitly separate the resource allocation and dispatching
-(choosing which thread to run) in order to provide flexibility in timeliness requirements supported
-by the scheduler.  \Gls{RBED} ~\citep{Brandt_BLB_03} is an algorithm that implements such a
-scheduler.  In \gls{RBED}, tasks are considered as either \gls{HRT}, \gls{SRT}, best-effort or
-rate-based.  Tasks are modelled using an extension of the periodic task model, allowing any job of a
-task to have a different period.  If rate-based or \gls{HRT} tasks cannot be scheduled at their
-desired rate they are rejected.  \gls{SRT} tasks are given their rate if possible with the option to
-provide a quality of service specification.  Processor time reservations can be used to make sure
-best-effort tasks are allowed some execution time.  Otherwise, they are allocated slack time unused
-by SRT and HRT tasks.  Either way, best-effort tasks are scheduled by assigning them a rate that
-reflects how they would be scheduled in a standard, fair, quantum-based scheduler.  Based on the
-rates used, \gls{RBED} breaks tasks down and feeds them to an \gls{EDF} scheduler to manage
-processing time.  Rates are enforced using a one-shot timer to stop tasks that exceed their
-{\gls{WCET}}.  As tasks enter and leave the system, the rates of \gls{SRT} tasks will change.  Slack
-time that occurs as a result of tasks completing before their deadlines is only donated to 
-best-effort tasks, although the authors note that extensions should be able to donate slack to \gls{SRT}
-tasks as well.  \Gls{RBED} is similar to the concept of \gls{CBS}, however it deals with separate types of
-real-time tasks more explicitly.
-
-\subsection{Isolation with FP schedulers}
-\label{background:fp-isolation}
-
-We will now
-examine methods for temporal isolation in fixed-priority systems. 
-Like \gls{CBS}, tasks are constrained by being encapsulating in a server, an algorithm which
-rations out processing time, preventing specific scheduling parameters from being exceeded.
+Resource servers in this context provide a second, top-level of scheduling for
+non-\gls{HRT} tasks, and are not servers in a systems context but rather algorithms which limit the
+execution time of \gls{SRT} tasks in order to provide temporal isolation. Resource servers
+effectively wrap the task, preserving specific execution parameters and feeding them to the
+lower-level scheduler (\gls{EDF} or \gls{FP}). We now provide a brief
+overview of several different types of servers, including their strengths and limitations. 
 Approaches include polling servers, deferrable servers, sporadic servers, priority exchange servers
-and slack stealing servers. 
-
+and constant bandwidth servers. 
 
 \subsubsection{Polling servers}
 \label{p:polling-servers}
 
-Polling servers~\citep{Lehoczky_LS_87} wake every period,
+Polling servers~\citep{Lehoczky_LS_87} wake every period, 
 to check if there are any pending jobs, then allows jobs to run until their budget is exhausted, at most. If there is no
 task to run, the polling server will go back to sleep. That is, at time $t_{i}$, if there are no
-tasks ready to execute, the server will sleep until $t_{i+1}$. This has the limitation that task latency
+tasks ready to execute, the server will sleep until $t_{i+1}$. This has the limitation that task
+maximum latency
 is just under the period $T$ -- if an event triggers a job just after the polling server wakes,
 finds there is no work and returns to sleep, the pending job is delayed until the polling server
 wakes again. 
@@ -197,7 +140,7 @@ wakes again.
 \label{p:ds} 
 
 Unlike polling servers, \emph{deferrable
-servers}~\citep{Lehoczky_LS_87, Strosnider_LS_95} preserve any unused budget across periods, although
+servers}~\citep{Lehoczky_LS_87, Strosnider_LS_95} preserve any unused budget throughout periods, although
 the budget can never be exceeded.  This removes latency problems with polling servers, as deferrable
 servers can wake any time a job is available. Unfortunately, deferrable servers do not provide 
 true temporal isolation and can only guarantee that tasks will not exceed a maximum bandwidth under
@@ -214,8 +157,7 @@ period has passed: $d_{1j} = t_{1j} + T_{1}$. The problem occurs if the first jo
 = d_{11}-C_{1}$, such that it only completes at exactly the implicit deadline.  
 Then a second job may arrive at the release time $d_{11}$ such that it runs back-to-back with the first
 task, from $a_11$ to $d_{11} + C_{1}$, then the task has exceeded the bandwidth 
-($\frac{C_{1}}{T_{1}})$ over a small window of time. As a result deadline misses can be caused in other
-tasks, violating temporal isolation.
+($\frac{C_{1}}{T_{1}})$ over a small window of time. 
 
 \subsubsection{Sporadic servers}
 \label{p:sporadic} 
@@ -224,20 +166,82 @@ Sporadic servers~\citep{Sprunt_SL_89a} address the problems of
 deferrable servers by scheduling multiple replenishment times, in order to preserve the property
 that for all possible points in time $U_{i} \leq \frac{C_{i}}{T_{i}}$, known as the \emph{sliding window} constraint, which
 is the condition that deferrable servers violate.  Each time a task is preempted, or blocks, a
-replenishment is set for current time + $T_{i}$, for the amount consumed.  When no replenishments are
+replenishment is set for the time of arrival + $T_{i}$, for the amount consumed.  When no replenishments are
 available, sporadic servers have their priority decreased below any real-time task.  The priority is
 restored once a replenishment is available.  While this approach addresses the problems of deferrable
 servers, the implementation is problematic as the number of times a thread is preempted or blocked
 is potentially unbounded.  It is also subject to capacity loss as tasks that use very small chunks
-of budget at a time increase the interrupt load.  The bigger the bound on replenishments the less
-accurate the sporadic server, but the more memory used resulting in degraded performance.
+of budget at a time increase the interrupt load.  Large numbers of replenishments result in more
+accurately tracked replenishments, however more memory is used to track those replenishments, and
+fragmentation of the replenishments leads to more frequent preemptions.
 
 \subsubsection{Priority exchange servers}
 
 Priority exchange servers~\citep{Sprunt_SL_89a, Spuri_Buttazzo_94} allow inactive, high-priority tasks to swap their
 priorities with active, low-priority tasks, such that server capacity is not lost but used at a lower
 priority. Implementations of priority exchange require control and access to priorities across an
-entire system.
+entire system, rather than containing the server logic to a single task.
+
+\subsubsection{Constant-bandwidth servers}
+
+In the real-time community, the term \emph{server} is used to describe virtual time sources, where
+an intermediate algorithm monitors task execution and, using that information, prevents task(s)
+guarded by the server from exceeding specified temporal behaviour. These algorithms are integrated
+into the scheduler.
+
+\Gls{CBS} is a technique for scheduling \gls{HRT} and
+\gls{SRT} tasks and providing temporal isolation~\citep{Abeni_Buttazzo_04}. Under \gls{CBS}, \gls{HRT} tasks are scheduled using an \gls{EDF}
+scheduler, but \gls{SRT} tasks are treated differently in order to allow \gls{HRT} tasks to meet
+their deadlines. In the presence of processor contention \gls{CBS} guarantees tasks a constant
+bandwidth and prevents them from interfering with \gls{HRT} tasks. However, if no other tasks
+competing for the processor then tasks using CBS may use a greater bandwidth.
+Instead, a \gls{CBS} is assigned to each \gls{SRT} task.  Each \gls{CBS} has a bandwidth assigned to
+it, and breaks down \gls{SRT} jobs into sub-jobs such that the utilisation rate of the task does not
+exceed the assigned bandwidth.  Any sub-job that will cause the bandwidth to be exceeded is
+postponed, but still executed.
+
+\gls{CBS} stands out from previous server-based approaches like the total bandwidth
+server\citep{Spuri_Buttazzo_94} as it does not require a \gls{WCET} or a minimum
+bound on job inter-arrival time, making it much more suitable for \gls{SRT} tasks.  Implementation
+wise, \gls{CBS} has less system overheads than Pfair schedulers.
+
+Many extensions exist for \gls{CBS} to improve functionality.  \citet{Kato_IR_11} extend \gls{CBS} to
+implement \emph{slack donation}, where any unused bandwidth is given to other jobs.  In
+~\citep{Craciunas_KPRS_12}, \gls{CBS} is extended such that bandwidths are variable at run-time.
+\citet{Lamastra_LA_01} introduce bandwidth inheritance across CBS servers applied to different
+resources, providing temporal isolation for additional resources other than processing time.
+
+\subsection{Resource server allocation}
+
+When using more than one resource server to temporally contain multiple non-HRT tasks, the question
+arises as to how to allocate resources between those servers. The allocation problem is separate to 
+the scheduling processor, and is treated separately in order to provide flexibility in timeliness requirements supported by the scheduler.
+
+\subsubsection{Rate-based EDF}
+
+\Gls{RBED} ~\citep{Brandt_BLB_03} is an algorithm that implements such a
+scheduler.  In \gls{RBED}, tasks are considered as either \gls{HRT}, \gls{SRT}, best-effort or
+rate-based.  Tasks are modelled using an extension of the periodic task model, allowing any job of a
+task to have a different period.  If rate-based or \gls{HRT} tasks cannot be scheduled at their
+desired rate they are rejected.  \gls{SRT} tasks are given their rate if possible with the option to
+provide a quality of service specification.  Processor time reservations can be used to make sure
+best-effort tasks are allowed some execution time.  Otherwise, they are allocated slack time unused
+by SRT and HRT tasks.  Either way, best-effort tasks are scheduled by assigning them a rate that
+reflects how they would be scheduled in a standard, fair, quantum-based scheduler.  Based on the
+rates used, \gls{RBED} breaks tasks down and feeds them to an \gls{EDF} scheduler to manage
+processing time.  Rates are enforced using a one-shot timer to stop tasks that exceed their
+{\gls{WCET}}.  As tasks enter and leave the system, the rates of \gls{SRT} tasks will change.  Slack
+time that occurs as a result of tasks completing before their deadlines is only donated to 
+best-effort tasks, although the authors note that extensions should be able to donate slack to \gls{SRT}
+tasks as well.  \Gls{RBED} is similar to the concept of \gls{CBS}, however it deals with separate types of
+real-time tasks more explicitly.
+
+\subsubsection{CASH}
+
+\citet{Caccamo_BS_00} provide another approach, termed \emph{capacity sharing} (CASH), for resource allocation between \gls{CBS} servers
+when using an \gls{EDF} scheduler, which allows unused time from CBS servers to be reclaimed. Under
+CASH, a global queue of spare capacities is maintained ordered by deadline which is used to schedule
+residual capacities.
 
 \subsubsection{Slack stealing}
 
@@ -379,9 +383,9 @@ the existing protocols: \gls{OPCP}, \gls{IPCP}, \gls{PIP} or \gls{SRP}. Charging
 Notionally, when a thread is temporally contained by an isolation algorithm, that algorithm
 corresponds to a reservation. Under normal execution, the reservation is charged when that thread
 executes. However, if a several threads are vying for a resource, which thread's reservation should
-be charged for the time executed accessing that resource> 
+be charged for the time executed accessing that resource.
 
-\citet{deNiz_LSR_01} describe the possible mappings
+\Citet{deNiz_LSR_01} describe the possible mappings
 between reservations and resources consuming those reservations, which comes down to the following
 choices:
 
@@ -446,8 +450,9 @@ system. Therefore, although the scheduling policies discussed can solve a specif
 not appropriate for all systems, and should not be mandated.
 
 Finally, we looked at resource sharing, and how this interacts with processor reservations,
-We saw that while there are existing policies for prioritisation and charging, the
-majority of enforcement mechanisms are based on bandwidth inheritance. 
+We saw that while there are existing policies for prioritisation and charging, and enforcement
+mechanisms are based on bandwidth inheritance, where should a task exceed its budget in a shared
+resource, the task then inherits pending bandwidth from other tasks accessing that resource.
 
 In the next chapter, we survey existing operating systems and systems techniques with respect to
 temporal isolation capability, resource sharing, and asymmetric protection.
