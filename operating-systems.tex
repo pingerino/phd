@@ -83,8 +83,11 @@ even when running at lower priorities. In fact, running at lower priorities ensu
 contained by sporadic servers can unlock locked resources: however, it also does not bound
 locking, or provide ways to pre-empt locked resources.
 As a result, \gls{POSIX} is insufficient for
-mixed-criticality systems where tasks of different criticalities share resources.  Few \glspl{OS}
-implement the full \gls{POSIX} standard, however many incorporate features of it, including Linux.
+mixed-criticality systems where tasks of different criticalities share resources.  
+
+POSIX is a family of standards, including core services, real-time extensions, and
+threads-extensions, among others. 
+Not all \glspl{OS} implement the full \gls{POSIX} standard, however many implement subsets or incorporate features of those subsets, including Linux.
 
 \subsection{ARINC653}
 \label{s:arinc}
@@ -222,8 +225,8 @@ Implementations of global- and partitioned-, EDF and FP schedulers exist for \li
 \emph{PFair} schedulers. A \gls{SS} implementation exists, as well as various multicore,
 real-time locking protocols.
 Both MC$^2$ (\cref{sec:sched-mc2}) and MC-IPC (\cref{sec:sched-mc-ipc}) are implemented
-and evaluated using \litmus. However both contain strict policies, not mechanisms, that are only
-suitable for a monolithic kernel. Additionally, MC-IPC is a very heavy-weight \gls{IPC}. 
+and evaluated using \litmus. As a core mechanism, MC-IPC contains too much policy to be included as
+in a microkernel, however is a candidate for implementation at user-level.
 
 \linuxrk~\citep{Oikawa_Rajkumar_98} is a resource kernel implementation of Linux with scheduling,
 admission control, and enforcement in the kernel. Every resource, including memory, CPU time and
@@ -263,6 +266,11 @@ resources.
 \glspl{MMU}. The scheduler is preemptive \gls{FP} and \gls{PIP} is provided to avoid priority inversion.
 %FreeRTOS can be configured to be tickless or not.
 
+\subsubsection{XtratuM}
+
+Xtratum~\citep{Masmano_RC_09} is a statically-configured, non-preemptive hypervisor designed for safety critical requirements that 
+also supports ARINC 653 and AUTOSAR. Xtratum provides a fixed-priority, cyclic scheduler and uses
+para-virtualisation to host Linux and other guests.
 
 \subsection{Commercial RTOSes}
 
@@ -297,7 +305,7 @@ This is achieved by using ``\gls{EDF} within fixed priorities''~\citep{Harbour_P
 schedules using EDF at specific priority bands, combined with a pluggable interface for using a
 reservation algorithm (\eg \gls{CBS}, \gls{SS}, \gls{DS}) to temporally contain threads. In order to achieve low-latency, these tasks are run
 in the special partition of PikeOS, known as the system partition, which is scheduled at the same
-time as the currently active partition and provides essential system services. However, these tasks
+time as the currently active partition and provides essential system services. These tasks
 are intended to run without sharing resources or interfering with high-criticality tasks, which run
 in their own partitions.
 
@@ -365,10 +373,8 @@ The majority of kernels surveyed here are microkernels, as introduced in
 \begin{itemize}
     \item KeyKOS~\citep{Bomberger_FFHLS_92}, a persistent, capability based microkernel. 
     \item Real-time Mach~\citep{Mercer_RZ_94, Mercer_ST_93}, a first-generation microkernel.
-    \item The \gls{DROPS}~\citep{Haertig_BBHHMRSW_98}, a second
-        generation, L4 microkernel.
     \item EROS~\citep{Shapiro_SF_99}, the first third-generation microkernel.
-    \item Fiasco~\citep{Hohmuth_02} is a second-generation L4 microkernel, with fixed-priority scheduling.
+    \item Fiasco~\citep{Haertig_BBHHMRSW_98,Hohmuth_02} is a second-generation L4 microkernel, with fixed-priority scheduling.
     \item \minix~\citep{Herder_BGHT_06}, a traditional microkernel with a focus on reliability
         rather than performance. 
     \item Tiptoe~\citep{Craciunas_KPRS_09} is a now-defunct research microkernel that also aims at
@@ -389,7 +395,9 @@ temporal isolation between user-level processes and the operating system.
 
 We do not consider Nemesis~\citep{Leslie_MBRBEFH_96}, as although it treated time as a first-class
 resource, the focus was on multimedia performance. Nemesis was as single-address-space operating
-system, which rules out any possibility of isolation.
+system, an architecture designed to avoid expensive context switches, a technique no-longer needed
+on modern hardware and unsuitable for true isolation due to the presence of side- and covert
+channels.
 
 \subsection{Scheduling}
 
@@ -469,7 +477,7 @@ replenishment. Real-time Mach, with EROS to follow, allowed threads with exhaust
 run in a second-level, time-sharing scheduler. For RBED-based approaches, enforcement is coded into
 the classification of the task: rate-based tasks are not scheduled until replenishment, but
 best-effort and \gls{SRT} tasks can run in slack time. 
-\gls{DROPS} allowed processes to reserve a 
+Fiasco allowed processes to reserve a 
 higher priority for a certain amount of cycles, before returning to a lower priority, essentially
 running expired reservations in slack time. 
 
@@ -490,9 +498,10 @@ processor.
 \label{p:overcommit}
 Reservations are a mechanism that can be used to provide isolation, however, all the kernels
 surveyed combine this mechanism with a good deal of policy for enforcement, how important
-reservations are, and admission. To build mixed-criticality systems, we
-need high-performance mechanisms for temporal isolation that are decoupled from policy. To achieve
-this, systems must allow for \emph{overcommitting} of processing resources: schedulability is a system 
+reservations are, and admission. To provide an small, trusted computing based foundation for
+mixed-criticality systems, we need high-performance mechanisms that support these various policies with minimal restrictions on
+what policy can be used.
+To achieve this, systems must allow for \emph{overcommitting} of processing resources: schedulability is a system 
 policy, not a mechanism. 
 
 \subsection{Timeslice donation}
@@ -729,5 +738,5 @@ are predictable, which implies trust.
 If a real-time thread is not expected to behave correctly, one cannot
 assume it will surrender access to the processor voluntarily.
 Consequently, the \gls{PIP}/\gls{BWI} based scheduling-context donation mechanisms seen in this chapter are
-insufficient, forcing not only a protocol which causes extensive preemption overhead, but 
-requiring shared servers to have known, bounded execution time on all requests.
+insufficient, and only form part of a solution, as they force a protocol which causes extensive preemption 
+overhead, but and requires shared servers to have known, bounded execution time on all requests.

@@ -310,7 +310,7 @@ model from that of resource kernels.
 
 We use sporadic servers, as they provide a mechanism for isolation without requiring the kernel
 to have access to all threads in the system. This is unlike other approaches discussed in
-\cref{background:fp-isolation}, such as  priority exchange servers and slack stealing.
+\cref{background:isolation}, such as  priority exchange servers and slack stealing.
 Deferrable servers do not require global state but are ruled out due to the back-to-back
 problem, which violates temporal isolation, as discussed in \cref{p:ds}. Avoiding global shared state is required for confidentiality, because access to shared state
 has cache effects, which leak information via cache-based timing-channels. In order to maintain these properties,
