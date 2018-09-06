@@ -96,8 +96,9 @@ unlike \composite, for two reasons: to
 maintain a small trusted computing base, and for performance. Any system with
 multiple threads of execution, a requirement of mixed-criticality systems,
 must have a scheduler, which for the purposes of temporal isolation is part of
-the trusted computing base. Mixed-criticality systems require a scheduler: cooperative scheduling is
-not an option when combining components of different assurance levels. The scheduler itself is
+the trusted computing base. Mixed-criticality systems require non-cooperative scheduling where
+the kernel preempts and interrupts components which may be of different assurance levels.
+The scheduler itself is
 trusted, and must be at the highest assurance level, in a separate protection domain to components
 of lower criticality.
 As a result, a user-level scheduling decision will require at least two context switches for any
@@ -122,20 +123,21 @@ that allow for the efficient implementation of user-level schedulers.
 We choose \gls{FP} over \gls{EDF} for three reasons: 
 fixed-priority is dominant in industry
 as shown in \cref{f:fixed-prio-dom}; dynamic scheduling policies such as
-\gls{EDF} can be implemented at user level; and \gls{FP} has defined behaviour on overcommitted
+\gls{EDF} can be implemented at user level; and \gls{FP} has desirable, easy to reason about, behaviour on overcommitted
 systems.
 
 \gls{EDF} scheduling can be implemented by using a single priority for the dynamic
 priorities of \gls{EDF}, as we will demonstrate in \cref{s:edf-impl}.
 However, the opposite is not true: mapping the dynamic priorities of EDF to a fixed-priority
 is non-trivial and would come with high overheads. 
-Our approach is consistent with existing designs in Linux  and ADA~\citep{Burns_Wellings:crtpa}, which
-support both scheduling algorithms, usually with \gls{EDF} at a specific priority. Additionally,
+Our approach is consistent with existing designs in Linux and ADA~\citep{Burns_Wellings:crtpa}, which
+support both scheduling algorithms, usually with \gls{EDF} at a specific priority.\footnote{In
+    Linux, \gls{EDF} is a scheduling class placed about the \code{SCHED\_FIFO} class in priority.}
 schedulability analysis of \gls{EDF}-within-priorities is well
 understood~\citep{Harbour_Palencia_03}.
 
 We do not consider Pfair scheduling (recall \cref{s:pfair}) an option within the kernel, as its high interrupt
-overheads and fairness properties are not suitable for hard real-time systems.  Again however, it
+overheads are not suitable for hard real-time systems.  Again however, it
 should be possible to implement a Pfair scheduler at user level.
 
 The final reason to base the approach on fixed priorities is the ability
@@ -154,10 +156,7 @@ implemented at user level rather than in the kernel.
 As discussed in \cref{s:overload}, the result of overload in an
 EDF-based system is hard to predict, and such a system is hard to
 analyse. In contrast, overloading under fixed-priority scheduling is easy to
-understand: if the sum of utilisations of threads at priority \(\geq
-P\) is below the utilisation bound, then all those threads will meet
-their deadlines, while any thread with priority \(<P\) may miss. This
-allows easy analysis of schedulability.
+understand, as low-priority jobs miss deadlines in the case of overload.
 
 \subsection{Scheduling contexts}
 \label{sec:model-scheduling-contexts}
@@ -300,7 +299,7 @@ Threads with \emph{partial} \glspl{SC} have a limited budget, which forms an upp
 bound on their execution. For replenishment, we
 use the sporadic-servers model, as described in \cref{p:sporadic}, with an
 implementation based on the algorithms presented
-by~\citet{Stanovic_BWH_10}. 
+by~\citet{Stanovic_BWH_10}.
 
 The combination of full and partial \glspl{SC}  and the ability to overcommit distinguishes our
 model from that of resource kernels.
@@ -312,9 +311,10 @@ We use sporadic servers, as they provide a mechanism for isolation without requi
 to have access to all threads in the system. This is unlike other approaches discussed in
 \cref{background:isolation}, such as  priority exchange servers and slack stealing.
 Deferrable servers do not require global state but are ruled out due to the back-to-back
-problem, which violates temporal isolation, as discussed in \cref{p:ds}. Avoiding global shared state is required for confidentiality, because access to shared state
-has cache effects, which leak information via cache-based timing-channels. In order to maintain these properties,
-timing channels must be mitigated through partitions. 
+problem, which prevents the kernel from imposing a maximum execution bandwidth, as discussed in \cref{p:ds}. Avoiding global shared state is required for confidentiality, because access to shared state
+has cache effects, which leak information via cache-based timing-channels. In order to maintain
+these isolation properties,
+timing channels must be mitigated through separate partitions on the same processor. 
 It must be possible to partition a system completely, such that operations in one partition do not
 alter the cache state in the other partitions.
 
@@ -322,9 +322,9 @@ Recall that sporadic servers work by preserving the
 \emph{sliding window} constraint, meaning that during any time
 interval not exceeding the period, no more than $C$ can be consumed.
 This stops a thread from saving budget until near the end of its
-period, and then running uninterrupted for more than $C$. It is achieved by tracking any leftover
-budget when
-a thread is preempted at time \(t\), and scheduling a replenishment for time  $t+T$.
+period, and then running uninterrupted for more than $C$. It is achieved by tracking any consumed
+budget when a thread is resumed at time $t_{a}$ and preempted at time $t_{p}$, and 
+scheduling a replenishment for time $t_{a} + T$.
 
 In practice, we cannot track an infinite number of
 replenishments, so in a real implementation, once the number of
@@ -366,7 +366,9 @@ provision of an emergency budget or specific exception handler.
 
 Clearly, the handling of overrun is a system-specific policy, and the
 kernel should only provide appropriate
-mechanisms for implementing the desired policy. Our core mechanism is
+mechanisms for implementing the desired policy. Unlike the replenishment policy, which must be part
+of the kernel in order to ensure a maximum bandwidth on execution, the replenishment policy has not
+requirement to be in the kernel. Our core mechanism is
 the \emph{timeout exception}, which is raised when a thread is
 preempted due to budget expiry. To allow the system to handle the exceptions, each thread
 is optionally associated with a timeout-exception handler, which is
@@ -435,14 +437,16 @@ user-lever schedulers to specific  priorities, for instance an EDF scheduler.
 Recall that in a mixed-criticality system, asymmetric protection means that tasks with higher
 criticality can cause deadline misses in lower criticality tasks.  Two approaches to 
 mixed-criticality scheduling that support asymmetric-protection are slack scheduling and
-\gls{RTA}~\citep{Burns_Davis_17}.
+Vestal-style mixed-criticality scheduling~\citep{Vestal_07,Burns_Davis_17}.
 
 Under slack scheduling, low-criticality tasks run in slack time of high-criticality tasks.  Our
 model supports this easily: high-criticality tasks are given reservations to all processing time at
-high priorities, and low-criticality tasks are given reservations at a lower priority band.
+high priorities, and low-criticality tasks are given reservations at a lower priority band. Note
+that without intervention from a user-level scheduler, more sophisticated slack-scheduling schemes,
+where slack time is used before running a high-criticality task, cannot be conducted by the kernel.
 
-\gls{RTA} relies on suspending or de-prioritising low-criticality tasks if a high-criticality
-task runs for longer than expected.  Simple \gls{RTA} schemes involve two system modes:
+Vestal's model relies on suspending or de-prioritising low-criticality tasks if a high-criticality
+task runs for longer than expected.  Such simple schemes involve two system modes:
 a \crit{HI} mode and a \crit{LO} mode, although they have been generalised to
 more~\citep{Fleming_Burns_13}.  In \crit{LO} mode, high-criticality tasks run with smaller 
 reservations, and the remaining
@@ -457,7 +461,8 @@ for example by boosting the high-criticality task's priority and budget.
 
 The scheduling, accounting and enforcement mechanisms presented are sufficient to support temporally
 isolated, fixed-priority or \gls{EDF} scheduled real-time threads. By keeping admission control
-out of the kernel we preserve policy freedom, while the mechanisms provided allow for a full
+out of the kernel we preserve policy freedom, except in the case of replenishment policy which must
+be in the kernel to allow the enforcement of an upper bound on execution. While the mechanisms provided allow for a full
 resource kernel to be built, or other types of system which require the ability to over-commit.
 Additionally, we have maintained
 support for best-effort threads, and have added the ability to provide asymmetric protection for
@@ -551,7 +556,9 @@ Significant changes would be required to the seL4 \gls{IPC} model to ensure thre
 blocked on resume capabilities could be tracked from the endpoint that facilitated the IPC
 rendezvous. Prior kernels which implement efficient \gls{PIP} over \gls{IPC}, including Fiasco and Nova (recall
 \Cref{s:sc-intro}), did not use endpoints but sent \gls{IPC} directly between threads, which could
-then be used to track inheritance chains.
+then be used to track inheritance chains. A key design feature of seL4 endpoints is that they are
+stateless, enables strong isolation properties between threads that communicate, but prevent their
+use for tracking priority inheritance. 
 
 \subsection{\gls{OPCP}}
 
@@ -645,8 +652,8 @@ not only has to trust its server, but all the server's other
 clients. This would rule out sharing a server between clients of
 different criticality.
 
-In a \gls{HRT} system, we can assume that a client's reservations are sufficient to complete
-requests to servers.  However, in systems with best-effort and soft real-time tasks, no such
+In a mutually trusting \gls{HRT} system, we can assume that a client's reservations are sufficient to complete
+requests to servers.  However, in systems with untrusted \gls{HRT}, best-effort and soft real-time tasks, no such
 assumption can be made and client budgets may expire during a server request.  This leaves the
 server in a state where it cannot take new requests as it is stuck without an active reservation to
 complete the previous request.  Without a mechanism to handle this event the server, and any
@@ -654,7 +661,8 @@ potential clients, would be blocked until the client's budget is replenished.
 
 Timeout exceptions can be used to remove this need for trust, and
 allow a server to be shared across criticalities, as depicted in \cref{f:timeout}. Timeout fault endpoints are specific to the
-execution context of a thread, not the scheduling context. Consequently, servers may have timeout
+execution context of a thread, not the scheduling context, and threads servicing timeout faults must
+have a scheduling context of their own (in order to service the request). Consequently, servers may have timeout
 fault handlers while clients may not. The 
 server's timeout handler can, for example, provide an emergency budget
 to continue the operation (useful for \crit{HI} clients) or abort
@@ -675,8 +683,7 @@ it. See legend \cref{f:legend-2}}
 
 A server running out of budget constitutes a protocol violation
 by the client, and it makes sense to penalise that
-client by aborting. Helping schemes, such as \gls{PIP} or bandwidth
-inheritance,
+client by aborting. Helping schemes that complete the clients request, as per \gls{PIP},
 make the waiting client pay for
 another client's contract violation. This not only weakens temporal isolation,
 it also implies that the size of the required reserve budget
@@ -696,7 +703,9 @@ allows users to easily specify if servers should migrate to the core of the clie
 process the request on a remote core. 
 The mechanism is simple: if a
 server is passive, it migrates to the core for which the donated scheduling context provides
-time. 
+time. This allows for both remote and local bandwidth inheritance to be used for IPC at user-level,
+as defined in\citet{Hohmuth_Peter_01}, which discusses in-kernel synchronisation primitives for the
+SMP Fiasco kernel.
 
 \section{Mechanisms}
 \label{sec:model-mechanisms}
@@ -798,7 +807,7 @@ designers can set a timeslice, which determines how long a specific scheduling c
 executed upon before preemption.
 
 More complicated, time-sharing schedulers can be built by a user level scheduler, using the directed
-yield and consumed mechanisms, which allow user-level reorder the kernel's priority queues and
+yield and consumed mechanisms, which allow user-level to reorder the kernel's priority queues and
 request the amount of time consumed by a specific scheduling context.
 
 \subsubsection{Rate-limited threads}
@@ -820,9 +829,12 @@ setting threads' scheduling parameters appropriately. As long as the budget is
 not full ($C\neq T$), the \yield system call can be used to block until the next replenishment
 is available, as shown in \cref{list:polling}. However, this approach will only work if the amount of thread preemptions 
 is known and the amount of extra sporadic replenishments is set correctly, as \yield sleeps until
-the next available replenishment. If fragmentation occurs due to preemption and incorrect sporadic
+the next available replenishment. If fragmentation occurs due to unpredicted preemptions or suspensions and incorrect sporadic
 replenishments, the polling thread will not wake at the start of every period. This could be
-ameliorated by checking the time on wakeup, or using a different task model.  
+ameliorated by checking the time on wakeup, or by using a timer to and a notification object,
+where the notification object is configured to receive periodic notifications from a timer service.
+This approach can also be used to set up time-triggered threads, 
+in order to wake at exactly the right time.
 
 \begin{listing}
   \begin{minted}{c}
@@ -841,7 +853,7 @@ for (;;) {
 \subsubsection{Sporadic threads}
 
 Recall that sporadic threads wake due to events such as an interrupts, then process the event and
-go back to sleep. To constrain sporadic thread's execution times, they are given a maximum
+go back to sleep. To constrain sporadic thread's execution times, they are given a minimum
 inter-arrival time.
 To build sporadic threads notifications can be used
 with scheduling contexts, as displayed in \cref{list:model-sporadic}. In this case, if the
@@ -860,15 +872,6 @@ for (;;) {
   \caption{Example of a basic sporadic task on \selfour.}
   \label{list:model-sporadic}
 \end{listing}
-
-\subsubsection{Time triggered threads}
-
-Time-triggered threads, which wake up, do some processing, and go to sleep again until the next
-period can be set up with a user-level timer driver, in order to wake at exactly the right time.
-Scheduling contexts can be combined with this approach to rate-limit time-triggered threads, but 
-the exact amount of preemptions does not need to be known.
-\cref{list:model-sporadic} also applies to this policy, where the notification object is configured to
-receive periodic notifications from a timer service.
 
 \subsection{Resource sharing policies}
 
@@ -931,7 +934,8 @@ priori}, or systems that have low temporal sensitivity.
 \composite~\citep{Parmer_10} solves the resource sharing model by using migrating 
 threads (also termed stack-migrating \gls{IPC}).
 On every \gls{IPC}, client execution contexts (and CPU reservation) transfer to a new stack running in the
-server's protection domain.
+server's protection domain. In this section we explain how a migrating thread policy could be
+implemented with the model introduced in this chapter.
 
 To implement migrating threads, \composite requires that every server have a mechanism for
 allocating stacks.  If no memory is available to allocate stacks, then the request is blocked.  This
