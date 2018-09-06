@@ -1070,13 +1070,14 @@ The measured overhead considers the in-kernel scheduler, context-switch and user
 the user.
 
 \autoref{f:edf} shows that our preemptive user-level EDF scheduler implementation is
-actually faster than the in-kernel EDF scheduler from LITMUS$^{RT}$, and
+comparable with the in-kernel EDF scheduler from LITMUS$^{RT}$, and
 that the cost of implementing scheduling policy at user level of time-triggered systems is of
 the same order as the in-kernel default scheduler. In other words,
 implementing different policies on top of the base scheduler is quite feasible.
 
-The benchmark is by no means a worst-case overhead and actually shows a favourable overhead for both
-platforms as neither task set exercised the cache. Due to seL4's much smaller cache footprint than
+The benchmark is by no means a worst-case overhead. For LITMUS$^{RT}$ tasks exercise a single page
+of the cache and on seL4 only the instruction cache is effected. This favours seL4 as the scheduler
+runs with less cache evictions. However, due to seL4's much smaller cache footprint than
 Linux, it is likely seL4 would be more competitive if tasks had a significant cache footprint. Also
 note that as the C-EDF scheduler contains locking primitives for managing multiple cores, the LITMUS
 overheads are higher than they would be if a uniprocessor scheduler (PSN-EDF) was used for the

@@ -409,7 +409,7 @@ Access to shared resources requires \emph{mutual exclusion}, where only one
 task is permitted to access a resource at a time, to prevent system corruption. Code that
 must be accessed in a mutually exclusive fashion is called a \emph{critical section}. Generally
 speaking, tasks lock access to resources, preventing other tasks from accessing that resource
-until it is unlocked. However, many variants on locking protocols exist, and not all required mutual 
+until it is unlocked. However, many variants on locking protocols exist, and not all require mutual 
 exclusion. Some permit $n$ tasks to access a section, or locks that behave differently for read and
 write access.
 
@@ -452,7 +452,8 @@ works for both fixed and dynamic priority scheduling.
 However, \gls{PIP} results in large systems overheads due to nesting, implementation complexity and
 additional preemptions, and as a result has poor schedulability analysis.
 
-To understand the additional preemptions inherent in \gls{PIP}, consider a task set with $n$ tasks, $\tau_{1}, \ldots, A_{n}$, where each task's priority
+To understand the additional preemptions inherent in \gls{PIP}, consider a task set with $n$ tasks,
+$\tau_{1}, \ldots, \tau_{n}$, where each task's priority
 corresponds to its index, such that the priority of $\tau_{i} = i$. The highest priority is $n$ and the
 lowest is 1 and all tasks access the same resource. If $\tau_{1}$ holds the lock to that resource, then
 the worst preemption overhead occurs if $\tau_{2}$ wakes up, elevating the priority of $\tau_{1}$ to 2. Subsequently,
