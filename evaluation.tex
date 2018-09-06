@@ -1044,8 +1044,8 @@ scheduler. Either is an indication that the next thread should be scheduled.
 \end{figure}
 
 
-We use the \emph{randfixedsum}~\citep{Emberson_SD_10} algorithm to
-generate deadlines between 10 and 1000\,ms for a certain number of threads.
+We use the \emph{randfixedsum}~\citep{Emberson_SD_10} algorithm with periods ranging from 10-1000ms
+(log-uniform distribution) and implicit deadlines. 
 A set of threads runs until 100
 scheduling decisions have been recorded. We repeat this 10 times,
 resulting in 1,000 scheduler runs for each data point.
@@ -1074,6 +1074,14 @@ actually faster than the in-kernel EDF scheduler from LITMUS$^{RT}$, and
 that the cost of implementing scheduling policy at user level of time-triggered systems is of
 the same order as the in-kernel default scheduler. In other words,
 implementing different policies on top of the base scheduler is quite feasible.
+
+The benchmark is by no means a worst-case overhead and actually shows a favourable overhead for both
+platforms as neither task set exercised the cache. Due to seL4's much smaller cache footprint than
+Linux, it is likely seL4 would be more competitive if tasks had a significant cache footprint. Also
+note that as the C-EDF scheduler contains locking primitives for managing multiple cores, the LITMUS
+overheads are higher than they would be if a uniprocessor scheduler (PSN-EDF) was used for the
+benchmark.
+
 \section{Multiprocessor benchmarks}
 
 We run two multicore benchmarks, the first evaluating multicore throughput of the MCS kernel versus the
