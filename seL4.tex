@@ -12,7 +12,7 @@ temporal isolation is deficient. Three main features of \selfour
 support this claim: it has been formally verified for correctness~\citep{Klein_EHACDEEKNSTW_09,
 Klein_AEMSKH_14}, integrity~\citep{Sewell_WGMAK_11}, confidentiality~\citep{Murray_MBGBSLGK_13}.
 All memory management, including kernel memory, is at
-user-level~\citep{Elkaduwe_Derrin_06}; Finally it is the only \gls{OS} to date with full \gls{WCET}
+user-level~\citep{Elkaduwe_Derrin_06}; Finally it is the only general-purpose \gls{OS} to date with full \gls{WCET}
 analysis~\citep{Sewell_KH_16}.  
 
 In this section we will present the current state of relevant \selfour features in order to
@@ -20,8 +20,8 @@ highlight deficiencies and motivate our changes.  We present the capability syst
 management, communication including \gls{IPC} and the scheduler, followed by an analysis of
 how the current mechanisms can be used in real-time systems.
 
-First we introduce the powerful \selfour capability system, used to access all resources in the
-system---with the exception of \emph{time}. The scheduler in \selfour has been left intentionally
+First we introduce the powerful \selfour capability system, used to access all resources managed by
+seL4---with the exception of \emph{time}. The scheduler in \selfour has been left intentionally
 underspecified~\citep{Petters_EH_12} for later work.  The current implementation is a place holder,
 and follows the traditional L4 scheduling model~\citep{Ruocco_06}---a fixed-priority, round-robin
 scheduler with 256 priorities. 
@@ -304,7 +304,9 @@ which is $O(1)$ on a singly-linked list, a doubly-linked list is required as TCB
 deleted at any time. Memory placement of TCBs impacts scheduler performance, as depending on
 allocation patterns, different list nodes may trigger cache misses or worse, cache conflicts. As a
 result, the scheduler will perform far worse than a static, array-based scheduler using a fixed
-maximum number of TCBs with known ids for indexing. However, such an approach provides no policy
+maximum number of TCBs with known ids for indexing. Even in
+other operating systems that use linked-lists for scheduling, the source of the memory is a
+fixed-pool of kernel memory which is, rather than all of memory. However, such an approach provides no policy
 freedom, and is more suitable at a middle-ware level in the \gls{OS} implemented on top of the
 microkernel. 
 
@@ -601,11 +603,12 @@ The scheduler in \selfour is used to pick which runnable thread should run next 
 processing core, and is a priority-based round-robin scheduler with 256 priorities (0---255). 
 At a scheduling decision, the kernel chooses the head of the highest-priority, non-empty list.
 
-Implementation wise, the scheduler consists of an array of lists: one list of ready threads for each
+Implementation wise, the scheduler consists is fairly standard and consists
+of an array of lists: one list of ready threads for each
 priority level. A two-level bit field is used to track which priority lists contain threads, 
 in order to achieve a scheduling decision complexity of $O(1)$. In fact, the \(O(1)\) scheduler is a
 recent addition to \selfour: scheduling used to be far more expensive before the bit field was
-introduced.
+introduced, for the benefit of simplicity for the initial proofs.
 
 The bit field data structure works as follows: the
 top-level consists of one word, each bit representing $N$ priorities, where $N$ is 32 or 64
@@ -685,24 +688,26 @@ directly switched to and the scheduler is avoided all together. Otherwise, the r
 the endpoint queue into the scheduling queue and the scheduler called.
 
 % Citation?
-\emph{Benno} scheduling, named for its inventor Ben Leslie, removes the current thread from the 
+\emph{Benno} scheduling~\citep{Blackham_SH_12}, named for its inventor Ben Leslie, removes the current thread from the 
 scheduler, changing the invariant that all runnable threads are in the scheduler, so all runnable
-threads \emph{except the current thread} are in the scheduler. Consequently, we avoid manipulating the
+threads \emph{except the current thread} are in the scheduler. The current thread is only added back
+to the scheduler when a new thread is selected. Consequently, we avoid manipulating the
 scheduling queues when doing a direct switch, reducing the cache footprint and resulting in a performance improvement.
 
 The result of these optimisations is that \selfour, like L4 kernels before it, has very fast
-\gls{IPC}, compared to non-microkernels e.g.\ at least a factor of four in CertiKOS~\citep{Gu_SCWKSC_16}.
+\gls{IPC}, compared to non-microkernels e.g.\ at least a factor of four compared to CertiKOS~\citep{Gu_SCWKSC_16}.
 
 \subsubsection{Round-robin}
 \label{sec:seL4-round-robin}
 
 Kernel time is accounted for in fixed-time quanta referred to as ticks, and each TCB has a timeslice
-field which represents the number of ticks that TCB is eligible to execute until preempted.
-The kernel timer driver is configured to fire a periodic interrupt which marks each tick,
+field which represents the number of ticks that TCB is eligible to execute until preempted. The kernel timer driver is configured to fire a periodic interrupt which marks each tick,
 and when the timeslice is exhausted the thread is appended to the relevant scheduler queue,
 with a replenished timeslice.
 Threads can surrender their current tick using the \yield system call, which simulates
-timeslice exhaustion. 
+timeslice exhaustion. This
+served as a simple scheduler for the initial verification of seL4.
+
 
 \selfour implements timeslice donation, as discussed in \cref{sec:os-timeslice-donation}. 
 When threads communicate with a service over \gls{IPC}, the TCB of the thread providing the service
@@ -720,7 +725,9 @@ As a result, a single thread running at the highest priority has access to 100\%
 \label{sec:sel4-domain-scheduler}
 
 In order to provide confidentiality~\citep{Murray_MBGBSLGK_13} \selfour provides a top-level hierarchical scheduler
-which provides static, cyclical scheduling of scheduling partitions known as \emph{domains}. 
+which provides static, cyclical scheduling of scheduling partitions known as \emph{domains}. This is
+a classical approach from avionics~\citep{Lee_KYZ_98} which was later analysed for schedulability
+under both \gls{EDF} and \gls{FP}~\citep{Mok_FC_01}.
 Domains are statically configured at compile time with a cyclic schedule, and are non-preemptible
 resulting in completely deterministic scheduling of domains.
 Each domain has its own priority scheduler, with lists per priority and a bit field structure, which is switched deterministically when a domain's
@@ -736,8 +743,9 @@ parameters computed-offline.
 In such a scenario each real-time task could be mapped to its own domain, and each task would run for its specified time before the domain scheduler switched to the next thread.
 Any unused time in a domain would be wasted, and spent in the idle thread.
 
-Such a scheduler is only suitable for closed systems and results in low system utilisation.
-Dynamic real-time applications with shared resources and high system utilisation are not compatible
+Such a scheduler is only suitable for closed systems, and only efficient in terms of utilisation for systems with periodic tasks. 
+Dynamic real-time applications with shared resources, sporadic tasks and high utilisation
+requirements are not compatible
 with the domain scheduler, as they require preemption.
 
 \subsection{Real-time support}
@@ -754,7 +762,7 @@ implemented with each technique, and explore the limitations.
 %explain how to use the domain scheduler for RM
 A basic cyclic executive, as introduced in \cref{s:cyclic-executive} can be implemented using the
 domain scheduler by mapping domains directly to task frames. This approach only works for closed
-systems with offline scheduling. An optimal scheduler like \gls{FPRM} is not possible to implement
+systems with offline scheduling. An high utilisation scheduler for sporadic tasks is not possible to implement
 with domains as they are not preemptible. 
 
 % FPRM with priority scheduler
@@ -765,7 +773,7 @@ temporal isolation: if one thread executes for too long, other threads will miss
 Essentially the only thread with a guaranteed CPU allocation is the highest priority thread, which
 under rate-monotonic priority assignment is not the most critical thread in the system, but the
 thread with the highest rate.  Additionally, periodic threads driven by timer interrupts rather than
-events would need to share a user-level timer.
+events would need to share a user-level timer, as the kernel does not provide a source of time.
 
 % trusted component at user-level
 To build a dynamic system with temporal isolation and high CPU utilisation, one could provide a 
@@ -780,8 +788,8 @@ This is prohibitively expensive, as it results in doubled context switching time
 	\centering
     \rowcolors{3}{}{gray!25}
     \begin{tabularx}{\textwidth}{Xllll} \toprule
-        & \emph{Temporal}   & \emph{Utilisation} & \emph{Low kernel} & \emph{Dynamic}\\
-        & \emph{isolation}  &                    & \emph{overheads} & \\  
+    & \emph{Temporal}   & \emph{Sporadic}& \emph{Low kernel} & \emph{Dynamic}\\
+    & \emph{isolation}  & \emph{utilisation}                   & \emph{overheads} & \\  
         \midrule
 Domain scheduler          & \yes               & \no         & \yes        & \no    \\
 Priority scheduler        & \no                & \yes        & \yes        & \yes   \\
