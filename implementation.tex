@@ -18,7 +18,8 @@ addition to IPC messages.
 \label{s:resume}
 
 Resume objects, modelled after KeyKOS~\citep{Bomberger_FFHLS_92}, are a new object type that
-generalises the ``reply capabilities'' of baseline \selfour introduced in \cref{p:sel4_ipc}.  Recall that in
+generalises the ``reply capabilities'' of baseline \selfour introduced in \cref{p:sel4_ipc}, in
+order to track the donation of scheduling contexts over \gls{IPC}.  Recall that in
 baseline \selfour, the receiver of the message (i.e.\ the server) receives the reply capability in a
 magic ``reply slot'' in its capability space. The server replies by invoking that capability. Resume
 objects remove the magic by explicitly representing the reply channel, and servers with multiple
@@ -287,7 +288,7 @@ replenishment.  When a new scheduling context is switched to, \code{unblock\_che
 avoiding unnecessary preemptions.
 
 \begin{listing}[t!]
-\inputminted{c}{code/split_check.c}
+\inputminted{c}{code/unblock_check.c}
 \caption[Unblock check routine.]{\code{unblock\_check} routine used to implement sporadic servers.}
 \label{list:unblock-check}
 \end{listing}
@@ -380,10 +381,10 @@ call: \emph{waiting} system calls. The difference is simple: receiving system ca
 provide a capability to a resume object, which can be used if a \call is received over
 the endpoint being blocked on. Waiting system calls do not, and cannot be paired with a \call
 successfully. Only receiving system calls can be used with scheduling context donation, as the reply
-object is used to track the call stack. Such a distinction existed in the original L4 model, where
+object is used to track the call stack. Such a distinction existed in the original L4 model, 
 and were referred to as open and closed receive.
 
-Additionally, because the TCB reply capability slot is dropped the \gls{TCB} \cnode, we remove the \reply 
+Additionally, because the TCB reply capability slot is dropped from the \gls{TCB} \cnode, we remove the \reply 
 system call, as its only purpose was to invoke the capability in the reply slot, which no longer exists.
 \replyrecv remains, and invokes the resume capability, sending the reply, before using the
 reply in the \recv phase. 
@@ -406,7 +407,9 @@ a scheduling context, as a thread must be blocked in order to receive a scheduli
 \call and \replyrecv combine a \send and \recv phase, although with slightly different semantics
 with respect to resume objects. However, \call conducts both phases on the same capability, while
 the send phase of \replyrecv can only act on a resume object. We introduce a new combined system
-call, \nbsendrecv, which is the mechanism for IPC forwarding (\cref{sec:ipc-forwarding}). 
+call, \nbsendrecv, which is the mechanism for IPC forwarding
+(\cref{sec:ipc-forwarding}).\footnote{Note that the \code{nb} only applies to the send phase and not
+the receive phase.}
 IPC forwarding allows a \nbsend followed by a \recv on two distinct capabilities, without the
 restriction that the send-phase must act on a resume capability. 
 Additionally, we provide a variant which combines a send- and a waiting-phase, \nbsendwait.
@@ -609,7 +612,7 @@ void passive_server(seL4_CPtr init_endpoint, seL4_CPtr endpoint, seL4_CPtr reply
   info = seL4_NBSendRecv(init_endpoint, info, endpoint, &badge, reply);
   while (true) {
     /* when the server wakes, it is running on a client scheduling context */
-    info = process_request(sender);
+    info = process_request(badge);
     /* reply to the client and block on endpoint, with resume object reply */
     seL4_ReplyRecv(endpoint, info, &badge, reply);
   }
@@ -774,11 +777,13 @@ partial budgets are placed into the release queue, which limits the size of the 
 Consequently we do not expect any of the priority queues to contain large numbers of threads,
 however if scalability becomes a problem in
 practice this implementation could be reconsidered. \citet{Brandenburg:phd} used
-binomial heaps for schedulers in \litmus, however Linux does not provide the guarantees, or
+binomial heaps for schedulers in \litmus in order to reduce the cost of releasing many tasks at the
+same time, however Linux does not provide the guarantees, or
 implementation requirements of \selfour.
 
 The list-based queues are non-preemptible, such that the \gls{WCET} of the kernel is a function of the 
-number of threads that can wait on an endpoint.
+number of threads that can wait on an endpoint. This is an unavoidable increase in the \gls{WCET} of
+the kernel in order to allow for prioritised \gls{IPC} required by real-time prioritisation.
 One security concern is sub-systems with access to a single scheduling context and a large amount
 of memory can increase the kernel's run-time by queuing up a large amount of passive threads on 
 an endpoint. To prevent this, system designers must not hand out large untyped capabilities to
