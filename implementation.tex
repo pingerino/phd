@@ -390,7 +390,7 @@ system call, as its only purpose was to invoke the capability in the reply slot,
 reply in the \recv phase. 
 
 By making the reply channel explicit, we significantly increase the practicality of the IPC
-fastpath. In baseline \selfour, any server that served multiple clients and did not reply
+fastpath, at the cost of an extra capability look-up on the fastpath. In baseline \selfour, any server that served multiple clients and did not reply
 immediately---because it needed to block on I/O, for example---would save the reply
 capability, moving it from the special TCB slot to a standard slot in the \cspace. Later, when
 the server replied to the client, it would invoke the saved reply capability with \send, then block

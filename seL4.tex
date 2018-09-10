@@ -12,7 +12,7 @@ temporal isolation is deficient. Three main features of \selfour
 support this claim: it has been formally verified for correctness~\citep{Klein_EHACDEEKNSTW_09,
 Klein_AEMSKH_14}, integrity~\citep{Sewell_WGMAK_11}, confidentiality~\citep{Murray_MBGBSLGK_13}.
 All memory management, including kernel memory, is at
-user-level~\citep{Elkaduwe_Derrin_06}; Finally it is the only general-purpose \gls{OS} to date with full \gls{WCET}
+user-level~\citep{Elkaduwe_Derrin_06}; Finally it is the only general-purpose, protected-mode \gls{OS} to date with full \gls{WCET}
 analysis~\citep{Sewell_KH_16}.  
 
 In this section we will present the current state of relevant \selfour features in order to
@@ -305,7 +305,7 @@ deleted at any time. Memory placement of TCBs impacts scheduler performance, as 
 allocation patterns, different list nodes may trigger cache misses or worse, cache conflicts. As a
 result, the scheduler will perform far worse than a static, array-based scheduler using a fixed
 maximum number of TCBs with known ids for indexing. Even in
-other operating systems that use linked-lists for scheduling, the source of the memory is a
+other operating systems that use linked lists for scheduling, the source of the memory is a
 fixed-pool of kernel memory which is, rather than all of memory. However, such an approach provides no policy
 freedom, and is more suitable at a middle-ware level in the \gls{OS} implemented on top of the
 microkernel. 
@@ -603,7 +603,7 @@ The scheduler in \selfour is used to pick which runnable thread should run next 
 processing core, and is a priority-based round-robin scheduler with 256 priorities (0---255). 
 At a scheduling decision, the kernel chooses the head of the highest-priority, non-empty list.
 
-Implementation wise, the scheduler consists is fairly standard and consists
+Implementation wise, the scheduler is fairly standard and consists
 of an array of lists: one list of ready threads for each
 priority level. A two-level bit field is used to track which priority lists contain threads, 
 in order to achieve a scheduling decision complexity of $O(1)$. In fact, the \(O(1)\) scheduler is a
@@ -687,11 +687,11 @@ higher than any other runnable thread by querying the scheduler bit field. If so
 directly switched to and the scheduler is avoided all together. Otherwise, the receiver is moved from
 the endpoint queue into the scheduling queue and the scheduler called.
 
-% Citation?
-\emph{Benno} scheduling~\citep{Blackham_SH_12}, named for its inventor Ben Leslie, removes the current thread from the 
+\emph{Benno} scheduling, named for its inventor Ben Leslie, removes the current thread from the 
 scheduler, changing the invariant that all runnable threads are in the scheduler, so all runnable
-threads \emph{except the current thread} are in the scheduler. The current thread is only added back
-to the scheduler when a new thread is selected. Consequently, we avoid manipulating the
+threads \emph{except the current thread} are in the scheduler~\citep{Blackham_SH_12}. The current thread is only added back
+to the scheduler when it is preempted. On IPC, the
+current thread does not need to be added to the scheduler it is immediately blocked on the endpoint. Consequently, we avoid manipulating the
 scheduling queues when doing a direct switch, reducing the cache footprint and resulting in a performance improvement.
 
 The result of these optimisations is that \selfour, like L4 kernels before it, has very fast
@@ -743,7 +743,7 @@ parameters computed-offline.
 In such a scenario each real-time task could be mapped to its own domain, and each task would run for its specified time before the domain scheduler switched to the next thread.
 Any unused time in a domain would be wasted, and spent in the idle thread.
 
-Such a scheduler is only suitable for closed systems, and only efficient in terms of utilisation for systems with periodic tasks. 
+Such a scheduler is only suitable for closed systems and only efficient in terms of utilisation for systems with periodic tasks. 
 Dynamic real-time applications with shared resources, sporadic tasks and high utilisation
 requirements are not compatible
 with the domain scheduler, as they require preemption.

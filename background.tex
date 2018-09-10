@@ -179,9 +179,9 @@ this is deciding which thread, or process to run on the processor next, and in t
 multiprocessors, which processor to use. More formally, scheduling
 is the act of assigning resources to activities or tasks~\citep{Baruah_CPV_96}, generally discussed
 in the context of processing time, but is also required for other resources such as communication
-channels.  A correct scheduling algorithm  can guarantee that all deadlines are met within their
-requirements, although a secondary goal is to maximise utilisation of the scheduled resource(s). Real-time
-scheduling algorithms differ from their non-real-time equivalents in that they must guarantee that
+channels.  A scheduling algorithm allocates time to tasks so that they all meet their deadlines,
+subject to conditions such as utilisation bounds.
+Real-time scheduling algorithms differ from their non-real-time equivalents in that they must guarantee that
 all tasks not only receive sufficient access to the processor, but that all tasks meet their timing
 requirements, \ie deadlines. 
 
@@ -302,7 +302,7 @@ rates---where \emph{rate} is determined by the period, as shown in \cref{eq:2}.
 	\dfrac{1}{T_{i}}
 \end{equation}
 
-While \gls{RM} is only optimal for task sets with implicit deadlines, however \gls{DM} priority
+While \gls{RM} is only optimal for task sets with implicit deadlines, \gls{DM} priority
 assignment~\citep{Leung_Whitehead_82} allocates higher priorities to tasks with shorter deadlines
 and is optimal for implicit and constrained deadlines.
 In both cases, ties are broken arbitrarily.

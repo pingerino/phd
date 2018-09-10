@@ -373,7 +373,7 @@ The majority of kernels surveyed here are microkernels, as introduced in
 \begin{itemize}
     \item KeyKOS~\citep{Bomberger_FFHLS_92}, a persistent, capability based microkernel. 
     \item Real-time Mach~\citep{Mercer_RZ_94, Mercer_ST_93}, a first-generation microkernel.
-    \item EROS~\citep{Shapiro_SF_99}, the first third-generation microkernel.
+    \item EROS~\citep{Shapiro_SF_99}, the first high-performance, capability-based kernel.
     \item Fiasco~\citep{Haertig_BBHHMRSW_98,Hohmuth_02} is a second-generation L4 microkernel, with fixed-priority scheduling.
     \item \minix~\citep{Herder_BGHT_06}, a traditional microkernel with a focus on reliability
         rather than performance. 
@@ -386,8 +386,8 @@ temporal isolation between user-level processes and the operating system.
     \item \fiascooc~\citep{Lackorzynski_WVH_12}, a third-generation iteration of Fiasco, both microkernel and
         hypervisor.
     \item Quest-V~\citep{Danish_LW_11} is a separation kernel / hypervisor.
-    \item \selfour~\citep{Klein_AEMSKH_14}, a third-generation microkernel with
-        hypervisor support and a proof of functional correctness. We present \selfour 
+    \item \selfour~\citep{Klein_AEMSKH_14}, the first third-generation microkernel with
+        hypervisor support, strong isolation properties and a proof of functional correctness. We present \selfour 
         and its mechanisms in more detail in \cref{chap:sel4}.
     \item AUTOBEST~\citep{Zuepke_BL_15} is a separation kernel where the authors demonstrate implementations
            of AUTOSAR and ARINC653 in separate partitions.
