@@ -395,9 +395,8 @@ immediately---because it needed to block on I/O, for example---would save the re
 capability, moving it from the special TCB slot to a standard slot in the \cspace. Later, when
 the server replied to the client, it would invoke the saved reply capability with \send, then block
 for new messages with \recv, avoiding the IPC fastpath for \replyrecv. No system call to move the 
-resume capability back to the \gls{TCB} \cnode was provided, however this would require yet another
-system call. Resume objects avoid the save
-slowpath, and increase the probability of using the fastpath, should the conditions detailed in \cref{sec:sel4-fastpath} be satisfied.
+resume capability back to the \gls{TCB} \cnode was provided.
+Resume objects avoid the save slowpath, and increase the probability of using the fastpath, should the conditions detailed in \cref{sec:sel4-fastpath} be satisfied.
 
 \subsection{IPC Forwarding}
 \label{s:ipc-forwarding}
@@ -408,8 +407,12 @@ a scheduling context, as a thread must be blocked in order to receive a scheduli
 with respect to resume objects. However, \call conducts both phases on the same capability, while
 the send phase of \replyrecv can only act on a resume object. We introduce a new combined system
 call, \nbsendrecv, which is the mechanism for IPC forwarding
-(\cref{sec:ipc-forwarding}).\footnote{Note that the \code{nb} only applies to the send phase and not
-the receive phase.}
+(\cref{sec:ipc-forwarding}).
+Both \nbsendrecv and \replyrecv combine a non-blocking send with a normal (blocking) receive. 
+The non-blocking send will simply
+discard the message and progress to the receive phase atomically if the send cannot deliver its
+message without blocking.
+
 IPC forwarding allows a \nbsend followed by a \recv on two distinct capabilities, without the
 restriction that the send-phase must act on a resume capability. 
 Additionally, we provide a variant which combines a send- and a waiting-phase, \nbsendwait.

@@ -395,9 +395,8 @@ temporal isolation between user-level processes and the operating system.
 
 We do not consider Nemesis~\citep{Leslie_MBRBEFH_96}, as although it treated time as a first-class
 resource, the focus was on multimedia performance. Nemesis was as single-address-space operating
-system, an architecture designed to avoid expensive context switches, a technique no-longer needed
-on modern hardware and unsuitable for true isolation due to the presence of side- and covert
-channels.
+system, an architecture designed for efficient sharing, as pointers are valid beyond process
+boundaries, at the cost of much larger virtual address spaces.
 
 \subsection{Scheduling}
 
